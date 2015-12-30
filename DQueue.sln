@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DQueue", "DQueue\DQueue.csproj", "{DFB49DB8-AE49-4D85-9323-7171CF6F2AF4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DQueue.WinTest", "DQueue.WinTest\DQueue.WinTest.csproj", "{003B6BF7-FE9B-4F06-8EA4-69C07376851A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DFB49DB8-AE49-4D85-9323-7171CF6F2AF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFB49DB8-AE49-4D85-9323-7171CF6F2AF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFB49DB8-AE49-4D85-9323-7171CF6F2AF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFB49DB8-AE49-4D85-9323-7171CF6F2AF4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{003B6BF7-FE9B-4F06-8EA4-69C07376851A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{003B6BF7-FE9B-4F06-8EA4-69C07376851A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{003B6BF7-FE9B-4F06-8EA4-69C07376851A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{003B6BF7-FE9B-4F06-8EA4-69C07376851A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
