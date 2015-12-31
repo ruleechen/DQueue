@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using DQueue.Core;
 
 namespace DQueue.WinTest
 {
@@ -16,14 +17,35 @@ namespace DQueue.WinTest
             InitializeComponent();
         }
 
+        private class TextMessage : IMessage
+        {
+            public string Channel
+            {
+                get
+                {
+                    return "TextMessage";
+                }
+            }
+
+            public string TextBody
+            {
+                get;
+                set;
+            }
+        }
+
         private void btnSend_Click(object sender, EventArgs e)
         {
-
+            QueueManager.Get().Send(new TextMessage
+            {
+                TextBody = txtSendMessage.Text
+            });
         }
 
         private void btnReceive_Click(object sender, EventArgs e)
         {
-
+            var message = QueueManager.Get().Receive<TextMessage>();
+            txtReceiveMessage.Text = message.TextBody;
         }
     }
 }

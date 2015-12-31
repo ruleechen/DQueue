@@ -7,8 +7,8 @@ namespace DQueue.Core
 {
     public interface IQueue
     {
-        void Send(IMessage message);
+        void Send<T>(T message);
 
-        IMessage Receive();
+        T Receive<T>();
     }
 }

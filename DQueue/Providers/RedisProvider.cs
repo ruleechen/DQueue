@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace DQueue.Core
+namespace DQueue.Providers
 {
-    public interface IMessage
+    public class RedisProvider
     {
-        string Channel { get; }
     }
 }
