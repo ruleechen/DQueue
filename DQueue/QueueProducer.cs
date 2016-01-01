@@ -10,6 +10,7 @@ namespace DQueue
     public class QueueProducer
     {
         public void Send<TMessage>(TMessage message)
+            where TMessage : IQueueMessage
         {
             throw new NotImplementedException();
         }

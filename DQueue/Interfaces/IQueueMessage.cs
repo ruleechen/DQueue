@@ -7,6 +7,6 @@ namespace DQueue.Interfaces
 {
     public interface IQueueMessage
     {
-        string ChannelName { get; }
+        string QueueName { get; }
     }
 }

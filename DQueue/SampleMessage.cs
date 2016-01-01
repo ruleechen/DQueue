@@ -9,7 +9,7 @@ namespace DQueue
 {
     public class SampleMessage : IQueueMessage
     {
-        public string ChannelName
+        public string QueueName
         {
             get
             {

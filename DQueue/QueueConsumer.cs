@@ -10,6 +10,7 @@ namespace DQueue
     public class QueueConsumer
     {
         public void Receive<TMessage>(Action<TMessage> action)
+            where TMessage : IQueueMessage
         {
             throw new NotImplementedException();
         }

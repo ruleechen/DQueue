@@ -19,7 +19,7 @@ namespace DQueue.WinTest
 
         private class TextMessage : IQueueMessage
         {
-            public string ChannelName
+            public string QueueName
             {
                 get
                 {
