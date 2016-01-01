@@ -69,7 +69,7 @@ namespace DQueue.QueueProviders
                 try
                 {
                     var instance = (IQueueMessage)Activator.CreateInstance(type);
-                    return instance.QueueName;
+                    return instance.ChannelName;
                 }
                 catch (Exception)
                 {
