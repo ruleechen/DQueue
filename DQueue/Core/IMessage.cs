@@ -7,6 +7,6 @@ namespace DQueue.Core
 {
     public interface IMessage
     {
-        string Channel { get; }
+        string Queue { get; }
     }
 }

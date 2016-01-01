@@ -1,0 +1,4 @@
+http://www.cnblogs.com/yangecnu/p/Introduce-RabbitMQ.html
+http://www.cnblogs.com/gossip/p/4475978.html
+
+CMD should run as administrator!!!

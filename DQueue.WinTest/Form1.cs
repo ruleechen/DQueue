@@ -19,7 +19,7 @@ namespace DQueue.WinTest
 
         private class TextMessage : IMessage
         {
-            public string Channel
+            public string Queue
             {
                 get
                 {
@@ -27,7 +27,7 @@ namespace DQueue.WinTest
                 }
             }
 
-            public string TextBody
+            public string Body
             {
                 get;
                 set;
@@ -38,14 +38,14 @@ namespace DQueue.WinTest
         {
             QueueManager.Get().Send(new TextMessage
             {
-                TextBody = txtSendMessage.Text
+                Body = txtSendMessage.Text
             });
         }
 
         private void btnReceive_Click(object sender, EventArgs e)
         {
             var message = QueueManager.Get().Receive<TextMessage>();
-            txtReceiveMessage.Text = message.TextBody;
+            txtReceiveMessage.Text = message.Body;
         }
     }
 }

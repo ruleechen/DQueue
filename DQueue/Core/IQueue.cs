@@ -10,5 +10,7 @@ namespace DQueue.Core
         void Send<T>(T message);
 
         T Receive<T>();
+
+        //void Consumer<T>(Func<T> func);
     }
 }
