@@ -4,15 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DQueue.Interfaces;
-using DQueue.QueueProviders;
 
 namespace DQueue
 {
-    public class QueueManager
+    public abstract class BaseProducer<TMessage> : IQueueProducer<TMessage>
     {
-        public static IQueueProvider Get()
+        public void Send(TMessage message)
         {
-            return new RabbitMQProvider();
+
         }
     }
 }

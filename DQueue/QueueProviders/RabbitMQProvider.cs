@@ -3,35 +3,30 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DQueue.Core;
+using DQueue.Interfaces;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
-namespace DQueue.Providers
+namespace DQueue.QueueProviders
 {
-    public class RabbitMQProvider : IQueue
+    public class RabbitMQProvider : IQueueProvider
     {
-        static readonly ConnectionFactory _connectionFactory;
-
-        static RabbitMQProvider()
-        {
-            _connectionFactory = new ConnectionFactory();
-            _connectionFactory.HostName = "localhost";
-            _connectionFactory.UserName = "rulee";
-            _connectionFactory.Password = "abc123";
-        }
-
         public void Send<T>(T message)
         {
             var queueName = GetQueueName<T>();
             var messageData = JsonConvert.SerializeObject(message);
 
+            var _connectionFactory = new ConnectionFactory();
+            _connectionFactory.HostName = "localhost";
+            _connectionFactory.UserName = "rulee";
+            _connectionFactory.Password = "abc123";
+
             using (var connection = _connectionFactory.CreateConnection())
             {
                 using (var channel = connection.CreateModel())
                 {
-                    channel.QueueDeclare(queueName, true, false, false, null);
+                    channel.QueueDeclare(queueName, false, false, false, null);
                     var properties = channel.CreateBasicProperties();
                     properties.DeliveryMode = 2;
                     channel.BasicPublish("", "hello", properties, Encoding.UTF8.GetBytes(messageData));
@@ -43,19 +38,22 @@ namespace DQueue.Providers
         {
             var queueName = GetQueueName<T>();
 
+            var _connectionFactory = new ConnectionFactory();
+            _connectionFactory.HostName = "localhost";
+            _connectionFactory.UserName = "rulee";
+            _connectionFactory.Password = "abc123";
+
             using (var connection = _connectionFactory.CreateConnection())
             {
                 using (var channel = connection.CreateModel())
                 {
-                    channel.QueueDeclare(queueName, true, false, false, null);
-                    channel.BasicQos(0, 1, false);
+                    channel.QueueDeclare(queueName, false, false, false, null);
 
                     var consumer = new QueueingBasicConsumer(channel);
-                    channel.BasicConsume("hello", false, consumer);
+                    channel.BasicConsume(queueName, true, consumer);
 
                     var eventArg = consumer.Queue.Dequeue();
                     var message = Encoding.UTF8.GetString(eventArg.Body);
-                    channel.BasicAck(eventArg.DeliveryTag, false);
 
                     return JsonConvert.DeserializeObject<T>(message);
                 }
@@ -66,12 +64,12 @@ namespace DQueue.Providers
         {
             var type = typeof(T);
 
-            if (typeof(IMessage).IsAssignableFrom(type))
+            if (typeof(IQueueMessage).IsAssignableFrom(type))
             {
                 try
                 {
-                    var instance = (IMessage)Activator.CreateInstance(type);
-                    return instance.Queue;
+                    var instance = (IQueueMessage)Activator.CreateInstance(type);
+                    return instance.QueueName;
                 }
                 catch (Exception)
                 {

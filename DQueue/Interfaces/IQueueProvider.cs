@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace DQueue.Core
+namespace DQueue.Interfaces
 {
-    public interface IQueue
+    public interface IQueueProvider
     {
         void Send<T>(T message);
 

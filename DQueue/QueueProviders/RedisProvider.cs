@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace DQueue.Core
+namespace DQueue.QueueProviders
 {
-    public interface IConsumer
+    public class RedisProvider
     {
     }
 }

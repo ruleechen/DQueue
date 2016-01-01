@@ -6,7 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using DQueue.Core;
+using DQueue.Interfaces;
 
 namespace DQueue.WinTest
 {
@@ -17,9 +17,9 @@ namespace DQueue.WinTest
             InitializeComponent();
         }
 
-        private class TextMessage : IMessage
+        private class TextMessage : IQueueMessage
         {
-            public string Queue
+            public string QueueName
             {
                 get
                 {
