@@ -14,10 +14,14 @@ namespace DQueue.SampleProducer
     {
         static void Main(string[] args)
         {
-            new Producer().Send(new TextMessage
+            var producer = new Producer();
+
+            while (true)
             {
-                Body = "hello, dqueue"
-            });
+                var text = Console.ReadLine();
+                producer.Send(new TextMessage { Body = text });
+                Console.WriteLine("[send success]");
+            }
         }
     }
 }

@@ -13,6 +13,14 @@ namespace DQueue
         {
         }
 
-        public abstract void OnReceive(TMessage message);
+        public bool Receive()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void OnReceive(TMessage message)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

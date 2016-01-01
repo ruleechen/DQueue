@@ -8,17 +8,21 @@ namespace DQueue.SampleConsumer
 {
     class Consumer : BaseConsumer<TextMessage>
     {
-        public override void OnReceive(TextMessage message)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     class Program
     {
         static void Main(string[] args)
         {
-            new Consumer().Start();
+            var consumer = new Consumer();
+
+            while (true)
+            {
+                if (consumer.Receive())
+                {
+
+                }
+            }
         }
     }
 }
