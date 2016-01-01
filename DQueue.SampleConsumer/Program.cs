@@ -6,23 +6,17 @@ using System.Threading.Tasks;
 
 namespace DQueue.SampleConsumer
 {
-    class Consumer : BaseConsumer<TextMessage>
-    {
-    }
-
     class Program
     {
         static void Main(string[] args)
         {
-            var consumer = new Consumer();
+            var consumer = new QueueConsumer();
 
-            while (true)
+            consumer.Receive<SampleMessage>((message) =>
             {
-                if (consumer.Receive())
-                {
-
-                }
-            }
+                Console.WriteLine(message.FirstName);
+                Console.WriteLine(message.LastName);
+            });
         }
     }
 }

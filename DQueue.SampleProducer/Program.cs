@@ -6,20 +6,22 @@ using System.Threading.Tasks;
 
 namespace DQueue.SampleProducer
 {
-    class Producer : BaseProducer<TextMessage>
-    {
-    }
-
     class Program
     {
         static void Main(string[] args)
         {
-            var producer = new Producer();
+            var producer = new QueueProducer();
 
             while (true)
             {
                 var text = Console.ReadLine();
-                producer.Send(new TextMessage { Body = text });
+
+                producer.Send(new SampleMessage
+                {
+                    FirstName = text,
+                    LastName = text
+                });
+
                 Console.WriteLine("[send success]");
             }
         }

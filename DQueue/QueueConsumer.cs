@@ -7,11 +7,11 @@ using DQueue.Interfaces;
 
 namespace DQueue
 {
-    public abstract class BaseProducer<TMessage> : IQueueProducer<TMessage>
+    public class QueueConsumer
     {
-        public void Send(TMessage message)
+        public void Receive<TMessage>(Action<TMessage> action)
         {
-
+            throw new NotImplementedException();
         }
     }
 }

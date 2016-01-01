@@ -7,9 +7,9 @@ using DQueue.Interfaces;
 
 namespace DQueue
 {
-    public class TextMessage : IQueueMessage
+    public class SampleMessage : IQueueMessage
     {
-        public string QueueName
+        public string ChannelName
         {
             get
             {
@@ -17,6 +17,8 @@ namespace DQueue
             }
         }
 
-        public string Body { get; set; }
+        public string FirstName { get; set; }
+
+        public string LastName { get; set; }
     }
 }
