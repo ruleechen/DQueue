@@ -14,5 +14,10 @@ namespace DQueue
         {
             return new RabbitMQProvider();
         }
+        
+        public static string GetQueueName(object message)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
