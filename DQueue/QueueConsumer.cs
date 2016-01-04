@@ -17,6 +17,10 @@ namespace DQueue
         
         public void Receive<TMessage>(int threads, Action<ConsumerContext, TMessage> action)
         {
+            Task serverTask = Task.Factory.StartNew(() => Server(context));
+            Task clientTask = Task.Factory.StartNew(() => Client(context));
+            Task.WaitAll(serverTask, clientTask);
+            
             Task.StartNew(x =>
             {
                 
