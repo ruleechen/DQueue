@@ -10,9 +10,9 @@ namespace DQueue
     public class QueueProducer
     {
         public void Send<TMessage>(TMessage message)
-            where TMessage : IQueueMessage
+            where TMessage : new()
         {
-            throw new NotImplementedException();
+            QueueHelpers.GetProvider().Send(message);
         }
     }
 }

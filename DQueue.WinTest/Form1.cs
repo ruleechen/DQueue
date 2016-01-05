@@ -36,7 +36,7 @@ namespace DQueue.WinTest
 
         private void btnSend_Click(object sender, EventArgs e)
         {
-            QueueManager.Get().Send(new TextMessage
+            QueueHelpers.GetProvider().Send(new TextMessage
             {
                 Body = txtSendMessage.Text
             });
@@ -44,7 +44,7 @@ namespace DQueue.WinTest
 
         private void btnReceive_Click(object sender, EventArgs e)
         {
-            var message = QueueManager.Get().Receive<TextMessage>();
+            var message = QueueHelpers.GetProvider().Receive<TextMessage>();
             txtReceiveMessage.Text = message.Body;
         }
     }

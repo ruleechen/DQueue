@@ -13,7 +13,7 @@ namespace DQueue
         {
             get
             {
-                return this.GetType().FullName;
+                return "TestQueue";
             }
         }
 

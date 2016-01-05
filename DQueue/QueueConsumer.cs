@@ -7,30 +7,53 @@ using DQueue.Interfaces;
 
 namespace DQueue
 {
-    public class QueueConsumer : IDispose
+    public class QueueConsumer : IDisposable
     {
-        public void Receive<TMessage>(Action<TMessage> action)
-            where TMessage : IQueueMessage
+        private readonly List<Task> _tasks;
+
+        public QueueConsumer()
         {
-            throw new NotImplementedException();
+            _tasks = new List<Task>();
         }
-        
-        public void Receive<TMessage>(int threads, Action<ConsumerContext, TMessage> action)
+
+        public void Receive<TMessage>(Action<TMessage> action)
+            where TMessage : new()
         {
-            Task serverTask = Task.Factory.StartNew(() => Server(context));
-            Task clientTask = Task.Factory.StartNew(() => Client(context));
-            Task.WaitAll(serverTask, clientTask);
-            
-            Task.StartNew(x =>
+            Receive<TMessage>(1, (context, message) =>
             {
-                
-                var ctx = new ConsumerContext();
-                ctx.OnComplete += () => 
+                action(message);
+                context.Complete();
+            });
+        }
+
+        public void Receive<TMessage>(Action<ConsumerContext, TMessage> action)
+            where TMessage : new()
+        {
+            Receive(1, action);
+        }
+
+        public void Receive<TMessage>(int threads, Action<ConsumerContext, TMessage> action)
+            where TMessage : new()
+        {
+            for (var i = 0; i < threads; i++)
+            {
+                _tasks.Add(Task.Factory.StartNew(() =>
                 {
-                };
-                
-                action(ctx, message)
-            })
+                    var context = new ConsumerContext();
+                    var provider = QueueHelpers.GetProvider();
+                    action(context, provider.Receive<TMessage>());
+                }));
+            }
+
+            Task.WaitAll(_tasks.ToArray());
+        }
+
+        public void Dispose()
+        {
+            foreach (var task in _tasks)
+            {
+                task.Dispose();
+            }
         }
     }
 }
