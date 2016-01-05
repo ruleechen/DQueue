@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DQueue.Interfaces;
 
 namespace DQueue.CmdTest
 {
@@ -36,5 +37,20 @@ namespace DQueue.CmdTest
                 Console.WriteLine(string.Format("[send] -> {0}", text));
             }
         }
+    }
+
+    public class SampleMessage : IQueueMessage
+    {
+        public string QueueName
+        {
+            get
+            {
+                return "TestQueue";
+            }
+        }
+
+        public string FirstName { get; set; }
+
+        public string LastName { get; set; }
     }
 }

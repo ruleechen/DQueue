@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using DQueue.Interfaces;
 
 namespace DQueue.WinTest
 {
@@ -40,7 +41,21 @@ namespace DQueue.WinTest
                 FirstName = text,
                 LastName = text
             });
-
         }
+    }
+
+    public class SampleMessage : IQueueMessage
+    {
+        public string QueueName
+        {
+            get
+            {
+                return "TestQueue";
+            }
+        }
+
+        public string FirstName { get; set; }
+
+        public string LastName { get; set; }
     }
 }

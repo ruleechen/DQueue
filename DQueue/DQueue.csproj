@@ -60,7 +60,6 @@
     <Compile Include="QueueHelpers.cs" />
     <Compile Include="QueueConsumer.cs" />
     <Compile Include="QueueProducer.cs" />
-    <Compile Include="SampleMessage.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

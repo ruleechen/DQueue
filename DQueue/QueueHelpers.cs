@@ -8,7 +8,7 @@ using DQueue.QueueProviders;
 
 namespace DQueue
 {
-    public class QueueHelpers
+    internal class QueueHelpers
     {
         public static IQueueProvider GetProvider()
         {
