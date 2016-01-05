@@ -7,10 +7,8 @@ namespace DQueue.Interfaces
 {
     public interface IQueueProvider
     {
-        void Send<T>(T message);
+        void Send(string queueName, object message);
 
-        T Receive<T>();
-
-        //void Consumer<T>(Func<T> func);
+        void Receive<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler);
     }
 }

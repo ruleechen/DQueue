@@ -16,32 +16,38 @@ namespace DQueue
             _tasks = new List<Task>();
         }
 
-        public void Receive<TMessage>(Action<TMessage> action)
+        public void Receive<TMessage>(Action<TMessage> handler)
             where TMessage : new()
         {
-            Receive<TMessage>(1, (context, message) =>
+            Receive<TMessage>(1, (message, context) =>
             {
-                action(message);
+                handler(message);
                 context.Complete();
             });
         }
 
-        public void Receive<TMessage>(Action<ConsumerContext, TMessage> action)
+        public void Receive<TMessage>(Action<TMessage, ReceptionContext> handler)
             where TMessage : new()
         {
-            Receive(1, action);
+            Receive<TMessage>(1, handler);
         }
 
-        public void Receive<TMessage>(int threads, Action<ConsumerContext, TMessage> action)
+        public void Receive<TMessage>(int threads, Action<TMessage, ReceptionContext> handler)
             where TMessage : new()
         {
             for (var i = 0; i < threads; i++)
             {
                 _tasks.Add(Task.Factory.StartNew(() =>
                 {
-                    var context = new ConsumerContext();
                     var provider = QueueHelpers.GetProvider();
-                    action(context, provider.Receive<TMessage>());
+
+                    var queueName = QueueHelpers.GetQueueName<TMessage>();
+
+                    provider.Receive<TMessage>(queueName, (message, context) =>
+                    {
+                        handler(message, context);
+                    });
+
                 }));
             }
 

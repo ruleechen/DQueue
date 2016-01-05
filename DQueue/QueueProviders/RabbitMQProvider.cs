@@ -12,10 +12,12 @@ namespace DQueue.QueueProviders
 {
     public class RabbitMQProvider : IQueueProvider
     {
-        public void Send<T>(T message)
+        public void Send(string queueName, object message)
         {
-            var queueName = GetQueueName<T>();
-            var messageData = JsonConvert.SerializeObject(message);
+            if (string.IsNullOrWhiteSpace(queueName) || message == null)
+            {
+                return;
+            }
 
             var _connectionFactory = new ConnectionFactory();
             _connectionFactory.HostName = "localhost";
@@ -29,14 +31,19 @@ namespace DQueue.QueueProviders
                     channel.QueueDeclare(queueName, false, false, false, null);
                     var properties = channel.CreateBasicProperties();
                     properties.DeliveryMode = 2;
+
+                    var messageData = JsonConvert.SerializeObject(message);
                     channel.BasicPublish("", "hello", properties, Encoding.UTF8.GetBytes(messageData));
                 }
             }
         }
 
-        public T Receive<T>()
+        public void Receive<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler)
         {
-            var queueName = GetQueueName<T>();
+            if (string.IsNullOrWhiteSpace(queueName) || handler == null)
+            {
+                return;
+            }
 
             var _connectionFactory = new ConnectionFactory();
             _connectionFactory.HostName = "localhost";
@@ -55,28 +62,9 @@ namespace DQueue.QueueProviders
                     var eventArg = consumer.Queue.Dequeue();
                     var message = Encoding.UTF8.GetString(eventArg.Body);
 
-                    return JsonConvert.DeserializeObject<T>(message);
+                    //return JsonConvert.DeserializeObject<TMessage>(message);
                 }
             }
-        }
-
-        private static string GetQueueName<T>()
-        {
-            var type = typeof(T);
-
-            if (typeof(IQueueMessage).IsAssignableFrom(type))
-            {
-                try
-                {
-                    var instance = (IQueueMessage)Activator.CreateInstance(type);
-                    return instance.QueueName;
-                }
-                catch (Exception)
-                {
-                }
-            }
-
-            return type.FullName;
         }
     }
 }

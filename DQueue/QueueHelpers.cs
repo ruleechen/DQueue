@@ -12,7 +12,24 @@ namespace DQueue
     {
         public static IQueueProvider GetProvider()
         {
-            return new RabbitMQProvider();
+            return new AspNetProvider();
+        }
+
+        public static string GetQueueName(Type messageType)
+        {
+            if (typeof(IQueueMessage).IsAssignableFrom(messageType))
+            {
+                try
+                {
+                    var instance = (IQueueMessage)Activator.CreateInstance(messageType);
+                    return instance.QueueName;
+                }
+                catch (Exception)
+                {
+                }
+            }
+
+            return messageType.FullName;
         }
 
         public static string GetQueueName<TMessage>()

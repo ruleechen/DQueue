@@ -12,7 +12,23 @@ namespace DQueue
         public void Send<TMessage>(TMessage message)
             where TMessage : new()
         {
-            QueueHelpers.GetProvider().Send(message);
+            Send(null, message);
+        }
+
+        public void Send<TMessage>(string queueName, TMessage message)
+            where TMessage : new()
+        {
+            if (string.IsNullOrWhiteSpace(queueName))
+            {
+                queueName = QueueHelpers.GetQueueName<TMessage>();
+            }
+
+            Send(queueName, (object)message);
+        }
+
+        public void Send(string queueName, object message)
+        {
+            QueueHelpers.GetProvider().Send(queueName, message);
         }
     }
 }

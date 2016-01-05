@@ -50,10 +50,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConsumerContext.cs" />
+    <Compile Include="Interfaces\ReceptionContext.cs" />
     <Compile Include="Interfaces\IQueueMessage.cs" />
     <Compile Include="Interfaces\IQueueProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="QueueProviders\AspNetProvider.cs" />
     <Compile Include="QueueProviders\RabbitMQProvider.cs" />
     <Compile Include="QueueProviders\RedisProvider.cs" />
     <Compile Include="QueueHelpers.cs" />
