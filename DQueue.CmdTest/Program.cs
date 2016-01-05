@@ -4,12 +4,23 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DQueue.SampleProducer
+namespace DQueue.CmdTest
 {
     class Program
     {
         static void Main(string[] args)
         {
+            Task.Factory.StartNew(() =>
+            {
+                var consumer = new QueueConsumer();
+
+                consumer.Receive<SampleMessage>((message) =>
+                {
+                    Console.WriteLine(string.Format("[receive] -> {0} {1}", message.FirstName, message.LastName));
+                });
+            });
+
+
             var producer = new QueueProducer();
 
             while (true)
@@ -22,7 +33,7 @@ namespace DQueue.SampleProducer
                     LastName = text
                 });
 
-                Console.WriteLine("[send success]");
+                Console.WriteLine(string.Format("[send] -> {0}", text));
             }
         }
     }

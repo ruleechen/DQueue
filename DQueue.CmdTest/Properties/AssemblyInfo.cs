@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("DQueue.SampleConsumer")]
+[assembly: AssemblyTitle("DQueue.CmdTest")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("DQueue.SampleConsumer")]
+[assembly: AssemblyProduct("DQueue.CmdTest")]
 [assembly: AssemblyCopyright("Copyright ©  2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("122f4063-9ed0-478f-86f5-878b60a87670")]
+[assembly: Guid("cd56daa0-65e2-4176-a7fc-708c0e9c6b8d")]
 
 // Version information for an assembly consists of the following four values:
 //

@@ -9,17 +9,24 @@ namespace DQueue
 {
     public class QueueConsumer : IDisposable
     {
+        private readonly int _threads;
         private readonly List<Task> _tasks;
 
         public QueueConsumer()
+            : this(1)
         {
+        }
+
+        public QueueConsumer(int threads)
+        {
+            _threads = threads;
             _tasks = new List<Task>();
         }
 
         public void Receive<TMessage>(Action<TMessage> handler)
             where TMessage : new()
         {
-            Receive<TMessage>(1, (message, context) =>
+            Receive<TMessage>((message, context) =>
             {
                 handler(message);
                 context.Complete();
@@ -29,13 +36,9 @@ namespace DQueue
         public void Receive<TMessage>(Action<TMessage, ReceptionContext> handler)
             where TMessage : new()
         {
-            Receive<TMessage>(1, handler);
-        }
+            this.Dispose();
 
-        public void Receive<TMessage>(int threads, Action<TMessage, ReceptionContext> handler)
-            where TMessage : new()
-        {
-            for (var i = 0; i < threads; i++)
+            for (var i = 0; i < _threads; i++)
             {
                 _tasks.Add(Task.Factory.StartNew(() =>
                 {
@@ -60,6 +63,8 @@ namespace DQueue
             {
                 task.Dispose();
             }
+
+            _tasks.Clear();
         }
     }
 }
