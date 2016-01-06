@@ -11,14 +11,11 @@ namespace DQueue.CmdTest
     {
         static void Main(string[] args)
         {
-            Task.Factory.StartNew(() =>
-            {
-                var consumer = new QueueConsumer();
+            var consumer = new QueueConsumer();
 
-                consumer.Receive<SampleMessage>((message) =>
-                {
-                    Console.WriteLine(string.Format("[receive] -> {0} {1}", message.FirstName, message.LastName));
-                });
+            consumer.Receive<SampleMessage>((message) =>
+            {
+                Console.WriteLine(string.Format("[receive] -> {0} {1}", message.FirstName, message.LastName));
             });
 
 

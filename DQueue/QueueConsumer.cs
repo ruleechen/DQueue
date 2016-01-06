@@ -61,7 +61,7 @@ namespace DQueue
                 }));
             }
 
-            Task.WaitAll(_tasks.ToArray());
+            //Task.WaitAll(_tasks.ToArray());
         }
 
         public void Dispose()
