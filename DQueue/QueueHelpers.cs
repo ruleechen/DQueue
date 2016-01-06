@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,9 +11,38 @@ namespace DQueue
 {
     internal class QueueHelpers
     {
-        public static IQueueProvider GetProvider()
+        public static IQueueProvider GetProvider(QueueProvider type)
         {
-            return new RabbitMQProvider();
+            var appSettings = ConfigurationManager.AppSettings;
+
+            if (type == QueueProvider.Auto)
+            {
+                var provider = appSettings["QueueProvider"];
+                Enum.TryParse<QueueProvider>(provider, true, out type);
+            }
+
+            if (type == QueueProvider.Redis)
+            {
+                var hostName = appSettings["Redis_HostName"];
+                var userName = appSettings["Redis_UserName"];
+                var password = appSettings["Redis_Password"];
+                return new RedisProvider(hostName, userName, password);
+            }
+
+            if (type == QueueProvider.RabbitMQ)
+            {
+                var hostName = appSettings["RabbitMQ_HostName"];
+                var userName = appSettings["RabbitMQ_UserName"];
+                var password = appSettings["RabbitMQ_Password"];
+                return new RabbitMQProvider(hostName, userName, password);
+            }
+
+            if (type == QueueProvider.AspNet)
+            {
+                return new AspNetProvider();
+            }
+
+            throw new ArgumentException("Can not support queue provider " + type.ToString());
         }
 
         public static string GetQueueName(Type messageType)

@@ -9,6 +9,10 @@ namespace DQueue.QueueProviders
 {
     public class RedisProvider : IQueueProvider
     {
+        public RedisProvider(string hostName, string userName, string password)
+        {
+        }
+
         public void Send(string queueName, object message)
         {
             throw new NotImplementedException();

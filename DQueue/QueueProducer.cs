@@ -9,6 +9,18 @@ namespace DQueue
 {
     public class QueueProducer
     {
+        private readonly QueueProvider _type;
+
+        public QueueProducer()
+            : this(QueueProvider.Auto)
+        {
+        }
+
+        public QueueProducer(QueueProvider type)
+        {
+            _type = type;
+        }
+
         public void Send<TMessage>(TMessage message)
             where TMessage : new()
         {
@@ -24,7 +36,7 @@ namespace DQueue
                 throw new ArgumentNullException("queueName");
             }
 
-            QueueHelpers.GetProvider().Send(queueName, message);
+            QueueHelpers.GetProvider(_type).Send(queueName, message);
         }
     }
 }

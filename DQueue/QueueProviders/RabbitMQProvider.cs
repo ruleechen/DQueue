@@ -13,16 +13,16 @@ namespace DQueue.QueueProviders
 {
     public class RabbitMQProvider : IQueueProvider
     {
-        private static IConnection GetConnection()
-        {
-            var connectionFactory = new ConnectionFactory
-            {
-                HostName = "localhost",
-                UserName = "rulee",
-                Password = "abc123"
-            };
+        private readonly ConnectionFactory _connectionFactory;
 
-            return connectionFactory.CreateConnection();
+        public RabbitMQProvider(string hostName, string userName, string password)
+        {
+            _connectionFactory = new ConnectionFactory
+            {
+                HostName = hostName,
+                UserName = userName,
+                Password = password
+            };
         }
 
         public void Send(string queueName, object message)
@@ -32,7 +32,7 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            using (var connection = GetConnection())
+            using (var connection = _connectionFactory.CreateConnection())
             {
                 using (var model = connection.CreateModel())
                 {
@@ -55,7 +55,7 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            using (var connection = GetConnection())
+            using (var connection = _connectionFactory.CreateConnection())
             {
                 using (var model = connection.CreateModel())
                 {
