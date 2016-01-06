@@ -74,21 +74,26 @@ namespace DQueue.QueueProviders
 
             var queue = GetQueue(queueName);
 
-            var processing = false;
+            var receptionStatus = ReceptionStatus.Querying;
 
             while (true)
             {
-                if (queue.Count > 0 && !processing)
+                if (receptionStatus == ReceptionStatus.BreakOff)
+                {
+                    break;
+                }
+
+                if (queue.Count > 0 && receptionStatus == ReceptionStatus.Querying)
                 {
                     lock (GetLocker(queueName))
                     {
-                        if (queue.Count > 0 && !processing)
+                        if (queue.Count > 0 && receptionStatus == ReceptionStatus.Querying)
                         {
-                            processing = true;
+                            receptionStatus = ReceptionStatus.Processing;
 
-                            var context = new ReceptionContext(() =>
+                            var context = new ReceptionContext((status) =>
                             {
-                                processing = false;
+                                receptionStatus = status;
                             });
 
                             var message = queue.Dequeue();

@@ -8,9 +8,9 @@ namespace DQueue.Interfaces
 {
     public class ReceptionContext
     {
-        private Action _action;
+        private Action<ReceptionStatus> _action;
 
-        public ReceptionContext(Action action)
+        public ReceptionContext(Action<ReceptionStatus> action)
         {
             _action = action;
         }
@@ -19,7 +19,16 @@ namespace DQueue.Interfaces
         {
             if (_action != null)
             {
-                _action();
+                _action(ReceptionStatus.Querying);
+                _action = null;
+            }
+        }
+
+        public void BreakOff()
+        {
+            if (_action != null)
+            {
+                _action(ReceptionStatus.BreakOff);
                 _action = null;
             }
         }
