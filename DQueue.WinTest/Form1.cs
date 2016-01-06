@@ -17,7 +17,7 @@ namespace DQueue.WinTest
         {
             InitializeComponent();
 
-            var control = this.txtReceive;
+            var control = txtReceive;
 
             Task.Factory.StartNew(() =>
             {
@@ -34,13 +34,15 @@ namespace DQueue.WinTest
         {
             var producer = new QueueProducer();
 
-            var text = this.txtSend.Text;
+            var text = txtSend.Text;
 
             producer.Send(new SampleMessage
             {
                 FirstName = text,
                 LastName = text
             });
+
+            txtSend.Focus();
         }
     }
 

@@ -35,7 +35,7 @@
             // 
             // btnSend
             // 
-            this.btnSend.Location = new System.Drawing.Point(161, 198);
+            this.btnSend.Location = new System.Drawing.Point(174, 183);
             this.btnSend.Name = "btnSend";
             this.btnSend.Size = new System.Drawing.Size(75, 23);
             this.btnSend.TabIndex = 0;
@@ -53,7 +53,7 @@
             // 
             // txtReceive
             // 
-            this.txtReceive.Location = new System.Drawing.Point(281, 12);
+            this.txtReceive.Location = new System.Drawing.Point(255, 12);
             this.txtReceive.Multiline = true;
             this.txtReceive.Name = "txtReceive";
             this.txtReceive.Size = new System.Drawing.Size(237, 165);
@@ -63,7 +63,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(532, 238);
+            this.ClientSize = new System.Drawing.Size(506, 213);
             this.Controls.Add(this.txtReceive);
             this.Controls.Add(this.txtSend);
             this.Controls.Add(this.btnSend);
