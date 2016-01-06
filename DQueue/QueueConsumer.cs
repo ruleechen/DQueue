@@ -14,7 +14,12 @@ namespace DQueue
         private readonly List<Task> _tasks;
 
         public QueueConsumer()
-            : this(QueueProvider.Configured)
+            : this(QueueProvider.Configured, 1)
+        {
+        }
+
+        public QueueConsumer(int threads)
+            : this(QueueProvider.Configured, threads)
         {
         }
 
