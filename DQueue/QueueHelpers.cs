@@ -10,17 +10,17 @@ namespace DQueue
 {
     internal class QueueHelpers
     {
-        public static IQueueProvider GetProvider(QueueProvider type)
+        public static IQueueProvider GetProvider(QueueProvider provider)
         {
             var appSettings = ConfigurationManager.AppSettings;
 
-            if (type == QueueProvider.Configured)
+            if (provider == QueueProvider.Configured)
             {
-                var provider = appSettings["QueueProvider"];
-                Enum.TryParse<QueueProvider>(provider, true, out type);
+                var providerStr = appSettings["QueueProvider"];
+                Enum.TryParse<QueueProvider>(providerStr, true, out provider);
             }
 
-            if (type == QueueProvider.Redis)
+            if (provider == QueueProvider.Redis)
             {
                 var hostName = appSettings["Redis_HostName"];
                 var userName = appSettings["Redis_UserName"];
@@ -28,7 +28,7 @@ namespace DQueue
                 return new RedisProvider(hostName, userName, password);
             }
 
-            if (type == QueueProvider.RabbitMQ)
+            if (provider == QueueProvider.RabbitMQ)
             {
                 var hostName = appSettings["RabbitMQ_HostName"];
                 var userName = appSettings["RabbitMQ_UserName"];
@@ -36,12 +36,12 @@ namespace DQueue
                 return new RabbitMQProvider(hostName, userName, password);
             }
 
-            if (type == QueueProvider.AspNet)
+            if (provider == QueueProvider.AspNet)
             {
                 return new AspNetProvider();
             }
 
-            throw new ArgumentException("Can not support queue provider " + type.ToString());
+            throw new ArgumentException("Can not support queue provider " + provider.ToString());
         }
 
         public static string GetQueueName(Type messageType)

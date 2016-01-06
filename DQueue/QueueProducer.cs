@@ -8,16 +8,16 @@ namespace DQueue
 {
     public class QueueProducer
     {
-        private readonly QueueProvider _type;
+        private readonly QueueProvider _provider;
 
         public QueueProducer()
             : this(QueueProvider.Configured)
         {
         }
 
-        public QueueProducer(QueueProvider type)
+        public QueueProducer(QueueProvider provider)
         {
-            _type = type;
+            _provider = provider;
         }
 
         public void Send<TMessage>(TMessage message)
@@ -35,7 +35,7 @@ namespace DQueue
                 throw new ArgumentNullException("queueName");
             }
 
-            QueueHelpers.GetProvider(_type).Send(queueName, message);
+            QueueHelpers.GetProvider(_provider).Send(queueName, message);
         }
     }
 }
