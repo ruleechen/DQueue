@@ -12,7 +12,7 @@ namespace DQueue
         private readonly QueueProvider _type;
 
         public QueueProducer()
-            : this(QueueProvider.Auto)
+            : this(QueueProvider.Configured)
         {
         }
 

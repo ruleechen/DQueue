@@ -15,7 +15,7 @@ namespace DQueue
         {
             var appSettings = ConfigurationManager.AppSettings;
 
-            if (type == QueueProvider.Auto)
+            if (type == QueueProvider.Configured)
             {
                 var provider = appSettings["QueueProvider"];
                 Enum.TryParse<QueueProvider>(provider, true, out type);

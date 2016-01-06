@@ -8,9 +8,12 @@ namespace DQueue
 {
     public enum QueueProvider
     {
-        Auto,
+        Configured,
+
         AspNet,
+
         Redis,
+
         RabbitMQ
     }
 }

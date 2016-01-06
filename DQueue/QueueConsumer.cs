@@ -14,7 +14,7 @@ namespace DQueue
         private readonly List<Task> _tasks;
 
         public QueueConsumer()
-            : this(QueueProvider.Auto)
+            : this(QueueProvider.Configured)
         {
         }
 
