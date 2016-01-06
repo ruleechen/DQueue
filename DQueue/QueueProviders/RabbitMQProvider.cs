@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 using System.Threading.Tasks;
 using DQueue.Interfaces;
 using Newtonsoft.Json;
@@ -12,6 +13,18 @@ namespace DQueue.QueueProviders
 {
     public class RabbitMQProvider : IQueueProvider
     {
+        private static IConnection GetConnection()
+        {
+            var connectionFactory = new ConnectionFactory
+            {
+                HostName = "localhost",
+                UserName = "rulee",
+                Password = "abc123"
+            };
+
+            return connectionFactory.CreateConnection();
+        }
+
         public void Send(string queueName, object message)
         {
             if (string.IsNullOrWhiteSpace(queueName) || message == null)
@@ -19,21 +32,18 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var _connectionFactory = new ConnectionFactory();
-            _connectionFactory.HostName = "localhost";
-            _connectionFactory.UserName = "rulee";
-            _connectionFactory.Password = "abc123";
-
-            using (var connection = _connectionFactory.CreateConnection())
+            using (var connection = GetConnection())
             {
-                using (var channel = connection.CreateModel())
+                using (var model = connection.CreateModel())
                 {
-                    channel.QueueDeclare(queueName, false, false, false, null);
-                    var properties = channel.CreateBasicProperties();
-                    properties.DeliveryMode = 2;
+                    model.QueueDeclare(queueName, false, false, false, null);
+                    var basicProperties = model.CreateBasicProperties();
+                    basicProperties.Persistent = true;
 
-                    var messageData = JsonConvert.SerializeObject(message);
-                    channel.BasicPublish("", "hello", properties, Encoding.UTF8.GetBytes(messageData));
+                    var json = JsonConvert.SerializeObject(message);
+                    var body = Encoding.UTF8.GetBytes(json);
+
+                    model.BasicPublish(string.Empty, queueName, basicProperties, body);
                 }
             }
         }
@@ -45,24 +55,39 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var _connectionFactory = new ConnectionFactory();
-            _connectionFactory.HostName = "localhost";
-            _connectionFactory.UserName = "rulee";
-            _connectionFactory.Password = "abc123";
-
-            using (var connection = _connectionFactory.CreateConnection())
+            using (var connection = GetConnection())
             {
-                using (var channel = connection.CreateModel())
+                using (var model = connection.CreateModel())
                 {
-                    channel.QueueDeclare(queueName, false, false, false, null);
+                    model.QueueDeclare(queueName, false, false, false, null);
+                    var consumer = new QueueingBasicConsumer(model);
+                    model.BasicConsume(queueName, true, consumer);
 
-                    var consumer = new QueueingBasicConsumer(channel);
-                    channel.BasicConsume(queueName, true, consumer);
+                    var receptionStatus = ReceptionStatus.Querying;
 
-                    var eventArg = consumer.Queue.Dequeue();
-                    var message = Encoding.UTF8.GetString(eventArg.Body);
+                    while (true)
+                    {
+                        if (receptionStatus == ReceptionStatus.BreakOff)
+                        {
+                            break;
+                        }
 
-                    //return JsonConvert.DeserializeObject<TMessage>(message);
+                        if (receptionStatus == ReceptionStatus.Querying)
+                        {
+                            var eventArg = consumer.Queue.Dequeue();
+                            var json = Encoding.UTF8.GetString(eventArg.Body);
+                            var message = JsonConvert.DeserializeObject<TMessage>(json);
+
+                            receptionStatus = ReceptionStatus.Processing;
+
+                            var context = new ReceptionContext((status) =>
+                            {
+                                receptionStatus = status;
+                            });
+
+                            handler(message, context);
+                        }
+                    }
                 }
             }
         }
