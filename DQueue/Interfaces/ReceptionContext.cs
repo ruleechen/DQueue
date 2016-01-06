@@ -19,14 +19,14 @@ namespace DQueue.Interfaces
             _action = action;
         }
 
-        public void Complete()
+        public void Continue()
         {
             if (_action == null)
             {
                 throw new InvalidOperationException("The reception status has been specified");
             }
 
-            _action(ReceptionStatus.Querying);
+            _action(ReceptionStatus.Listen);
             _action = null;
         }
 

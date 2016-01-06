@@ -41,7 +41,7 @@ namespace DQueue
             Receive<TMessage>((message, context) =>
             {
                 handler(message);
-                context.Complete();
+                context.Continue();
             });
         }
 
