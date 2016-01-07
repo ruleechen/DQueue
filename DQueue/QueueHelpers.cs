@@ -16,8 +16,16 @@ namespace DQueue
 
             if (provider == QueueProvider.Configured)
             {
-                var providerStr = appSettings["QueueProvider"];
-                Enum.TryParse<QueueProvider>(providerStr, true, out provider);
+                QueueProvider outProvider;
+                var strProvider = appSettings["QueueProvider"];
+                if (Enum.TryParse<QueueProvider>(strProvider, true, out outProvider))
+                {
+                    provider = outProvider;
+                }
+                else
+                {
+                    throw new ArgumentException("Can not support queue provider: " + strProvider);
+                }
             }
 
             if (provider == QueueProvider.Redis)
@@ -41,7 +49,7 @@ namespace DQueue
                 return new AspNetProvider();
             }
 
-            throw new ArgumentException("Can not support queue provider " + provider.ToString());
+            throw new ArgumentException("Can not support queue provider: " + provider.ToString());
         }
 
         public static string GetQueueName(Type messageType)
