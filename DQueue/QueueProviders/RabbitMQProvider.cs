@@ -70,7 +70,8 @@ namespace DQueue.QueueProviders
                             break;
                         }
 
-                        if (receptionStatus == ReceptionStatus.Listen)
+                        if (receptionStatus == ReceptionStatus.Listen &&
+                            receptionStatus != ReceptionStatus.Suspend)
                         {
                             var eventArg = consumer.Queue.Dequeue();
                             var json = Encoding.UTF8.GetString(eventArg.Body);

@@ -19,6 +19,17 @@ namespace DQueue.Interfaces
             _action = action;
         }
 
+        public void Suspend()
+        {
+            if (_action == null)
+            {
+                throw new InvalidOperationException("The reception status has been specified");
+            }
+
+            _action(ReceptionStatus.Suspend);
+            _action = null;
+        }
+
         public void Continue()
         {
             if (_action == null)

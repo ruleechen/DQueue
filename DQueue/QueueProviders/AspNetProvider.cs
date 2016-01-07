@@ -82,11 +82,15 @@ namespace DQueue.QueueProviders
                     break;
                 }
 
-                if (queue.Count > 0 && receptionStatus == ReceptionStatus.Listen)
+                if (queue.Count > 0 &&
+                    receptionStatus == ReceptionStatus.Listen &&
+                    receptionStatus != ReceptionStatus.Suspend)
                 {
                     lock (GetLocker(queueName))
                     {
-                        if (queue.Count > 0 && receptionStatus == ReceptionStatus.Listen)
+                        if (queue.Count > 0 &&
+                            receptionStatus == ReceptionStatus.Listen &&
+                            receptionStatus != ReceptionStatus.Suspend)
                         {
                             receptionStatus = ReceptionStatus.Process;
 

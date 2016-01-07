@@ -7,8 +7,10 @@ namespace DQueue.Interfaces
 {
     public enum ReceptionStatus
     {
+        Suspend,
+
         Listen,
-        
+
         Process,
 
         BreakOff
