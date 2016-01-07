@@ -9,9 +9,9 @@ namespace DQueue
 {
     public class QueueConsumer : IDisposable
     {
-        private readonly QueueProvider _provider;
         private readonly int _threads;
-        private readonly List<Task> _tasks;
+        private readonly QueueProvider _provider;
+        private readonly List<Task<IQueueProvider>> _tasks;
 
         public QueueConsumer()
             : this(QueueProvider.Configured, 1)
@@ -30,9 +30,9 @@ namespace DQueue
 
         public QueueConsumer(QueueProvider provider, int threads)
         {
-            _provider = provider;
             _threads = threads;
-            _tasks = new List<Task>();
+            _provider = provider;
+            _tasks = new List<Task<IQueueProvider>>();
         }
 
         public void Receive<TMessage>(Action<TMessage> handler)
@@ -59,19 +59,16 @@ namespace DQueue
 
             for (var i = 0; i < _threads; i++)
             {
-                _tasks.Add(Task.Factory.StartNew(() =>
+                _tasks.Add(Task.Factory.StartNew<IQueueProvider>(() =>
                 {
                     var provider = QueueHelpers.GetProvider(_provider);
 
-                    provider.Receive<TMessage>(queueName, (message, context) =>
-                    {
-                        handler(message, context);
-                    });
+                    provider.Receive<TMessage>(queueName, handler);
+
+                    return provider;
 
                 }));
             }
-
-            //Task.WaitAll(_tasks.ToArray());
         }
 
         public void Dispose()
