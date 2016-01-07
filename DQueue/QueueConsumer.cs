@@ -48,6 +48,13 @@ namespace DQueue
         public void Receive<TMessage>(Action<TMessage, ReceptionContext> handler)
             where TMessage : new()
         {
+            var queueName = QueueHelpers.GetQueueName<TMessage>();
+
+            if (string.IsNullOrWhiteSpace(queueName))
+            {
+                throw new ArgumentNullException("queueName");
+            }
+
             this.Dispose();
 
             for (var i = 0; i < _threads; i++)
@@ -55,8 +62,6 @@ namespace DQueue
                 _tasks.Add(Task.Factory.StartNew(() =>
                 {
                     var provider = QueueHelpers.GetProvider(_provider);
-
-                    var queueName = QueueHelpers.GetQueueName<TMessage>();
 
                     provider.Receive<TMessage>(queueName, (message, context) =>
                     {
