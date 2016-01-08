@@ -55,7 +55,7 @@ namespace DQueue.QueueProviders
                 {
                     model.QueueDeclare(queueName, false, false, false, null);
                     var consumer = new QueueingBasicConsumer(model);
-                    model.BasicConsume(queueName, true, consumer);
+                    model.BasicConsume(queueName, false, consumer);
 
                     var receptionStatus = ReceptionStatus.Listen;
 
@@ -77,7 +77,12 @@ namespace DQueue.QueueProviders
                                 var json = Encoding.UTF8.GetString(eventArg.Body);
                                 var message = JsonConvert.DeserializeObject<TMessage>(json);
 
-                                var context = new ReceptionContext((status) => { receptionStatus = status; });
+                                var context = new ReceptionContext((status) =>
+                                {
+                                    receptionStatus = status;
+                                    model.BasicAck(eventArg.DeliveryTag, false);
+                                });
+
                                 receptionStatus = ReceptionStatus.Process;
                                 handler(message, context);
                             }
