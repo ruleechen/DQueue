@@ -77,7 +77,9 @@ namespace DQueue
                     Handler = handler,
                     Token = _cts.Token
                 },
-                _cts.Token);
+                _cts.Token,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
 
                 _providerTasks.Add(provider, task);
             }
