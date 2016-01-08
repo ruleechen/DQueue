@@ -57,6 +57,11 @@ namespace DQueue.QueueProviders
                     var consumer = new QueueingBasicConsumer(model);
                     model.BasicConsume(queueName, false, consumer);
 
+                    token.Register(() =>
+                    {
+                        model.BasicCancel(consumer.ConsumerTag);
+                    });
+
                     var receptionStatus = ReceptionStatus.Listen;
 
                     while (true)
@@ -71,7 +76,7 @@ namespace DQueue.QueueProviders
                         if (receptionStatus == ReceptionStatus.Listen &&
                             receptionStatus != ReceptionStatus.Suspend)
                         {
-                            var eventArg = consumer.Queue.DequeueNoWait(null);
+                            var eventArg = consumer.Queue.Dequeue();
                             if (eventArg != null)
                             {
                                 var json = Encoding.UTF8.GetString(eventArg.Body);
@@ -87,8 +92,6 @@ namespace DQueue.QueueProviders
                                 handler(message, context);
                             }
                         }
-
-                        Thread.Sleep(10);
                     }
                 }
             }
