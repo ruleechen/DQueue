@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using DQueue.Interfaces;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
@@ -46,7 +47,7 @@ namespace DQueue.QueueProviders
             }
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler)
+        public void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler, CancellationToken token)
         {
             if (string.IsNullOrWhiteSpace(queueName) || handler == null)
             {
@@ -61,17 +62,19 @@ namespace DQueue.QueueProviders
                     var consumer = new QueueingBasicConsumer(model);
                     model.BasicConsume(queueName, true, consumer);
 
-                    ReceptionStatus = ReceptionStatus.Listen;
+                    var receptionStatus = ReceptionStatus.Listen;
 
                     while (true)
                     {
-                        if (ReceptionStatus == ReceptionStatus.BreakOff)
+                        token.ThrowIfCancellationRequested();
+
+                        if (receptionStatus == ReceptionStatus.BreakOff)
                         {
                             break;
                         }
 
-                        if (ReceptionStatus == ReceptionStatus.Listen &&
-                            ReceptionStatus != ReceptionStatus.Suspend)
+                        if (receptionStatus == ReceptionStatus.Listen &&
+                            receptionStatus != ReceptionStatus.Suspend)
                         {
                             var eventArg = consumer.Queue.DequeueNoWait(null);
                             if (eventArg != null)
@@ -79,8 +82,8 @@ namespace DQueue.QueueProviders
                                 var json = Encoding.UTF8.GetString(eventArg.Body);
                                 var message = JsonConvert.DeserializeObject<TMessage>(json);
 
-                                ReceptionStatus = ReceptionStatus.Process;
-                                var context = new ReceptionContext(this);
+                                var context = new ReceptionContext((status) => { receptionStatus = status; });
+                                receptionStatus = ReceptionStatus.Process;
                                 handler(message, context);
                             }
                         }
@@ -89,18 +92,6 @@ namespace DQueue.QueueProviders
                     }
                 }
             }
-        }
-
-        public ReceptionStatus ReceptionStatus
-        {
-            get;
-            set;
-        }
-
-        public void RequestStop()
-        {
-            ReceptionStatus = ReceptionStatus.BreakOff;
-            System.Threading.Thread.Sleep(20);
         }
     }
 }

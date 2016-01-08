@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace DQueue.Interfaces
 {
@@ -9,10 +10,6 @@ namespace DQueue.Interfaces
     {
         void Enqueue(string queueName, object message);
 
-        void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler);
-
-        ReceptionStatus ReceptionStatus { get; set; }
-
-        void RequestStop();
+        void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler, CancellationToken token);
     }
 }

@@ -10,7 +10,7 @@ namespace DQueue
 {
     internal class QueueHelpers
     {
-        public static IQueueProvider GetProvider(QueueProvider provider)
+        public static IQueueProvider CreateProvider(QueueProvider provider)
         {
             var appSettings = ConfigurationManager.AppSettings;
 

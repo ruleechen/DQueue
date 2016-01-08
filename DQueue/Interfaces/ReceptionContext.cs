@@ -7,34 +7,26 @@ namespace DQueue.Interfaces
 {
     public class ReceptionContext
     {
-        private IQueueProvider _provider;
+        private Action<ReceptionStatus> _action;
 
-        public ReceptionContext(IQueueProvider provider)
+        public ReceptionContext(Action<ReceptionStatus> action)
         {
-            _provider = provider;
-        }
-
-        public ReceptionStatus Status
-        {
-            get
-            {
-                return _provider.ReceptionStatus;
-            }
+            _action = action;
         }
 
         public void Suspend()
         {
-            _provider.ReceptionStatus = ReceptionStatus.Suspend;
+            _action(ReceptionStatus.Suspend);
         }
 
         public void Continue()
         {
-            _provider.ReceptionStatus = ReceptionStatus.Listen;
+            _action(ReceptionStatus.Listen);
         }
 
         public void BreakOff()
         {
-            _provider.ReceptionStatus = ReceptionStatus.BreakOff;
+            _action(ReceptionStatus.BreakOff);
         }
     }
 }

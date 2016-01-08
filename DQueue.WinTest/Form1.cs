@@ -21,10 +21,11 @@ namespace DQueue.WinTest
 
             var control = txtReceive;
 
-            _consumer = new QueueConsumer();
+            _consumer = new QueueConsumer(10);
 
             _consumer.Receive<SampleMessage>((message) =>
             {
+                System.Threading.Thread.Sleep(10000);
                 control.Text = message.FirstName;
             });
         }

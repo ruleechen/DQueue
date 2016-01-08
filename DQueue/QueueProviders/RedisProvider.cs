@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using DQueue.Interfaces;
 
 namespace DQueue.QueueProviders
@@ -17,20 +18,9 @@ namespace DQueue.QueueProviders
             throw new NotImplementedException();
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler)
+        public void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler, CancellationToken token)
         {
             throw new NotImplementedException();
-        }
-
-        public ReceptionStatus ReceptionStatus
-        {
-            get;
-            set;
-        }
-
-        public void RequestStop()
-        {
-            ReceptionStatus = ReceptionStatus.BreakOff;
         }
     }
 }

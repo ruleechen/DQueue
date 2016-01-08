@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using DQueue.Interfaces;
 
 namespace DQueue.QueueProviders
@@ -66,7 +67,7 @@ namespace DQueue.QueueProviders
             }
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler)
+        public void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler, CancellationToken token)
         {
             if (string.IsNullOrWhiteSpace(queueName) || handler == null)
             {
@@ -75,26 +76,28 @@ namespace DQueue.QueueProviders
 
             var queue = GetQueue(queueName);
 
-            ReceptionStatus = ReceptionStatus.Listen;
+            var receptionStatus = ReceptionStatus.Listen;
 
             while (true)
             {
-                if (ReceptionStatus == ReceptionStatus.BreakOff)
+                token.ThrowIfCancellationRequested();
+
+                if (receptionStatus == ReceptionStatus.BreakOff)
                 {
                     break;
                 }
 
                 if (queue.Count > 0 &&
-                    ReceptionStatus == ReceptionStatus.Listen &&
-                    ReceptionStatus != ReceptionStatus.Suspend)
+                    receptionStatus == ReceptionStatus.Listen &&
+                    receptionStatus != ReceptionStatus.Suspend)
                 {
                     object message = null;
 
                     lock (GetLocker(queueName))
                     {
                         if (queue.Count > 0 &&
-                            ReceptionStatus == ReceptionStatus.Listen &&
-                            ReceptionStatus != ReceptionStatus.Suspend)
+                            receptionStatus == ReceptionStatus.Listen &&
+                            receptionStatus != ReceptionStatus.Suspend)
                         {
                             message = queue.Dequeue();
                         }
@@ -102,26 +105,14 @@ namespace DQueue.QueueProviders
 
                     if (message != null)
                     {
-                        ReceptionStatus = ReceptionStatus.Process;
-                        var context = new ReceptionContext(this);
+                        var context = new ReceptionContext((status) => { receptionStatus = status; });
+                        receptionStatus = ReceptionStatus.Process;
                         handler((TMessage)message, context);
                     }
                 }
 
                 System.Threading.Thread.Sleep(10);
             }
-        }
-
-        public ReceptionStatus ReceptionStatus
-        {
-            get;
-            set;
-        }
-
-        public void RequestStop()
-        {
-            ReceptionStatus = ReceptionStatus.BreakOff;
-            System.Threading.Thread.Sleep(20);
         }
     }
 }

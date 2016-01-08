@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using DQueue.Interfaces;
 
@@ -11,8 +12,8 @@ namespace DQueue
     {
         private readonly int _threads;
         private readonly QueueProvider _provider;
-        private readonly List<IQueueProvider> _providers;
-        private readonly List<Task<IQueueProvider>> _tasks;
+        private readonly CancellationTokenSource _cts;
+        private readonly Dictionary<IQueueProvider, Task<IQueueProvider>> _providerTasks;
 
         public QueueConsumer()
             : this(QueueProvider.Configured, 1)
@@ -33,8 +34,8 @@ namespace DQueue
         {
             _threads = threads;
             _provider = provider;
-            _providers = new List<IQueueProvider>();
-            _tasks = new List<Task<IQueueProvider>>();
+            _cts = new CancellationTokenSource();
+            _providerTasks = new Dictionary<IQueueProvider, Task<IQueueProvider>>();
         }
 
         public void Receive<TMessage>(Action<TMessage> handler)
@@ -57,39 +58,26 @@ namespace DQueue
                 throw new ArgumentNullException("queueName");
             }
 
-            this.Dispose();
-
             for (var i = 0; i < _threads; i++)
             {
-                var provider = QueueHelpers.GetProvider(_provider);
+                var provider = QueueHelpers.CreateProvider(_provider);
 
-                _providers.Add(provider);
-
-                _tasks.Add(Task.Factory.StartNew<IQueueProvider>(() =>
+                var task = Task.Factory.StartNew<IQueueProvider>(() =>
                 {
-                    provider.Dequeue<TMessage>(queueName, handler);
+                    provider.Dequeue<TMessage>(queueName, handler, _cts.Token);
 
                     return provider;
 
-                }, TaskCreationOptions.LongRunning));
+                }, TaskCreationOptions.LongRunning);
+
+                _providerTasks.Add(provider, task);
             }
         }
 
         public void Dispose()
         {
-            foreach (var item in _providers)
-            {
-                item.RequestStop();
-            }
-
-            _providers.Clear();
-
-            foreach (var item in _tasks)
-            {
-                item.Dispose();
-            }
-
-            _tasks.Clear();
+            _cts.Cancel();
+            _providerTasks.Clear();
         }
     }
 }
