@@ -80,9 +80,7 @@ namespace DQueue.QueueProviders
                                 var message = JsonConvert.DeserializeObject<TMessage>(json);
 
                                 ReceptionStatus = ReceptionStatus.Process;
-
                                 var context = new ReceptionContext(this);
-
                                 handler(message, context);
                             }
                         }

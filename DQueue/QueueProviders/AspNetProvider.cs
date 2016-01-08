@@ -88,20 +88,23 @@ namespace DQueue.QueueProviders
                     ReceptionStatus == ReceptionStatus.Listen &&
                     ReceptionStatus != ReceptionStatus.Suspend)
                 {
+                    object message = null;
+
                     lock (GetLocker(queueName))
                     {
                         if (queue.Count > 0 &&
                             ReceptionStatus == ReceptionStatus.Listen &&
                             ReceptionStatus != ReceptionStatus.Suspend)
                         {
-                            ReceptionStatus = ReceptionStatus.Process;
-
-                            var context = new ReceptionContext(this);
-
-                            var message = queue.Dequeue();
-
-                            handler((TMessage)message, context);
+                            message = queue.Dequeue();
                         }
+                    }
+
+                    if (message != null)
+                    {
+                        ReceptionStatus = ReceptionStatus.Process;
+                        var context = new ReceptionContext(this);
+                        handler((TMessage)message, context);
                     }
                 }
 
