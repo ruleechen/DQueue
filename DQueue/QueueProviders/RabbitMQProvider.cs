@@ -23,7 +23,7 @@ namespace DQueue.QueueProviders
             };
         }
 
-        public void Send(string queueName, object message)
+        public void Enqueue(string queueName, object message)
         {
             if (string.IsNullOrWhiteSpace(queueName) || message == null)
             {
@@ -46,7 +46,7 @@ namespace DQueue.QueueProviders
             }
         }
 
-        public void Receive<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler)
+        public void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler)
         {
             if (string.IsNullOrWhiteSpace(queueName) || handler == null)
             {

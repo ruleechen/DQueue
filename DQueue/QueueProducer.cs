@@ -35,7 +35,7 @@ namespace DQueue
                 throw new ArgumentNullException("queueName");
             }
 
-            QueueHelpers.GetProvider(_provider).Send(queueName, message);
+            QueueHelpers.GetProvider(_provider).Enqueue(queueName, message);
         }
     }
 }

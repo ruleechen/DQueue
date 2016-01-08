@@ -12,12 +12,12 @@ namespace DQueue.QueueProviders
         {
         }
 
-        public void Send(string queueName, object message)
+        public void Enqueue(string queueName, object message)
         {
             throw new NotImplementedException();
         }
 
-        public void Receive<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler)
+        public void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler)
         {
             throw new NotImplementedException();
         }

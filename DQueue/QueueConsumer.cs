@@ -63,7 +63,7 @@ namespace DQueue
                 {
                     var provider = QueueHelpers.GetProvider(_provider);
 
-                    provider.Receive<TMessage>(queueName, handler);
+                    provider.Dequeue<TMessage>(queueName, handler);
 
                     return provider;
 
