@@ -25,8 +25,8 @@ namespace DQueue.WinTest
 
             _consumer.Receive<SampleMessage>((message) =>
             {
-                System.Threading.Thread.Sleep(10000);
-                control.Text = message.FirstName;
+                System.Threading.Thread.Sleep(5000);
+                control.Text += message.FirstName + Environment.NewLine;
             });
         }
 

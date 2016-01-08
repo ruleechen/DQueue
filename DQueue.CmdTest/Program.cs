@@ -11,10 +11,11 @@ namespace DQueue.CmdTest
     {
         static void Main(string[] args)
         {
-            var consumer = new QueueConsumer();
+            var consumer = new QueueConsumer(10);
 
             consumer.Receive<SampleMessage>((message) =>
             {
+                System.Threading.Thread.Sleep(5000);
                 Console.WriteLine(string.Format("[receive] -> {0} {1}", message.FirstName, message.LastName));
             });
 
