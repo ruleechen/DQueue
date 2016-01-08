@@ -94,10 +94,7 @@ namespace DQueue.QueueProviders
                         {
                             receptionStatus = ReceptionStatus.Process;
 
-                            var context = new ReceptionContext((status) =>
-                            {
-                                receptionStatus = status;
-                            });
+                            var context = new ReceptionContext(this);
 
                             var message = queue.Dequeue();
 
@@ -108,6 +105,17 @@ namespace DQueue.QueueProviders
 
                 System.Threading.Thread.Sleep(10);
             }
+        }
+
+        public ReceptionStatus ReceptionStatus
+        {
+            get;
+            set;
+        }
+
+        public void RequestStop()
+        {
+            ReceptionStatus = ReceptionStatus.BreakOff;
         }
     }
 }

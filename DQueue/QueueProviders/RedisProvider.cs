@@ -21,5 +21,16 @@ namespace DQueue.QueueProviders
         {
             throw new NotImplementedException();
         }
+
+        public ReceptionStatus ReceptionStatus
+        {
+            get;
+            set;
+        }
+
+        public void RequestStop()
+        {
+            ReceptionStatus = ReceptionStatus.BreakOff;
+        }
     }
 }

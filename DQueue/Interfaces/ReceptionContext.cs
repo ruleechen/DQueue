@@ -7,49 +7,49 @@ namespace DQueue.Interfaces
 {
     public class ReceptionContext
     {
-        private Action<ReceptionStatus> _action;
+        private IQueueProvider _provider;
 
-        public ReceptionContext(Action<ReceptionStatus> action)
+        public ReceptionContext(IQueueProvider provider)
         {
-            if (action == null)
+            if (provider == null)
             {
-                throw new ArgumentNullException("action", "The reception action is required");
+                throw new ArgumentNullException("provider", "The provider is required");
             }
 
-            _action = action;
+            _provider = provider;
         }
 
         public void Suspend()
         {
-            if (_action == null)
+            if (_provider == null)
             {
                 throw new InvalidOperationException("The reception status has been specified");
             }
 
-            _action(ReceptionStatus.Suspend);
-            _action = null;
+            _provider.ReceptionStatus = ReceptionStatus.Suspend;
+            _provider = null;
         }
 
         public void Continue()
         {
-            if (_action == null)
+            if (_provider == null)
             {
                 throw new InvalidOperationException("The reception status has been specified");
             }
 
-            _action(ReceptionStatus.Listen);
-            _action = null;
+            _provider.ReceptionStatus = ReceptionStatus.Listen;
+            _provider = null;
         }
 
         public void BreakOff()
         {
-            if (_action == null)
+            if (_provider == null)
             {
                 throw new InvalidOperationException("The reception status has been specified");
             }
 
-            _action(ReceptionStatus.BreakOff);
-            _action = null;
+            _provider.ReceptionStatus = ReceptionStatus.BreakOff;
+            _provider = null;
         }
     }
 }
