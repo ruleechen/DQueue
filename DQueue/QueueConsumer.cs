@@ -77,6 +77,7 @@ namespace DQueue
         public void Dispose()
         {
             _cts.Cancel();
+            _cts.Dispose();
             _providerTasks.Clear();
         }
     }
