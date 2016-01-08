@@ -10,6 +10,8 @@ namespace DQueue
 {
     internal class QueueHelpers
     {
+        private static RabbitMQ.Client.ConnectionFactory _rabbitMQConnectionFactory;
+
         public static IQueueProvider CreateProvider(QueueProvider provider)
         {
             var appSettings = ConfigurationManager.AppSettings;
@@ -38,10 +40,17 @@ namespace DQueue
 
             if (provider == QueueProvider.RabbitMQ)
             {
-                var hostName = appSettings["RabbitMQ_HostName"];
-                var userName = appSettings["RabbitMQ_UserName"];
-                var password = appSettings["RabbitMQ_Password"];
-                return new RabbitMQProvider(hostName, userName, password);
+                if (_rabbitMQConnectionFactory == null)
+                {
+                    _rabbitMQConnectionFactory = new RabbitMQ.Client.ConnectionFactory
+                    {
+                        HostName = appSettings["RabbitMQ_HostName"],
+                        UserName = appSettings["RabbitMQ_UserName"],
+                        Password = appSettings["RabbitMQ_Password"]
+                    };
+                }
+
+                return new RabbitMQProvider(_rabbitMQConnectionFactory);
             }
 
             if (provider == QueueProvider.AspNet)

@@ -14,14 +14,9 @@ namespace DQueue.QueueProviders
     {
         private readonly ConnectionFactory _connectionFactory;
 
-        public RabbitMQProvider(string hostName, string userName, string password)
+        public RabbitMQProvider(ConnectionFactory connectionFactory)
         {
-            _connectionFactory = new ConnectionFactory
-            {
-                HostName = hostName,
-                UserName = userName,
-                Password = password
-            };
+            _connectionFactory = connectionFactory;
         }
 
         public void Enqueue(string queueName, object message)
