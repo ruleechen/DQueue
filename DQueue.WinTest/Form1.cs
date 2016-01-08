@@ -29,7 +29,7 @@ namespace DQueue.WinTest
                 Thread.Sleep(5000);
                 var threadId = Thread.CurrentThread.ManagedThreadId;
 
-                control.Text += string.Format("[ThreadID {0}, Received] -> {1} {2}", threadId, message.FirstName, message.LastName) + Environment.NewLine;
+                control.Text += string.Format("[ThreadID {0}, Received] -> {1}", threadId, message.Text) + Environment.NewLine;
                 control.SelectionStart = control.Text.Length;
                 control.ScrollToCaret();
             });
@@ -43,8 +43,7 @@ namespace DQueue.WinTest
 
             producer.Send(new SampleMessage
             {
-                FirstName = text,
-                LastName = text
+                Text = text
             });
 
             txtSend.Focus();
@@ -66,8 +65,6 @@ namespace DQueue.WinTest
             }
         }
 
-        public string FirstName { get; set; }
-
-        public string LastName { get; set; }
+        public string Text { get; set; }
     }
 }

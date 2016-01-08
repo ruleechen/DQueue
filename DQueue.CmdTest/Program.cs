@@ -18,7 +18,7 @@ namespace DQueue.CmdTest
             {
                 Thread.Sleep(5000);
                 var threadId = Thread.CurrentThread.ManagedThreadId;
-                Console.WriteLine(string.Format("[ThreadID {0}, Received] -> {1} {2}", threadId, message.FirstName, message.LastName));
+                Console.WriteLine(string.Format("[ThreadID {0}, Received] -> {1}", threadId, message.Text));
             });
 
 
@@ -30,8 +30,7 @@ namespace DQueue.CmdTest
 
                 producer.Send(new SampleMessage
                 {
-                    FirstName = text,
-                    LastName = text
+                    Text = text
                 });
 
                 Console.WriteLine(string.Format("[send] -> {0}", text));
@@ -49,8 +48,6 @@ namespace DQueue.CmdTest
             }
         }
 
-        public string FirstName { get; set; }
-
-        public string LastName { get; set; }
+        public string Text { get; set; }
     }
 }
