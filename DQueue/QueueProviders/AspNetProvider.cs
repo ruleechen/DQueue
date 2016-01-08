@@ -73,26 +73,26 @@ namespace DQueue.QueueProviders
 
             var queue = GetQueue(queueName);
 
-            var receptionStatus = ReceptionStatus.Listen;
+            ReceptionStatus = ReceptionStatus.Listen;
 
             while (true)
             {
-                if (receptionStatus == ReceptionStatus.BreakOff)
+                if (ReceptionStatus == ReceptionStatus.BreakOff)
                 {
                     break;
                 }
 
                 if (queue.Count > 0 &&
-                    receptionStatus == ReceptionStatus.Listen &&
-                    receptionStatus != ReceptionStatus.Suspend)
+                    ReceptionStatus == ReceptionStatus.Listen &&
+                    ReceptionStatus != ReceptionStatus.Suspend)
                 {
                     lock (GetLocker(queueName))
                     {
                         if (queue.Count > 0 &&
-                            receptionStatus == ReceptionStatus.Listen &&
-                            receptionStatus != ReceptionStatus.Suspend)
+                            ReceptionStatus == ReceptionStatus.Listen &&
+                            ReceptionStatus != ReceptionStatus.Suspend)
                         {
-                            receptionStatus = ReceptionStatus.Process;
+                            ReceptionStatus = ReceptionStatus.Process;
 
                             var context = new ReceptionContext(this);
 
