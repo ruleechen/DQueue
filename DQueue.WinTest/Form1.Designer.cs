@@ -35,9 +35,9 @@
             // 
             // btnSend
             // 
-            this.btnSend.Location = new System.Drawing.Point(174, 183);
+            this.btnSend.Location = new System.Drawing.Point(174, 169);
             this.btnSend.Name = "btnSend";
-            this.btnSend.Size = new System.Drawing.Size(75, 23);
+            this.btnSend.Size = new System.Drawing.Size(75, 21);
             this.btnSend.TabIndex = 0;
             this.btnSend.Text = "Send";
             this.btnSend.UseVisualStyleBackColor = true;
@@ -45,25 +45,27 @@
             // 
             // txtSend
             // 
-            this.txtSend.Location = new System.Drawing.Point(12, 12);
+            this.txtSend.Location = new System.Drawing.Point(12, 11);
             this.txtSend.Multiline = true;
             this.txtSend.Name = "txtSend";
-            this.txtSend.Size = new System.Drawing.Size(237, 165);
+            this.txtSend.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtSend.Size = new System.Drawing.Size(237, 153);
             this.txtSend.TabIndex = 2;
             // 
             // txtReceive
             // 
-            this.txtReceive.Location = new System.Drawing.Point(255, 12);
+            this.txtReceive.Location = new System.Drawing.Point(255, 11);
             this.txtReceive.Multiline = true;
             this.txtReceive.Name = "txtReceive";
-            this.txtReceive.Size = new System.Drawing.Size(237, 165);
+            this.txtReceive.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtReceive.Size = new System.Drawing.Size(447, 153);
             this.txtReceive.TabIndex = 3;
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(506, 213);
+            this.ClientSize = new System.Drawing.Size(714, 197);
             this.Controls.Add(this.txtReceive);
             this.Controls.Add(this.txtSend);
             this.Controls.Add(this.btnSend);

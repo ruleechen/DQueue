@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using DQueue.Interfaces;
 
@@ -15,8 +16,9 @@ namespace DQueue.CmdTest
 
             consumer.Receive<SampleMessage>((message) =>
             {
-                System.Threading.Thread.Sleep(5000);
-                Console.WriteLine(string.Format("[receive] -> {0} {1}", message.FirstName, message.LastName));
+                Thread.Sleep(5000);
+                var threadId = Thread.CurrentThread.ManagedThreadId;
+                Console.WriteLine(string.Format("[ThreadID {0}, Received] -> {1} {2}", threadId, message.FirstName, message.LastName));
             });
 
 

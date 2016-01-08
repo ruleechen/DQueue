@@ -5,6 +5,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using DQueue.Interfaces;
@@ -25,8 +26,12 @@ namespace DQueue.WinTest
 
             _consumer.Receive<SampleMessage>((message) =>
             {
-                System.Threading.Thread.Sleep(5000);
-                control.Text += message.FirstName + Environment.NewLine;
+                Thread.Sleep(5000);
+                var threadId = Thread.CurrentThread.ManagedThreadId;
+
+                control.Text += string.Format("[ThreadID {0}, Received] -> {1} {2}", threadId, message.FirstName, message.LastName) + Environment.NewLine;
+                control.SelectionStart = control.Text.Length;
+                control.ScrollToCaret();
             });
         }
 
