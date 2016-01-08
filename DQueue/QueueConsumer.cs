@@ -13,7 +13,7 @@ namespace DQueue
         private readonly int _threads;
         private readonly QueueProvider _provider;
         private readonly CancellationTokenSource _cts;
-        private readonly Dictionary<IQueueProvider, Task<IQueueProvider>> _providerTasks;
+        private readonly Dictionary<IQueueProvider, Task> _providerTasks;
 
         public QueueConsumer()
             : this(QueueProvider.Configured, 1)
@@ -35,7 +35,7 @@ namespace DQueue
             _threads = threads;
             _provider = provider;
             _cts = new CancellationTokenSource();
-            _providerTasks = new Dictionary<IQueueProvider, Task<IQueueProvider>>();
+            _providerTasks = new Dictionary<IQueueProvider, Task>();
         }
 
         public void Receive<TMessage>(Action<TMessage> handler)
@@ -62,13 +62,22 @@ namespace DQueue
             {
                 var provider = QueueHelpers.CreateProvider(_provider);
 
-                var task = Task.Factory.StartNew<IQueueProvider>(() =>
+                var task = Task.Factory.StartNew((state) =>
                 {
-                    provider.Dequeue<TMessage>(queueName, handler, _cts.Token);
-
-                    return provider;
-
-                }, TaskCreationOptions.LongRunning);
+                    var link = (ThreadState<TMessage>)state;
+                    link.Provider.Dequeue<TMessage>(
+                        link.QueueName,
+                        link.Handler,
+                        link.Token);
+                },
+                new ThreadState<TMessage>
+                {
+                    QueueName = queueName,
+                    Provider = provider,
+                    Handler = handler,
+                    Token = _cts.Token
+                },
+                _cts.Token);
 
                 _providerTasks.Add(provider, task);
             }
@@ -79,6 +88,14 @@ namespace DQueue
             _cts.Cancel();
             _cts.Dispose();
             _providerTasks.Clear();
+        }
+
+        private class ThreadState<TMessage>
+        {
+            public string QueueName { get; set; }
+            public IQueueProvider Provider { get; set; }
+            public Action<TMessage, ReceptionContext> Handler { get; set; }
+            public CancellationToken Token { get; set; }
         }
     }
 }
