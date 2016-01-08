@@ -8,6 +8,7 @@ namespace DQueue.QueueProviders
 {
     public class AspNetProvider : IQueueProvider
     {
+        #region static
         static readonly Dictionary<string, object> _lockers;
         static readonly Dictionary<string, Queue<object>> _queues;
 
@@ -48,6 +49,7 @@ namespace DQueue.QueueProviders
 
             return _queues[key];
         }
+        #endregion
 
         public void Enqueue(string queueName, object message)
         {
@@ -116,6 +118,7 @@ namespace DQueue.QueueProviders
         public void RequestStop()
         {
             ReceptionStatus = ReceptionStatus.BreakOff;
+            System.Threading.Thread.Sleep(20);
         }
     }
 }

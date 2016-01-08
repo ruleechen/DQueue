@@ -11,6 +11,7 @@ namespace DQueue
     {
         private readonly int _threads;
         private readonly QueueProvider _provider;
+        private readonly List<IQueueProvider> _providers;
         private readonly List<Task<IQueueProvider>> _tasks;
 
         public QueueConsumer()
@@ -32,6 +33,7 @@ namespace DQueue
         {
             _threads = threads;
             _provider = provider;
+            _providers = new List<IQueueProvider>();
             _tasks = new List<Task<IQueueProvider>>();
         }
 
@@ -59,23 +61,32 @@ namespace DQueue
 
             for (var i = 0; i < _threads; i++)
             {
+                var provider = QueueHelpers.GetProvider(_provider);
+
+                _providers.Add(provider);
+
                 _tasks.Add(Task.Factory.StartNew<IQueueProvider>(() =>
                 {
-                    var provider = QueueHelpers.GetProvider(_provider);
-
                     provider.Dequeue<TMessage>(queueName, handler);
 
                     return provider;
 
-                }));
+                }, TaskCreationOptions.LongRunning));
             }
         }
 
         public void Dispose()
         {
-            foreach (var task in _tasks)
+            foreach (var item in _providers)
             {
-                task.Dispose();
+                item.RequestStop();
+            }
+
+            _providers.Clear();
+
+            foreach (var item in _tasks)
+            {
+                item.Dispose();
             }
 
             _tasks.Clear();
