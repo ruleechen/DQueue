@@ -11,6 +11,7 @@ namespace DQueue
     internal class QueueHelpers
     {
         private static RabbitMQ.Client.ConnectionFactory _rabbitMQConnectionFactory;
+        private static StackExchange.Redis.ConnectionMultiplexer _redisConnectionFactory;
 
         public static IQueueProvider CreateProvider(QueueProvider provider)
         {
@@ -32,10 +33,18 @@ namespace DQueue
 
             if (provider == QueueProvider.Redis)
             {
-                var hostName = appSettings["Redis_HostName"];
-                var userName = appSettings["Redis_UserName"];
-                var password = appSettings["Redis_Password"];
-                return new RedisProvider(hostName, userName, password);
+                if (_redisConnectionFactory == null)
+                {
+                    _redisConnectionFactory = StackExchange.Redis.ConnectionMultiplexer.Connect(
+                        new StackExchange.Redis.ConfigurationOptions()
+                        {
+                            SslHost = appSettings["Redis_HostName"],
+                            ClientName = appSettings["Redis_UserName"],
+                            Password = appSettings["Redis_Password"]
+                        });
+                }
+
+                return new RedisProvider(_redisConnectionFactory);
             }
 
             if (provider == QueueProvider.RabbitMQ)
