@@ -12,9 +12,9 @@ namespace DQueue.CmdTest
     {
         static void Main(string[] args)
         {
-            var consumer = new QueueConsumer(10);
+            var consumer = new QueueConsumer<SampleMessage>(10);
 
-            consumer.Receive<SampleMessage>((message) =>
+            consumer.Receive((message) =>
             {
                 Thread.Sleep(5000);
                 var threadId = Thread.CurrentThread.ManagedThreadId;

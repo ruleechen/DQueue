@@ -8,7 +8,7 @@ namespace DQueue
 {
     public class QueueProducer
     {
-        private readonly QueueProvider _provider;
+        private readonly IQueueProvider _provider;
 
         public QueueProducer()
             : this(QueueProvider.Configured)
@@ -17,25 +17,27 @@ namespace DQueue
 
         public QueueProducer(QueueProvider provider)
         {
-            _provider = provider;
+            _provider = QueueHelpers.CreateProvider(provider);
         }
 
-        public void Send<TMessage>(TMessage message)
+        public QueueProducer Send<TMessage>(TMessage message)
             where TMessage : new()
         {
             var queueName = QueueHelpers.GetQueueName<TMessage>();
 
-            this.Send(queueName, message);
+            return this.Send(queueName, message);
         }
 
-        public void Send<TMessage>(string queueName, TMessage message)
+        public QueueProducer Send(string queueName, object message)
         {
             if (string.IsNullOrWhiteSpace(queueName))
             {
                 throw new ArgumentNullException("queueName");
             }
 
-            QueueHelpers.CreateProvider(_provider).Enqueue(queueName, message);
+            _provider.Enqueue(queueName, message);
+
+            return this;
         }
     }
 }

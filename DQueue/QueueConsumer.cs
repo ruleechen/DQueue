@@ -8,12 +8,13 @@ using DQueue.Interfaces;
 
 namespace DQueue
 {
-    public class QueueConsumer : IDisposable
+    public class QueueConsumer<TMessage> : IDisposable
+        where TMessage : new()
     {
         private readonly int _threads;
         private readonly QueueProvider _provider;
-        private readonly CancellationTokenSource _cts;
         private readonly Dictionary<IQueueProvider, Task> _providerTasks;
+        private CancellationTokenSource _cts;
 
         public QueueConsumer()
             : this(QueueProvider.Configured, 1)
@@ -34,23 +35,27 @@ namespace DQueue
         {
             _threads = threads;
             _provider = provider;
-            _cts = new CancellationTokenSource();
             _providerTasks = new Dictionary<IQueueProvider, Task>();
         }
 
-        public void Receive<TMessage>(Action<TMessage> handler)
-            where TMessage : new()
+        public QueueConsumer<TMessage> Receive(Action<TMessage> handler)
         {
-            Receive<TMessage>((message, context) =>
+            return Receive((message, context) =>
             {
                 handler(message);
                 context.Continue();
             });
         }
 
-        public void Receive<TMessage>(Action<TMessage, ReceptionContext> handler)
-            where TMessage : new()
+        public QueueConsumer<TMessage> Receive(Action<TMessage, ReceptionContext> handler)
         {
+            if (_cts != null && !_cts.IsCancellationRequested)
+            {
+                throw new InvalidOperationException("Consumer is allowed only one handler");
+            }
+
+            _cts = new CancellationTokenSource();
+
             var queueName = QueueHelpers.GetQueueName<TMessage>();
 
             if (string.IsNullOrWhiteSpace(queueName))
@@ -83,20 +88,26 @@ namespace DQueue
 
                 _providerTasks.Add(provider, task);
             }
+
+            return this;
         }
 
         public void Dispose()
         {
-            _cts.Cancel();
-            _cts.Dispose();
+            if (_cts != null)
+            {
+                _cts.Cancel();
+                _cts.Dispose();
+            }
+
             _providerTasks.Clear();
         }
 
-        private class ThreadState<TMessage>
+        private class ThreadState<T>
         {
             public string QueueName { get; set; }
             public IQueueProvider Provider { get; set; }
-            public Action<TMessage, ReceptionContext> Handler { get; set; }
+            public Action<T, ReceptionContext> Handler { get; set; }
             public CancellationToken Token { get; set; }
         }
     }
