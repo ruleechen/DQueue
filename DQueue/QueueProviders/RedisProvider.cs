@@ -48,32 +48,32 @@ namespace DQueue.QueueProviders
 
             var receptionStatus = ReceptionStatus.Listen;
 
-            while (true)
+            //while (true)
+            //{
+            //    token.ThrowIfCancellationRequested();
+
+            //    if (receptionStatus == ReceptionStatus.BreakOff)
+            //    {
+            //        break;
+            //    }
+
+            //    if (receptionStatus == ReceptionStatus.Listen &&
+            //        receptionStatus != ReceptionStatus.Suspend)
+            //    {
+            subscriber.Subscribe(queueName, (channel, body) =>
             {
-                token.ThrowIfCancellationRequested();
+                var message = JsonConvert.DeserializeObject<TMessage>(body);
 
-                if (receptionStatus == ReceptionStatus.BreakOff)
+                var context = new ReceptionContext((status) =>
                 {
-                    break;
-                }
+                    receptionStatus = status;
+                });
 
-                if (receptionStatus == ReceptionStatus.Listen &&
-                    receptionStatus != ReceptionStatus.Suspend)
-                {
-                    subscriber.Subscribe(queueName, (channel, body) =>
-                    {
-                        var message = JsonConvert.DeserializeObject<TMessage>(body);
-
-                        var context = new ReceptionContext((status) =>
-                        {
-                            receptionStatus = status;
-                        });
-
-                        receptionStatus = ReceptionStatus.Process;
-                        handler(message, context);
-                    });
-                }
-            }
+                receptionStatus = ReceptionStatus.Process;
+                handler(message, context);
+            });
+            //    }
+            //}
         }
     }
 }
