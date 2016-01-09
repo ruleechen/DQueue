@@ -8,3 +8,6 @@ http://www.cnblogs.com/laozhbook/p/redis_queue.html
 
 https://msdn.microsoft.com/en-US/library/7a2f3ay4(v=vs.80).aspx
 http://stackoverflow.com/questions/21842880/multi-threading-based-rabbitmq-consumer
+
+
+https://github.com/StackExchange/StackExchange.Redis
