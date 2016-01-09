@@ -35,13 +35,9 @@ namespace DQueue
             {
                 if (_redisConnectionFactory == null)
                 {
-                    _redisConnectionFactory = StackExchange.Redis.ConnectionMultiplexer.Connect(
-                        new StackExchange.Redis.ConfigurationOptions()
-                        {
-                            ServiceName = appSettings["Redis_ServiceName"],
-                            ClientName = appSettings["Redis_ClientName"],
-                            Password = appSettings["Redis_Password"]
-                        });
+                    var redisConnectionString = appSettings["Redis_Connection"];
+                    var resisConfiguration = StackExchange.Redis.ConfigurationOptions.Parse(redisConnectionString);
+                    _redisConnectionFactory = StackExchange.Redis.ConnectionMultiplexer.Connect(resisConfiguration);
                 }
 
                 return new RedisProvider(_redisConnectionFactory);
