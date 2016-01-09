@@ -14,7 +14,9 @@ namespace DQueue
         private readonly int _threads;
         private readonly QueueProvider _provider;
         private readonly Dictionary<IQueueProvider, Task> _providerTasks;
-        private CancellationTokenSource _cts;
+        private readonly List<Action<TMessage, ReceptionContext>> _handlers;
+        private readonly CancellationTokenSource _cts;
+        private readonly string _queueName;
 
         public QueueConsumer()
             : this(QueueProvider.Configured, 1)
@@ -36,6 +38,35 @@ namespace DQueue
             _threads = threads;
             _provider = provider;
             _providerTasks = new Dictionary<IQueueProvider, Task>();
+            _handlers = new List<Action<TMessage, ReceptionContext>>();
+            _cts = new CancellationTokenSource();
+            _queueName = QueueHelpers.GetQueueName<TMessage>();
+            
+            if (_threads <= 0)
+            {
+                throw new ArgumentRangeException("threads")
+            }
+            
+            if (string.IsNullOrWhiteSpace(_queueName))
+            {
+                throw new ArgumentNullException("queueName");
+            }
+        }
+        
+        public string QueueName
+        {
+            get
+            {
+                return _queueName;
+            }
+        }
+        
+        public string Threads
+        {
+            get
+            {
+                return _threads;
+            }
         }
 
         public QueueConsumer<TMessage> Receive(Action<TMessage> handler)
@@ -49,47 +80,54 @@ namespace DQueue
 
         public QueueConsumer<TMessage> Receive(Action<TMessage, ReceptionContext> handler)
         {
-            if (_cts != null && !_cts.IsCancellationRequested)
+            if (_cts == null || _cts.IsCancellationRequested)
             {
-                throw new InvalidOperationException("Consumer is allowed only one handler");
+                throw new InvalidOperationException("Consumer already disposed");
             }
-
-            _cts = new CancellationTokenSource();
-
-            var queueName = QueueHelpers.GetQueueName<TMessage>();
-
-            if (string.IsNullOrWhiteSpace(queueName))
+            
+            if (handler != null)
             {
-                throw new ArgumentNullException("queueName");
+                _handlers.Add(handler);
             }
-
-            for (var i = 0; i < _threads; i++)
+            
+            if (_providerTasks.Count != _threads)
             {
-                var provider = QueueHelpers.CreateProvider(_provider);
-
-                var task = Task.Factory.StartNew((state) =>
+                for (var i = 0; i < _threads; i++)
                 {
-                    var link = (ThreadState<TMessage>)state;
-                    link.Provider.Dequeue<TMessage>(
-                        link.QueueName,
-                        link.Handler,
-                        link.Token);
-                },
-                new ThreadState<TMessage>
-                {
-                    QueueName = queueName,
-                    Provider = provider,
-                    Handler = handler,
-                    Token = _cts.Token
-                },
-                _cts.Token,
-                TaskCreationOptions.LongRunning,
-                TaskScheduler.Default);
-
-                _providerTasks.Add(provider, task);
+                    var provider = QueueHelpers.CreateProvider(_provider);
+    
+                    var task = Task.Factory.StartNew((state) =>
+                    {
+                        var link = (ThreadState<TMessage>)state;
+                        link.Provider.Dequeue<TMessage>(
+                            link.QueueName,
+                            link.Handler,
+                            link.Token);
+                    },
+                    new ThreadState<TMessage>
+                    {
+                        QueueName = _queueName,
+                        Provider = provider,
+                        Handler = HandlerDispatcher,
+                        Token = _cts.Token
+                    },
+                    _cts.Token,
+                    TaskCreationOptions.LongRunning,
+                    TaskScheduler.Default);
+    
+                    _providerTasks.Add(provider, task);
+                }
             }
-
+            
             return this;
+        }
+        
+        private void HandlerDispatcher(TMessage message, ReceptionContext context)
+        {
+            parara.foreach(_handlers, (handler) =>
+            {
+                handler(message, context);
+            });
         }
 
         public void Dispose()
@@ -101,6 +139,7 @@ namespace DQueue
             }
 
             _providerTasks.Clear();
+            _handlers.Clear();
         }
 
         private class ThreadState<T>
