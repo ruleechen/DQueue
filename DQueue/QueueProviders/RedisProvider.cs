@@ -26,7 +26,9 @@ namespace DQueue.QueueProviders
             }
 
             var json = JsonConvert.SerializeObject(message);
+
             var subscriber = _connectionFactory.GetSubscriber();
+
             subscriber.Publish(queueName, json);
         }
 
@@ -36,6 +38,13 @@ namespace DQueue.QueueProviders
             {
                 return;
             }
+
+            var subscriber = _connectionFactory.GetSubscriber();
+
+            token.Register(() =>
+            {
+                subscriber.Unsubscribe(queueName);
+            });
 
             var receptionStatus = ReceptionStatus.Listen;
 
@@ -48,14 +57,22 @@ namespace DQueue.QueueProviders
                     break;
                 }
 
-                //var subscriber = _connectionFactory.GetSubscriber();
+                if (receptionStatus == ReceptionStatus.Listen &&
+                    receptionStatus != ReceptionStatus.Suspend)
+                {
+                    subscriber.Subscribe(queueName, (channel, body) =>
+                    {
+                        var message = JsonConvert.DeserializeObject<TMessage>(body);
 
-                //subscriber.Unsubscribe(
+                        var context = new ReceptionContext((status) =>
+                        {
+                            receptionStatus = status;
+                        });
 
-                //subscriber.Subscribe(queueName, (channel, body) =>
-                //{
-
-                //});
+                        receptionStatus = ReceptionStatus.Process;
+                        handler(message, context);
+                    });
+                }
             }
         }
     }

@@ -38,8 +38,8 @@ namespace DQueue
                     _redisConnectionFactory = StackExchange.Redis.ConnectionMultiplexer.Connect(
                         new StackExchange.Redis.ConfigurationOptions()
                         {
-                            SslHost = appSettings["Redis_HostName"],
-                            ClientName = appSettings["Redis_UserName"],
+                            ServiceName = appSettings["Redis_ServiceName"],
+                            ClientName = appSettings["Redis_ClientName"],
                             Password = appSettings["Redis_Password"]
                         });
                 }
