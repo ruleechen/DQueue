@@ -66,15 +66,12 @@ namespace DQueue.QueueProviders
 
                     while (true)
                     {
-                        token.ThrowIfCancellationRequested();
-
-                        if (receptionStatus == ReceptionStatus.BreakOff)
+                        if (token.IsCancellationRequested)
                         {
                             break;
                         }
 
-                        if (receptionStatus == ReceptionStatus.Listen &&
-                            receptionStatus != ReceptionStatus.Suspend)
+                        if (receptionStatus == ReceptionStatus.Listen)
                         {
                             var eventArg = consumer.Queue.Dequeue();
                             if (eventArg != null)

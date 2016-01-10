@@ -14,19 +14,9 @@ namespace DQueue.Interfaces
             _action = action;
         }
 
-        public void Suspend()
-        {
-            _action(ReceptionStatus.Suspend);
-        }
-
         public void Continue()
         {
             _action(ReceptionStatus.Listen);
-        }
-
-        public void BreakOff()
-        {
-            _action(ReceptionStatus.BreakOff);
         }
     }
 }

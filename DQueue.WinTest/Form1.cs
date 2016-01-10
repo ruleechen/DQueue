@@ -29,7 +29,17 @@ namespace DQueue.WinTest
                 Thread.Sleep(1000);
                 var threadId = Thread.CurrentThread.ManagedThreadId;
 
-                control.Text += string.Format("[ThreadID {0}, Received] -> {1}", threadId, message.Text) + Environment.NewLine;
+                control.Text += string.Format("[Receiver 1, ThreadID {0}] -> {1}", threadId, message.Text) + Environment.NewLine;
+                control.SelectionStart = control.Text.Length;
+                control.ScrollToCaret();
+            });
+
+            _consumer.Receive((message) =>
+            {
+                Thread.Sleep(1000);
+                var threadId = Thread.CurrentThread.ManagedThreadId;
+
+                control.Text += string.Format("[Receiver 2, ThreadID {0}] -> {1}", threadId, message.Text) + Environment.NewLine;
                 control.SelectionStart = control.Text.Length;
                 control.ScrollToCaret();
             });

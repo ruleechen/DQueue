@@ -50,15 +50,12 @@ namespace DQueue.QueueProviders
 
             //while (true)
             //{
-            //    token.ThrowIfCancellationRequested();
+            //if (token.IsCancellationRequested)
+            //{
+            //    break;
+            //}
 
-            //    if (receptionStatus == ReceptionStatus.BreakOff)
-            //    {
-            //        break;
-            //    }
-
-            //    if (receptionStatus == ReceptionStatus.Listen &&
-            //        receptionStatus != ReceptionStatus.Suspend)
+            //    if (receptionStatus == ReceptionStatus.Listen)
             //    {
             subscriber.Subscribe(queueName, (channel, body) =>
             {

@@ -18,7 +18,14 @@ namespace DQueue.CmdTest
             {
                 Thread.Sleep(1000);
                 var threadId = Thread.CurrentThread.ManagedThreadId;
-                Console.WriteLine(string.Format("[ThreadID {0}, Received] -> {1}", threadId, message.Text));
+                Console.WriteLine(string.Format("[Receiver 1, ThreadID {0}] -> {1}", threadId, message.Text));
+            });
+
+            consumer.Receive((message) =>
+            {
+                Thread.Sleep(1000);
+                var threadId = Thread.CurrentThread.ManagedThreadId;
+                Console.WriteLine(string.Format("[Receiver 2, ThreadID {0}] -> {1}", threadId, message.Text));
             });
 
 
@@ -28,6 +35,11 @@ namespace DQueue.CmdTest
             {
                 var text = Console.ReadLine();
 
+                if (text == "exit")
+                {
+                    break;
+                }
+
                 producer.Send(new SampleMessage
                 {
                     Text = text
@@ -35,6 +47,8 @@ namespace DQueue.CmdTest
 
                 Console.WriteLine(string.Format("[send] -> {0}", text));
             }
+
+            consumer.Dispose();
         }
     }
 

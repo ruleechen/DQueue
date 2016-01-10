@@ -55,6 +55,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Interfaces\DispatchContext.cs" />
+    <Compile Include="Interfaces\DispatchStatus.cs" />
     <Compile Include="Interfaces\ReceptionContext.cs" />
     <Compile Include="Interfaces\IQueueMessage.cs" />
     <Compile Include="Interfaces\IQueueProvider.cs" />

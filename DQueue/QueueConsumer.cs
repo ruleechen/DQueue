@@ -11,12 +11,38 @@ namespace DQueue
     public class QueueConsumer<TMessage> : IDisposable
         where TMessage : new()
     {
+        #region Helpers
+        private class TaskModel
+        {
+            public Task ReceiveTask { get; set; }
+            public List<Task> DispatchTasks { get; set; }
+            public CancellationTokenSource DispatchCTS { get; set; }
+        }
+
+        private class DispatchState<T>
+        {
+            public T Message { get; set; }
+            public DispatchContext Context { get; set; }
+            public Action<T, DispatchContext> Handler { get; set; }
+        }
+
+        private class ReceiveState<T>
+        {
+            public string QueueName { get; set; }
+            public IQueueProvider Provider { get; set; }
+            public Action<T, ReceptionContext> Handler { get; set; }
+            public CancellationToken Token { get; set; }
+        }
+        #endregion
+
         private readonly int _threads;
         private readonly QueueProvider _provider;
-        private readonly Dictionary<IQueueProvider, Task> _providerTasks;
-        private readonly List<Action<TMessage, ReceptionContext>> _handlers;
-        private readonly CancellationTokenSource _cts;
         private readonly string _queueName;
+        private readonly List<Action<TMessage, DispatchContext>> _handlers;
+
+        private readonly List<TaskModel> _tasks;
+        private readonly CancellationTokenSource _cts;
+        private readonly object _dispatchLocker;
 
         public QueueConsumer()
             : this(QueueProvider.Configured, 1)
@@ -37,10 +63,12 @@ namespace DQueue
         {
             _threads = threads;
             _provider = provider;
-            _providerTasks = new Dictionary<IQueueProvider, Task>();
-            _handlers = new List<Action<TMessage, ReceptionContext>>();
-            _cts = new CancellationTokenSource();
             _queueName = QueueHelpers.GetQueueName<TMessage>();
+            _handlers = new List<Action<TMessage, DispatchContext>>();
+
+            _tasks = new List<TaskModel>();
+            _cts = new CancellationTokenSource();
+            _dispatchLocker = new object();
 
             if (_threads <= 0)
             {
@@ -74,11 +102,10 @@ namespace DQueue
             return Receive((message, context) =>
             {
                 handler(message);
-                context.Continue();
             });
         }
 
-        public QueueConsumer<TMessage> Receive(Action<TMessage, ReceptionContext> handler)
+        public QueueConsumer<TMessage> Receive(Action<TMessage, DispatchContext> handler)
         {
             if (_cts == null || _cts.IsCancellationRequested)
             {
@@ -90,7 +117,7 @@ namespace DQueue
                 _handlers.Add(handler);
             }
 
-            if (_providerTasks.Count != _threads)
+            if (_tasks.Count < _threads)
             {
                 for (var i = 0; i < _threads; i++)
                 {
@@ -98,36 +125,98 @@ namespace DQueue
 
                     var task = Task.Factory.StartNew((state) =>
                     {
-                        var link = (ThreadState<TMessage>)state;
-                        link.Provider.Dequeue<TMessage>(
-                            link.QueueName,
-                            link.Handler,
-                            link.Token);
+                        var param = (ReceiveState<TMessage>)state;
+                        param.Provider.Dequeue<TMessage>(
+                            param.QueueName,
+                            param.Handler,
+                            param.Token);
                     },
-                    new ThreadState<TMessage>
+                    new ReceiveState<TMessage>
                     {
                         QueueName = _queueName,
                         Provider = provider,
-                        Handler = HandlerDispatcher,
+                        Handler = Dispatch,
                         Token = _cts.Token
                     },
                     _cts.Token,
                     TaskCreationOptions.LongRunning,
                     TaskScheduler.Default);
 
-                    _providerTasks.Add(provider, task);
+                    _tasks.Add(new TaskModel { ReceiveTask = task });
                 }
+
+                _cts.Token.Register(() =>
+                {
+                    foreach (var item in _tasks)
+                    {
+                        if (item.DispatchCTS != null)
+                        {
+                            item.DispatchCTS.Cancel();
+                            item.DispatchCTS.Dispose();
+                        }
+
+                        if (item.DispatchTasks != null)
+                        {
+                            item.DispatchTasks.Clear();
+                        }
+                    }
+                });
             }
 
             return this;
         }
 
-        private void HandlerDispatcher(TMessage message, ReceptionContext context)
+        private void Dispatch(TMessage message, ReceptionContext receptionContext)
         {
-            Parallel.ForEach(_handlers, (handler) =>
+            var currentTaskId = Task.CurrentId;
+            if (currentTaskId.HasValue)
             {
-                handler(message, context);
-            });
+                var model = _tasks.FirstOrDefault(x => x.ReceiveTask.Id == currentTaskId.Value);
+                if (model != null)
+                {
+                    lock (_dispatchLocker)
+                    {
+                        model.DispatchTasks = new List<Task>();
+                        model.DispatchCTS = new CancellationTokenSource();
+
+                        var dispatchContext = new DispatchContext(model.DispatchCTS.Token, (status) =>
+                        {
+                            if (status == DispatchStatus.Complete)
+                            {
+                                model.DispatchCTS.Cancel();
+                                model.DispatchCTS.Dispose();
+                                model.DispatchTasks.Clear();
+                                receptionContext.Continue();
+                            }
+                        });
+
+                        foreach (var handler in _handlers)
+                        {
+                            var task = Task.Factory.StartNew((state) =>
+                            {
+                                var param = (DispatchState<TMessage>)state;
+                                param.Handler(param.Message, param.Context);
+                            },
+                            new DispatchState<TMessage>
+                            {
+                                Message = message,
+                                Handler = handler,
+                                Context = dispatchContext,
+                            },
+                            model.DispatchCTS.Token,
+                            TaskCreationOptions.AttachedToParent,
+                            TaskScheduler.Default);
+
+                            model.DispatchTasks.Add(task);
+                        }
+
+                        Task.Factory.ContinueWhenAll(model.DispatchTasks.ToArray(), (t) =>
+                        {
+                            receptionContext.Continue();
+                        });
+                    }
+                }
+            }
         }
 
         public void Dispose()
@@ -138,16 +227,9 @@ namespace DQueue
                 _cts.Dispose();
             }
 
-            _providerTasks.Clear();
-            _handlers.Clear();
-        }
+            _tasks.Clear();
 
-        private class ThreadState<T>
-        {
-            public string QueueName { get; set; }
-            public IQueueProvider Provider { get; set; }
-            public Action<T, ReceptionContext> Handler { get; set; }
-            public CancellationToken Token { get; set; }
+            _handlers.Clear();
         }
     }
 }

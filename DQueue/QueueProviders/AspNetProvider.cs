@@ -80,24 +80,20 @@ namespace DQueue.QueueProviders
 
             while (true)
             {
-                token.ThrowIfCancellationRequested();
-
-                if (receptionStatus == ReceptionStatus.BreakOff)
+                if (token.IsCancellationRequested)
                 {
                     break;
                 }
 
                 if (queue.Count > 0 &&
-                    receptionStatus == ReceptionStatus.Listen &&
-                    receptionStatus != ReceptionStatus.Suspend)
+                    receptionStatus == ReceptionStatus.Listen)
                 {
                     object message = null;
 
                     lock (GetLocker(queueName))
                     {
                         if (queue.Count > 0 &&
-                            receptionStatus == ReceptionStatus.Listen &&
-                            receptionStatus != ReceptionStatus.Suspend)
+                            receptionStatus == ReceptionStatus.Listen)
                         {
                             message = queue.Dequeue();
                         }
