@@ -212,6 +212,8 @@ namespace DQueue
 
                         Task.Factory.ContinueWhenAll(model.DispatchTasks.ToArray(), (t) =>
                         {
+                            model.DispatchCTS = null;
+                            model.DispatchTasks.Clear();
                             receptionContext.Continue();
                         });
                     }
