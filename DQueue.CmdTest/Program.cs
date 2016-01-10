@@ -23,7 +23,7 @@ namespace DQueue.CmdTest
 
             consumer.Receive((message) =>
             {
-                Thread.Sleep(1000);
+                Thread.Sleep(1100);
                 var threadId = Thread.CurrentThread.ManagedThreadId;
                 Console.WriteLine(string.Format("[Receiver 2, ThreadID {0}] -> {1}", threadId, message.Text));
             });

@@ -36,7 +36,7 @@ namespace DQueue.WinTest
 
             _consumer.Receive((message) =>
             {
-                Thread.Sleep(1000);
+                Thread.Sleep(1100);
                 var threadId = Thread.CurrentThread.ManagedThreadId;
 
                 control.Text += string.Format("[Receiver 2, ThreadID {0}] -> {1}", threadId, message.Text) + Environment.NewLine;
