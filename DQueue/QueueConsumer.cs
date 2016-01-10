@@ -41,18 +41,18 @@ namespace DQueue
             _handlers = new List<Action<TMessage, ReceptionContext>>();
             _cts = new CancellationTokenSource();
             _queueName = QueueHelpers.GetQueueName<TMessage>();
-            
+
             if (_threads <= 0)
             {
-                throw new ArgumentRangeException("threads")
+                throw new ArgumentOutOfRangeException("threads");
             }
-            
+
             if (string.IsNullOrWhiteSpace(_queueName))
             {
                 throw new ArgumentNullException("queueName");
             }
         }
-        
+
         public string QueueName
         {
             get
@@ -60,8 +60,8 @@ namespace DQueue
                 return _queueName;
             }
         }
-        
-        public string Threads
+
+        public int Threads
         {
             get
             {
@@ -84,18 +84,18 @@ namespace DQueue
             {
                 throw new InvalidOperationException("Consumer already disposed");
             }
-            
+
             if (handler != null)
             {
                 _handlers.Add(handler);
             }
-            
+
             if (_providerTasks.Count != _threads)
             {
                 for (var i = 0; i < _threads; i++)
                 {
                     var provider = QueueHelpers.CreateProvider(_provider);
-    
+
                     var task = Task.Factory.StartNew((state) =>
                     {
                         var link = (ThreadState<TMessage>)state;
@@ -114,17 +114,17 @@ namespace DQueue
                     _cts.Token,
                     TaskCreationOptions.LongRunning,
                     TaskScheduler.Default);
-    
+
                     _providerTasks.Add(provider, task);
                 }
             }
-            
+
             return this;
         }
-        
+
         private void HandlerDispatcher(TMessage message, ReceptionContext context)
         {
-            parara.foreach(_handlers, (handler) =>
+            Parallel.ForEach(_handlers, (handler) =>
             {
                 handler(message, context);
             });
