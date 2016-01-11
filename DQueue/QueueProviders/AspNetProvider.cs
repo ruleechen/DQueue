@@ -107,7 +107,7 @@ namespace DQueue.QueueProviders
                     }
                 }
 
-                Thread.Sleep(10);
+                Thread.Sleep(100);
             }
         }
     }

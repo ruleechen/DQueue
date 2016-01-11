@@ -27,9 +27,9 @@ namespace DQueue.QueueProviders
 
             var json = JsonConvert.SerializeObject(message);
 
-            var subscriber = _connectionFactory.GetSubscriber();
+            var database = _connectionFactory.GetDatabase();
 
-            subscriber.Publish(queueName, json);
+            database.ListLeftPush(queueName, json, When.Always, CommandFlags.None);
         }
 
         public void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler, CancellationToken token)
@@ -39,38 +39,38 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var subscriber = _connectionFactory.GetSubscriber();
+            var processingQueueName = queueName + "_processing";
 
-            token.Register(() =>
-            {
-                subscriber.Unsubscribe(queueName);
-            });
+            var database = _connectionFactory.GetDatabase();
 
             var receptionStatus = ReceptionStatus.Listen;
 
-            //while (true)
-            //{
-            //if (token.IsCancellationRequested)
-            //{
-            //    break;
-            //}
-
-            //    if (receptionStatus == ReceptionStatus.Listen)
-            //    {
-            subscriber.Subscribe(queueName, (channel, body) =>
+            while (true)
             {
-                var message = JsonConvert.DeserializeObject<TMessage>(body);
-
-                var context = new ReceptionContext((status) =>
+                if (token.IsCancellationRequested)
                 {
-                    receptionStatus = status;
-                });
+                    break;
+                }
 
-                receptionStatus = ReceptionStatus.Process;
-                handler(message, context);
-            });
-            //    }
-            //}
+                if (receptionStatus == ReceptionStatus.Listen)
+                {
+                    var json = database.ListRightPop(queueName, CommandFlags.None);
+                    if (json.HasValue)
+                    {
+                        var message = JsonConvert.DeserializeObject<TMessage>(json);
+
+                        var context = new ReceptionContext((status) =>
+                        {
+                            receptionStatus = status;
+                        });
+
+                        receptionStatus = ReceptionStatus.Process;
+                        handler(message, context);
+                    }
+                }
+
+                Thread.Sleep(100);
+            }
         }
     }
 }
