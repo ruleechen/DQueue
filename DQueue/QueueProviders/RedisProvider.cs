@@ -11,6 +11,31 @@ namespace DQueue.QueueProviders
 {
     public class RedisProvider : IQueueProvider
     {
+        #region static
+        static readonly Dictionary<string, object> _lockers;
+
+        static RedisProvider()
+        {
+            _lockers = new Dictionary<string, object>();
+        }
+
+        private static object GetLocker(string key)
+        {
+            if (!_lockers.ContainsKey(key))
+            {
+                lock (typeof(RedisProvider))
+                {
+                    if (!_lockers.ContainsKey(key))
+                    {
+                        _lockers.Add(key, new object());
+                    }
+                }
+            }
+
+            return _lockers[key];
+        }
+        #endregion
+
         private readonly ConnectionMultiplexer _connectionFactory;
 
         public RedisProvider(ConnectionMultiplexer connectionFactory)
@@ -52,20 +77,26 @@ namespace DQueue.QueueProviders
                     break;
                 }
 
-                if (receptionStatus == ReceptionStatus.Listen)
+                if (database.ListLength(queueName, CommandFlags.None) > 0 &&
+                    receptionStatus == ReceptionStatus.Listen)
                 {
-                    var json = database.ListRightPop(queueName, CommandFlags.None);
-                    if (json.HasValue)
+                    lock (GetLocker(queueName))
                     {
-                        var message = JsonConvert.DeserializeObject<TMessage>(json);
-
-                        var context = new ReceptionContext((status) =>
+                        if (database.ListLength(queueName, CommandFlags.None) > 0 &&
+                            receptionStatus == ReceptionStatus.Listen)
                         {
-                            receptionStatus = status;
-                        });
+                            var json = database.ListRightPopLeftPush(queueName, processingQueueName, CommandFlags.None);
+                            var message = JsonConvert.DeserializeObject<TMessage>(json);
 
-                        receptionStatus = ReceptionStatus.Process;
-                        handler(message, context);
+                            var context = new ReceptionContext((status) =>
+                            {
+                                receptionStatus = status;
+                                database.ListRemove(processingQueueName, json, 1, CommandFlags.None);
+                            });
+
+                            receptionStatus = ReceptionStatus.Process;
+                            handler(message, context);
+                        }
                     }
                 }
 
