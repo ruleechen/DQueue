@@ -54,7 +54,7 @@ namespace DQueue.QueueProviders
 
             var database = _connectionFactory.GetDatabase();
 
-            database.ListLeftPush(queueName, json, When.Always, CommandFlags.None);
+            database.ListLeftPush(queueName, json);
         }
 
         public void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler, CancellationToken token)
@@ -68,6 +68,16 @@ namespace DQueue.QueueProviders
 
             var database = _connectionFactory.GetDatabase();
 
+            token.Register(() =>
+            {
+                var values = database.ListRange(processingQueueName);
+
+                foreach (var value in values)
+                {
+                    database.ListRightPush(queueName, value);
+                }
+            });
+
             var receptionStatus = ReceptionStatus.Listen;
 
             while (true)
@@ -77,21 +87,21 @@ namespace DQueue.QueueProviders
                     break;
                 }
 
-                if (database.ListLength(queueName, CommandFlags.None) > 0 &&
+                if (database.ListLength(queueName) > 0 &&
                     receptionStatus == ReceptionStatus.Listen)
                 {
                     lock (GetLocker(queueName))
                     {
-                        if (database.ListLength(queueName, CommandFlags.None) > 0 &&
+                        if (database.ListLength(queueName) > 0 &&
                             receptionStatus == ReceptionStatus.Listen)
                         {
-                            var json = database.ListRightPopLeftPush(queueName, processingQueueName, CommandFlags.None);
+                            var json = database.ListRightPopLeftPush(queueName, processingQueueName);
                             var message = JsonConvert.DeserializeObject<TMessage>(json);
 
                             var context = new ReceptionContext((status) =>
                             {
                                 receptionStatus = status;
-                                database.ListRemove(processingQueueName, json, 1, CommandFlags.None);
+                                database.ListRemove(processingQueueName, json, 1);
                             });
 
                             receptionStatus = ReceptionStatus.Process;
