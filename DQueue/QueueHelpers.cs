@@ -10,8 +10,23 @@ namespace DQueue
 {
     internal class QueueHelpers
     {
-        private static RabbitMQ.Client.ConnectionFactory _rabbitMQConnectionFactory;
-        private static StackExchange.Redis.ConnectionMultiplexer _redisConnectionFactory;
+        static Lazy<RabbitMQ.Client.ConnectionFactory> _rabbitMQConnectionFactory = new Lazy<RabbitMQ.Client.ConnectionFactory>(() =>
+        {
+            var appSettings = ConfigurationManager.AppSettings;
+            return new RabbitMQ.Client.ConnectionFactory
+            {
+                HostName = appSettings["RabbitMQ_HostName"],
+                UserName = appSettings["RabbitMQ_UserName"],
+                Password = appSettings["RabbitMQ_Password"]
+            };
+        }, true);
+
+        static Lazy<StackExchange.Redis.ConnectionMultiplexer> _redisConnectionFactory = new Lazy<StackExchange.Redis.ConnectionMultiplexer>(() =>
+        {
+            var redisConnectionString = ConfigurationManager.AppSettings["Redis_Connection"];
+            var resisConfiguration = StackExchange.Redis.ConfigurationOptions.Parse(redisConnectionString);
+            return StackExchange.Redis.ConnectionMultiplexer.Connect(resisConfiguration);
+        }, true);
 
         public static IQueueProvider CreateProvider(QueueProvider provider)
         {
@@ -33,29 +48,12 @@ namespace DQueue
 
             if (provider == QueueProvider.Redis)
             {
-                if (_redisConnectionFactory == null)
-                {
-                    var redisConnectionString = appSettings["Redis_Connection"];
-                    var resisConfiguration = StackExchange.Redis.ConfigurationOptions.Parse(redisConnectionString);
-                    _redisConnectionFactory = StackExchange.Redis.ConnectionMultiplexer.Connect(resisConfiguration);
-                }
-
-                return new RedisProvider(_redisConnectionFactory);
+                return new RedisProvider(_redisConnectionFactory.Value);
             }
 
             if (provider == QueueProvider.RabbitMQ)
             {
-                if (_rabbitMQConnectionFactory == null)
-                {
-                    _rabbitMQConnectionFactory = new RabbitMQ.Client.ConnectionFactory
-                    {
-                        HostName = appSettings["RabbitMQ_HostName"],
-                        UserName = appSettings["RabbitMQ_UserName"],
-                        Password = appSettings["RabbitMQ_Password"]
-                    };
-                }
-
-                return new RabbitMQProvider(_rabbitMQConnectionFactory);
+                return new RabbitMQProvider(_rabbitMQConnectionFactory.Value);
             }
 
             if (provider == QueueProvider.AspNet)
