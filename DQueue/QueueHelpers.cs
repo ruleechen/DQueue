@@ -30,12 +30,10 @@ namespace DQueue
 
         public static IQueueProvider CreateProvider(QueueProvider provider)
         {
-            var appSettings = ConfigurationManager.AppSettings;
-
             if (provider == QueueProvider.Configured)
             {
                 QueueProvider outProvider;
-                var strProvider = appSettings["QueueProvider"];
+                var strProvider = ConfigurationManager.AppSettings["QueueProvider"];
                 if (Enum.TryParse<QueueProvider>(strProvider, true, out outProvider))
                 {
                     provider = outProvider;
