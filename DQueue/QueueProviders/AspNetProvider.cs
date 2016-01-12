@@ -37,7 +37,7 @@ namespace DQueue.QueueProviders
 
         private static Queue<object> GetQueue(string key)
         {
-            if (!_lockers.ContainsKey(key))
+            if (!_queues.ContainsKey(key))
             {
                 lock (GetLocker(key))
                 {
