@@ -70,11 +70,14 @@ namespace DQueue.QueueProviders
 
             token.Register(() =>
             {
-                var values = database.ListRange(processingQueueName);
+                var items = database.ListRange(processingQueueName);
 
-                foreach (var value in values)
+                foreach (var item in items)
                 {
-                    database.ListRightPush(queueName, value);
+                    if (item.HasValue)
+                    {
+                        database.ListRightPush(queueName, item);
+                    }
                 }
             });
 
@@ -90,23 +93,29 @@ namespace DQueue.QueueProviders
                 if (database.ListLength(queueName) > 0 &&
                     receptionStatus == ReceptionStatus.Listen)
                 {
+                    var item = RedisValue.Null;
+
                     lock (GetLocker(queueName))
                     {
                         if (database.ListLength(queueName) > 0 &&
                             receptionStatus == ReceptionStatus.Listen)
                         {
-                            var json = database.ListRightPopLeftPush(queueName, processingQueueName);
-                            var message = JsonConvert.DeserializeObject<TMessage>(json);
-
-                            var context = new ReceptionContext((status) =>
-                            {
-                                receptionStatus = status;
-                                database.ListRemove(processingQueueName, json, 1);
-                            });
-
-                            receptionStatus = ReceptionStatus.Process;
-                            handler(message, context);
+                            item = database.ListRightPopLeftPush(queueName, processingQueueName);
                         }
+                    }
+
+                    if (item.HasValue)
+                    {
+                        var message = JsonConvert.DeserializeObject<TMessage>(item);
+
+                        var context = new ReceptionContext((status) =>
+                        {
+                            receptionStatus = status;
+                            database.ListRemove(processingQueueName, item, 1);
+                        });
+
+                        receptionStatus = ReceptionStatus.Process;
+                        handler(message, context);
                     }
                 }
 
