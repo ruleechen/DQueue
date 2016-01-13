@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using DQueue.Interfaces;
 using DQueue.QueueProviders;
 
@@ -12,12 +14,17 @@ namespace DQueue
     {
         static Lazy<RabbitMQ.Client.ConnectionFactory> _rabbitMQConnectionFactory = new Lazy<RabbitMQ.Client.ConnectionFactory>(() =>
         {
-            var appSettings = ConfigurationManager.AppSettings;
+            var rabbitMQConnectionString = ConfigurationManager.ConnectionStrings["RabbitMQ_Connection"].ConnectionString;
+            var rabbitMQConfiguration = RabbitMQConnectionConfiguration.Parse(rabbitMQConnectionString);
             return new RabbitMQ.Client.ConnectionFactory
             {
-                HostName = appSettings["RabbitMQ_HostName"],
-                UserName = appSettings["RabbitMQ_UserName"],
-                Password = appSettings["RabbitMQ_Password"]
+                HostName = rabbitMQConfiguration.HostName,
+                Port = rabbitMQConfiguration.Port,
+                VirtualHost = rabbitMQConfiguration.VirtualHost,
+                UserName = rabbitMQConfiguration.UserName,
+                Password = rabbitMQConfiguration.Password,
+                RequestedHeartbeat = rabbitMQConfiguration.RequestedHeartbeat,
+                ClientProperties = rabbitMQConfiguration.ClientProperties
             };
         }, true);
 
@@ -96,4 +103,51 @@ namespace DQueue
             }
         }
     }
+
+    #region RabbitMQHelpers
+    internal class RabbitMQConnectionConfiguration
+    {
+        // defaults
+        public const ushort DefaultPort = 5672;
+        public const ushort DefaultHeartBeatInSeconds = 60;
+
+        // fields
+        public string HostName { get; set; }
+        public ushort Port { get; set; }
+        public string VirtualHost { get; set; }
+        public string UserName { get; set; }
+        public string Password { get; set; }
+        public ushort RequestedHeartbeat { get; set; }
+        public IDictionary<string, object> ClientProperties { get; set; }
+
+        public RabbitMQConnectionConfiguration()
+        {
+            this.Port = DefaultPort;
+            this.VirtualHost = "/";
+            this.UserName = "guest";
+            this.Password = "guest";
+            this.RequestedHeartbeat = DefaultHeartBeatInSeconds;
+            this.ClientProperties = new Dictionary<string, object>();
+        }
+
+        public static RabbitMQConnectionConfiguration Parse(string connectionString)
+        {
+            var config = new RabbitMQConnectionConfiguration();
+
+            var properties = typeof(RabbitMQConnectionConfiguration).GetProperties().Where(x => x.CanWrite);
+            foreach (var property in properties)
+            {
+                var match = Regex.Match(connectionString, string.Format("[^\\w]*{0}=(?<{0}>[^;]+)", property.Name), RegexOptions.IgnoreCase);
+                if (match != null && match.Success)
+                {
+                    var stringValue = match.Groups[property.Name].Value;
+                    var objectValue = TypeDescriptor.GetConverter(property.PropertyType).ConvertFromString(stringValue);
+                    property.SetValue(config, objectValue, null);
+                }
+            }
+
+            return config;
+        }
+    }
+    #endregion
 }
