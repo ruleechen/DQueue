@@ -23,7 +23,7 @@ namespace DQueue
 
         static Lazy<StackExchange.Redis.ConnectionMultiplexer> _redisConnectionFactory = new Lazy<StackExchange.Redis.ConnectionMultiplexer>(() =>
         {
-            var redisConnectionString = ConfigurationManager.AppSettings["Redis_Connection"];
+            var redisConnectionString = ConfigurationManager.ConnectionStrings["Redis_Connection"].ConnectionString;
             var resisConfiguration = StackExchange.Redis.ConfigurationOptions.Parse(redisConnectionString);
             return StackExchange.Redis.ConnectionMultiplexer.Connect(resisConfiguration);
         }, true);
