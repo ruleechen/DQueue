@@ -68,7 +68,7 @@ namespace DQueue.QueueProviders
 
             var database = _connectionFactory.GetDatabase();
 
-            token.Register(() =>
+            token.Register(() => //TODO: should register only one for each queue no matter multiple threads
             {
                 var items = database.ListRange(processingQueueName);
 
@@ -79,6 +79,8 @@ namespace DQueue.QueueProviders
                         database.ListRightPush(queueName, item);
                     }
                 }
+                
+                database.ListClear(processingQueueName);
             });
 
             var receptionStatus = ReceptionStatus.Listen;
