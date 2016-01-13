@@ -137,7 +137,7 @@ namespace DQueue
             var properties = typeof(RabbitMQConnectionConfiguration).GetProperties().Where(x => x.CanWrite);
             foreach (var property in properties)
             {
-                var match = Regex.Match(connectionString, string.Format("[^\\w]*{0}=(?<{0}>[^;]+)", property.Name), RegexOptions.IgnoreCase);
+                var match = Regex.Match(connectionString, string.Format("[^\\w]*{0}=(?<{0}>[^;,]+)", property.Name), RegexOptions.IgnoreCase);
                 if (match != null && match.Success)
                 {
                     var stringValue = match.Groups[property.Name].Value;
