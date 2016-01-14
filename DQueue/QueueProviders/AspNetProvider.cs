@@ -85,15 +85,13 @@ namespace DQueue.QueueProviders
                     break;
                 }
 
-                if (queue.Count > 0 &&
-                    receptionStatus == ReceptionStatus.Listen)
+                if (receptionStatus == ReceptionStatus.Listen && queue.Count > 0)
                 {
                     object message = null;
 
                     lock (GetLocker(queueName))
                     {
-                        if (queue.Count > 0 &&
-                            receptionStatus == ReceptionStatus.Listen)
+                        if (receptionStatus == ReceptionStatus.Listen && queue.Count > 0)
                         {
                             message = queue.Dequeue();
                         }

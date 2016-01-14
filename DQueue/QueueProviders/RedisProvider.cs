@@ -86,15 +86,13 @@ namespace DQueue.QueueProviders
                     break;
                 }
 
-                if (database.ListLength(queueName) > 0 &&
-                    receptionStatus == ReceptionStatus.Listen)
+                if (receptionStatus == ReceptionStatus.Listen && database.ListLength(queueName) > 0)
                 {
                     var item = RedisValue.Null;
 
                     lock (GetLocker(queueName))
                     {
-                        if (database.ListLength(queueName) > 0 &&
-                            receptionStatus == ReceptionStatus.Listen)
+                        if (receptionStatus == ReceptionStatus.Listen && database.ListLength(queueName) > 0)
                         {
                             item = database.ListRightPopLeftPush(queueName, processingQueueName);
                         }
