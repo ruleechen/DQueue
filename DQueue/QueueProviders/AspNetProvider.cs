@@ -11,12 +11,14 @@ namespace DQueue.QueueProviders
     {
         #region static
         static readonly Dictionary<string, object> _lockers;
-        static readonly Dictionary<string, Queue<object>> _queues;
+        static readonly Dictionary<string, List<object>> _queues;
+        static readonly Dictionary<string, List<object>> _queuesProcessing;
 
         static AspNetProvider()
         {
             _lockers = new Dictionary<string, object>();
-            _queues = new Dictionary<string, Queue<object>>();
+            _queues = new Dictionary<string, List<object>>();
+            _queuesProcessing = new Dictionary<string, List<object>>();
         }
 
         private static object GetLocker(string key)
@@ -35,7 +37,7 @@ namespace DQueue.QueueProviders
             return _lockers[key];
         }
 
-        private static Queue<object> GetQueue(string key)
+        private static List<object> GetQueue(string key)
         {
             if (!_queues.ContainsKey(key))
             {
@@ -43,12 +45,28 @@ namespace DQueue.QueueProviders
                 {
                     if (!_queues.ContainsKey(key))
                     {
-                        _queues.Add(key, new Queue<object>());
+                        _queues.Add(key, new List<object>());
                     }
                 }
             }
 
             return _queues[key];
+        }
+
+        private static List<object> GetQueueProcessing(string key)
+        {
+            if (!_queuesProcessing.ContainsKey(key))
+            {
+                lock (GetLocker(key))
+                {
+                    if (!_queuesProcessing.ContainsKey(key))
+                    {
+                        _queuesProcessing.Add(key, new List<object>());
+                    }
+                }
+            }
+
+            return _queuesProcessing[key];
         }
         #endregion
 
@@ -63,7 +81,7 @@ namespace DQueue.QueueProviders
 
             lock (GetLocker(queueName))
             {
-                queue.Enqueue(message);
+                queue.Add(message);
             }
         }
 
@@ -75,6 +93,18 @@ namespace DQueue.QueueProviders
             }
 
             var queue = GetQueue(queueName);
+
+            var queueProcessing = GetQueueProcessing(queueName);
+
+            token.Register(() =>
+            {
+                foreach (var item in queueProcessing)
+                {
+                    queue.Insert(0, item);
+                }
+
+                queueProcessing.Clear();
+            });
 
             var receptionStatus = ReceptionStatus.Listen;
 
@@ -93,13 +123,20 @@ namespace DQueue.QueueProviders
                     {
                         if (receptionStatus == ReceptionStatus.Listen && queue.Count > 0)
                         {
-                            message = queue.Dequeue();
+                            message = queue[0];
+                            queue.RemoveAt(0);
+                            queueProcessing.Add(message);
                         }
                     }
 
                     if (message != null)
                     {
-                        var context = new ReceptionContext((status) => { receptionStatus = status; });
+                        var context = new ReceptionContext((status) =>
+                        {
+                            receptionStatus = status;
+                            queueProcessing.Remove(message);
+                        });
+
                         receptionStatus = ReceptionStatus.Process;
                         handler((TMessage)message, context);
                     }
