@@ -12,10 +12,12 @@ namespace DQueue.QueueProviders
     public class RedisProvider : IQueueProvider
     {
         #region static
+        static readonly HashSet<string> _initialized;
         static readonly Dictionary<string, object> _lockers;
 
         static RedisProvider()
         {
+            _initialized = new HashSet<string>();
             _lockers = new Dictionary<string, object>();
         }
 
@@ -68,14 +70,31 @@ namespace DQueue.QueueProviders
 
             var database = _connectionFactory.GetDatabase();
 
-            token.Register(() =>
+            if (!_initialized.Contains(queueName))
             {
-                var items = database.ListRange(processingQueueName);
+                lock (GetLocker(queueName))
+                {
+                    if (!_initialized.Contains(queueName))
+                    {
+                        Action fallback = null;
 
-                database.ListRightPush(queueName, items);
+                        token.Register(fallback = () =>
+                        {
+                            var items = database.ListRange(processingQueueName);
 
-                database.KeyDelete(processingQueueName);
-            });
+                            database.ListRightPush(queueName, items);
+
+                            database.KeyDelete(processingQueueName);
+
+                            _initialized.Remove(queueName);
+                        });
+
+                        fallback();
+
+                        _initialized.Add(queueName);
+                    }
+                }
+            }
 
             var receptionStatus = ReceptionStatus.Listen;
 

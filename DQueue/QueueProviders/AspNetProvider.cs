@@ -10,11 +10,13 @@ namespace DQueue.QueueProviders
     public class AspNetProvider : IQueueProvider
     {
         #region static
+        static readonly HashSet<string> _initialized;
         static readonly Dictionary<string, object> _lockers;
         static readonly Dictionary<string, List<object>> _queues;
 
         static AspNetProvider()
         {
+            _initialized = new HashSet<string>();
             _lockers = new Dictionary<string, object>();
             _queues = new Dictionary<string, List<object>>();
         }
@@ -80,15 +82,32 @@ namespace DQueue.QueueProviders
 
             var queueProcessing = GetQueue(processingQueueName);
 
-            token.Register(() =>
+            if (!_initialized.Contains(queueName))
             {
-                foreach (var item in queueProcessing)
+                lock (GetLocker(queueName))
                 {
-                    queue.Insert(0, item);
-                }
+                    if (!_initialized.Contains(queueName))
+                    {
+                        Action fallback = null;
 
-                queueProcessing.Clear();
-            });
+                        token.Register(fallback = () =>
+                        {
+                            foreach (var item in queueProcessing)
+                            {
+                                queue.Insert(0, item);
+                            }
+
+                            queueProcessing.Clear();
+
+                            _initialized.Remove(queueName);
+                        });
+
+                        fallback();
+
+                        _initialized.Add(queueName);
+                    }
+                }
+            }
 
             var receptionStatus = ReceptionStatus.Listen;
 
