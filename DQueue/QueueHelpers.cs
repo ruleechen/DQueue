@@ -102,6 +102,11 @@ namespace DQueue
                 return obj.GetType().FullName;
             }
         }
+
+        public static string GetProcessingQueueName(string associatedQueueName)
+        {
+            return associatedQueueName + "$processing$";
+        }
     }
 
     #region RabbitMQHelpers

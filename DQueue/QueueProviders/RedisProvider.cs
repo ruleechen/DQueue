@@ -64,7 +64,7 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var processingQueueName = queueName + "_processing";
+            var processingQueueName = QueueHelpers.GetProcessingQueueName(queueName);
 
             var database = _connectionFactory.GetDatabase();
 
