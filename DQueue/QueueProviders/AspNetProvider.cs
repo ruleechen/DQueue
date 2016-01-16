@@ -137,7 +137,11 @@ namespace DQueue.QueueProviders
                         var context = new ReceptionContext((status) =>
                         {
                             receptionStatus = status;
-                            queueProcessing.Remove(message);
+
+                            if (status == ReceptionStatus.Listen)
+                            {
+                                queueProcessing.Remove(message);
+                            }
                         });
 
                         receptionStatus = ReceptionStatus.Process;

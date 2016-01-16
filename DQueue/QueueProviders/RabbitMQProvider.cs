@@ -82,7 +82,11 @@ namespace DQueue.QueueProviders
                                 var context = new ReceptionContext((status) =>
                                 {
                                     receptionStatus = status;
-                                    model.BasicAck(eventArg.DeliveryTag, false);
+
+                                    if (status == ReceptionStatus.Listen)
+                                    {
+                                        model.BasicAck(eventArg.DeliveryTag, false);
+                                    }
                                 });
 
                                 receptionStatus = ReceptionStatus.Process;
