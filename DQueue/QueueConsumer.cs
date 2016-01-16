@@ -12,12 +12,12 @@ namespace DQueue
         where TMessage : new()
     {
         #region Helpers
-        private class TaskModel
+        private class DispatchModel
         {
-            public Task ReceiveTask { get; set; }
-            public object DispatchLocker { get; set; }
-            public List<Task> DispatchTasks { get; set; }
-            public CancellationTokenSource DispatchCTS { get; set; }
+            public Task ParentTask { get; set; }
+            public object Locker { get; set; }
+            public List<Task> Tasks { get; set; }
+            public CancellationTokenSource CTS { get; set; }
         }
 
         private class DispatchState<T>
@@ -41,8 +41,8 @@ namespace DQueue
         private readonly string _queueName;
         private readonly List<Action<TMessage, DispatchContext>> _handlers;
 
-        private readonly List<TaskModel> _tasks;
         private readonly CancellationTokenSource _cts;
+        private readonly Dictionary<int, DispatchModel> _tasks;
 
         public QueueConsumer()
             : this(QueueProvider.Configured, 1)
@@ -66,8 +66,8 @@ namespace DQueue
             _queueName = QueueHelpers.GetQueueName<TMessage>();
             _handlers = new List<Action<TMessage, DispatchContext>>();
 
-            _tasks = new List<TaskModel>();
             _cts = new CancellationTokenSource();
+            _tasks = new Dictionary<int, DispatchModel>();
 
             if (_threads <= 0)
             {
@@ -141,22 +141,24 @@ namespace DQueue
                     TaskCreationOptions.LongRunning,
                     TaskScheduler.Default);
 
-                    _tasks.Add(new TaskModel { ReceiveTask = task });
+                    _tasks.Add(task.Id, new DispatchModel { ParentTask = task });
                 }
 
                 _cts.Token.Register(() =>
                 {
                     foreach (var item in _tasks)
                     {
-                        if (item.DispatchCTS != null)
+                        var dispatch = item.Value;
+
+                        if (dispatch.CTS != null)
                         {
-                            item.DispatchCTS.Cancel();
-                            item.DispatchCTS.Dispose();
+                            dispatch.CTS.Cancel();
+                            dispatch.CTS.Dispose();
                         }
 
-                        if (item.DispatchTasks != null)
+                        if (dispatch.Tasks != null)
                         {
-                            item.DispatchTasks.Clear();
+                            dispatch.Tasks.Clear();
                         }
                     }
                 });
@@ -168,63 +170,61 @@ namespace DQueue
         private void Dispatch(TMessage message, ReceptionContext receptionContext)
         {
             var currentTaskId = Task.CurrentId;
-            if (currentTaskId.HasValue)
+            if (currentTaskId.HasValue && _tasks.ContainsKey(currentTaskId.Value))
             {
-                var model = _tasks.FirstOrDefault(x => x.ReceiveTask.Id == currentTaskId.Value);
-                if (model != null)
-                {
-                    model.DispatchLocker = new object();
-                    model.DispatchTasks = new List<Task>();
-                    model.DispatchCTS = new CancellationTokenSource();
+                var dispatch = _tasks[currentTaskId.Value];
 
-                    var dispatchContext = new DispatchContext(model.DispatchCTS.Token, (status) =>
+                dispatch.Locker = new object();
+                dispatch.Tasks = new List<Task>();
+                dispatch.CTS = new CancellationTokenSource();
+
+                var dispatchContext = new DispatchContext(dispatch.CTS.Token, (status) =>
+                {
+                    if (status == DispatchStatus.Complete)
                     {
-                        if (status == DispatchStatus.Complete)
+                        if (!dispatch.CTS.IsCancellationRequested)
                         {
-                            if (!model.DispatchCTS.IsCancellationRequested)
+                            lock (dispatch.Locker)
                             {
-                                lock (model.DispatchLocker)
+                                if (!dispatch.CTS.IsCancellationRequested)
                                 {
-                                    if (!model.DispatchCTS.IsCancellationRequested)
-                                    {
-                                        model.DispatchCTS.Cancel();
-                                        model.DispatchCTS.Dispose();
-                                        model.DispatchTasks.Clear();
-                                        receptionContext.Success();
-                                    }
+                                    dispatch.CTS.Cancel();
+                                    dispatch.CTS.Dispose();
+                                    dispatch.Tasks.Clear();
+                                    receptionContext.Success();
                                 }
                             }
                         }
-                    });
-
-                    foreach (var handler in _handlers)
-                    {
-                        var task = Task.Factory.StartNew((state) =>
-                        {
-                            var param = (DispatchState<TMessage>)state;
-                            param.Handler(param.Message, param.Context);
-                        },
-                        new DispatchState<TMessage>
-                        {
-                            Message = message,
-                            Handler = handler,
-                            Context = dispatchContext,
-                        },
-                        model.DispatchCTS.Token,
-                        TaskCreationOptions.AttachedToParent,
-                        TaskScheduler.Default);
-
-                        model.DispatchTasks.Add(task);
                     }
+                });
 
-                    Task.Factory.ContinueWhenAll(model.DispatchTasks.ToArray(), (t) =>
+                foreach (var handler in _handlers)
+                {
+                    var task = Task.Factory.StartNew((state) =>
                     {
-                        //model.DispatchCTS.Cancel();
-                        model.DispatchCTS.Dispose();
-                        model.DispatchTasks.Clear();
-                        receptionContext.Success();
-                    });
+                        var param = (DispatchState<TMessage>)state;
+                        param.Handler(param.Message, param.Context);
+                    },
+                    new DispatchState<TMessage>
+                    {
+                        Message = message,
+                        Handler = handler,
+                        Context = dispatchContext,
+                    },
+                    dispatch.CTS.Token,
+                    TaskCreationOptions.AttachedToParent,
+                    TaskScheduler.Default);
+
+                    dispatch.Tasks.Add(task);
                 }
+
+                Task.Factory.ContinueWhenAll(dispatch.Tasks.ToArray(), (t) =>
+                {
+                    //dispatch.CTS.Cancel();
+                    dispatch.CTS.Dispose();
+                    dispatch.Tasks.Clear();
+                    receptionContext.Success();
+                });
             }
         }
 
