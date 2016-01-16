@@ -36,7 +36,6 @@ namespace DQueue
         #endregion
 
         private readonly int _threads;
-        private readonly QueueProvider _provider;
         private readonly string _queueName;
         private readonly List<Action<DispatchContext<TMessage>>> _handlers;
         private readonly List<Action<DispatchContext<TMessage>>> _completeHandlers;
@@ -45,30 +44,24 @@ namespace DQueue
         private readonly Dictionary<int, DispatchModel> _tasks;
 
         public QueueConsumer()
-            : this(QueueProvider.Configured, 1)
+            : this(1)
         {
         }
 
         public QueueConsumer(int threads)
-            : this(QueueProvider.Configured, threads)
+            : this(null, threads)
         {
         }
 
-        public QueueConsumer(QueueProvider provider)
-            : this(provider, 1)
+        public QueueConsumer(string queueName)
+            : this(queueName, 1)
         {
         }
 
-        public QueueConsumer(QueueProvider provider, int threads)
+        public QueueConsumer(string queueName, int threads)
         {
             _threads = threads;
-            _provider = provider;
-            _queueName = QueueHelpers.GetQueueName<TMessage>();
-            _handlers = new List<Action<DispatchContext<TMessage>>>();
-            _completeHandlers = new List<Action<DispatchContext<TMessage>>>();
-
-            _cts = new CancellationTokenSource();
-            _tasks = new Dictionary<int, DispatchModel>();
+            _queueName = queueName ?? QueueHelpers.GetQueueName<TMessage>();
 
             if (_threads <= 0)
             {
@@ -79,6 +72,12 @@ namespace DQueue
             {
                 throw new ArgumentNullException("queueName");
             }
+
+            _handlers = new List<Action<DispatchContext<TMessage>>>();
+            _completeHandlers = new List<Action<DispatchContext<TMessage>>>();
+
+            _cts = new CancellationTokenSource();
+            _tasks = new Dictionary<int, DispatchModel>();
         }
 
         public string QueueName
@@ -110,7 +109,7 @@ namespace DQueue
             {
                 for (var i = 0; i < _threads; i++)
                 {
-                    var provider = QueueHelpers.CreateProvider(_provider);
+                    var provider = QueueHelpers.CreateProvider(QueueProvider.Configured);
 
                     var task = Task.Factory.StartNew((state) =>
                     {
