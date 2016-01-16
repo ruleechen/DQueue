@@ -109,11 +109,15 @@ namespace DQueue.QueueProviders
                 }
             }
 
+            var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
             token.Register(() =>
             {
-                receptionStatus = ReceptionStatus.Withdraw;
+                lock (receptionLocker)
+                {
+                    receptionStatus = ReceptionStatus.Withdraw;
+                }
             });
 
             while (true)
@@ -141,15 +145,26 @@ namespace DQueue.QueueProviders
                     {
                         var context = new ReceptionContext((status) =>
                         {
-                            receptionStatus = status;
-
-                            if (status == ReceptionStatus.Listen)
+                            if (status == ReceptionStatus.Success)
                             {
                                 queueProcessing.Remove(message);
+                                status = ReceptionStatus.Listen;
+                            }
+
+                            if (receptionStatus != ReceptionStatus.Withdraw)
+                            {
+                                lock (receptionLocker)
+                                {
+                                    receptionStatus = status;
+                                }
                             }
                         });
 
-                        receptionStatus = ReceptionStatus.Process;
+                        lock (receptionLocker)
+                        {
+                            receptionStatus = ReceptionStatus.Process;
+                        }
+
                         handler((TMessage)message, context);
                     }
                 }

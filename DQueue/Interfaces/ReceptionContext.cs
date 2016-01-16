@@ -16,7 +16,12 @@ namespace DQueue.Interfaces
 
         public void Continue()
         {
-            _action(ReceptionStatus.Listen);
+            _action(ReceptionStatus.Success);
+        }
+
+        public void Withdraw()
+        {
+            _action(ReceptionStatus.Withdraw);
         }
     }
 }

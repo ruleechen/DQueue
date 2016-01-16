@@ -11,7 +11,9 @@ namespace DQueue.Interfaces
 
         Process,
 
-        Suspend,
+        Success,
+
+        //Suspend,
 
         Withdraw
     }
