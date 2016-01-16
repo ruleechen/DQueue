@@ -88,7 +88,7 @@ namespace DQueue.QueueProviders
                                 var json = Encoding.UTF8.GetString(eventArg.Body);
                                 var message = JsonConvert.DeserializeObject<TMessage>(json);
 
-                                var context = new ReceptionContext((status) =>
+                                var context = new ReceptionContext((sender, status) =>
                                 {
                                     if (status == ReceptionStatus.Success)
                                     {

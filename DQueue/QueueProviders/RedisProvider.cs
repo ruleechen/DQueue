@@ -130,7 +130,7 @@ namespace DQueue.QueueProviders
                     {
                         var message = JsonConvert.DeserializeObject<TMessage>(item);
 
-                        var context = new ReceptionContext((status) =>
+                        var context = new ReceptionContext((sender, status) =>
                         {
                             if (status == ReceptionStatus.Success)
                             {

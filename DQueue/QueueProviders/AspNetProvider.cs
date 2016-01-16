@@ -143,7 +143,7 @@ namespace DQueue.QueueProviders
 
                     if (message != null)
                     {
-                        var context = new ReceptionContext((status) =>
+                        var context = new ReceptionContext((sender, status) =>
                         {
                             if (status == ReceptionStatus.Success)
                             {

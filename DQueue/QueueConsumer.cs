@@ -177,7 +177,7 @@ namespace DQueue
                 dispatch.Tasks = new List<Task>();
                 dispatch.CTS = new CancellationTokenSource();
 
-                var dispatchContext = new DispatchContext(dispatch.CTS.Token, (status) =>
+                var dispatchContext = new DispatchContext(dispatch.CTS.Token, (sender, status) =>
                 {
                     if (status == DispatchStatus.Complete)
                     {
@@ -190,6 +190,7 @@ namespace DQueue
                                     dispatch.CTS.Cancel();
                                     dispatch.CTS.Dispose();
                                     dispatch.Tasks.Clear();
+                                    FireExceptions(message, sender);
                                     receptionContext.Success();
                                 }
                             }
@@ -209,6 +210,7 @@ namespace DQueue
                         }
                         catch (Exception ex)
                         {
+                            // detect cancellation?
                             param.Context.LogException(ex);
                         }
                     },
@@ -230,6 +232,7 @@ namespace DQueue
                     //dispatch.CTS.Cancel();
                     dispatch.CTS.Dispose();
                     dispatch.Tasks.Clear();
+                    FireExceptions(message, dispatchContext);
                     receptionContext.Success();
                 });
             }
@@ -245,6 +248,23 @@ namespace DQueue
             }
 
             return this;
+        }
+
+        private void FireExceptions(TMessage message, DispatchContext context)
+        {
+            if (context.Exceptions.Any())
+            {
+                foreach (var handler in _exceptionHandlers)
+                {
+                    try
+                    {
+                        handler(message, context.Exceptions);
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
         }
 
         private void CheckDisposed()
@@ -266,6 +286,8 @@ namespace DQueue
             _tasks.Clear();
 
             _handlers.Clear();
+
+            _exceptionHandlers.Clear();
         }
     }
 }
