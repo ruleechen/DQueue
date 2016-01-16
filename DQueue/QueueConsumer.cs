@@ -40,6 +40,7 @@ namespace DQueue
         private readonly QueueProvider _provider;
         private readonly string _queueName;
         private readonly List<Action<TMessage, DispatchContext>> _handlers;
+        private readonly List<Action<TMessage, IEnumerable<Exception>>> _exceptionHandlers;
 
         private readonly CancellationTokenSource _cts;
         private readonly Dictionary<int, DispatchModel> _tasks;
@@ -65,6 +66,7 @@ namespace DQueue
             _provider = provider;
             _queueName = QueueHelpers.GetQueueName<TMessage>();
             _handlers = new List<Action<TMessage, DispatchContext>>();
+            _exceptionHandlers = new List<Action<TMessage, IEnumerable<Exception>>>();
 
             _cts = new CancellationTokenSource();
             _tasks = new Dictionary<int, DispatchModel>();
@@ -106,10 +108,7 @@ namespace DQueue
 
         public QueueConsumer<TMessage> Receive(Action<TMessage, DispatchContext> handler)
         {
-            if (_cts == null || _cts.IsCancellationRequested)
-            {
-                throw new InvalidOperationException("Consumer already disposed");
-            }
+            CheckDisposed();
 
             if (handler != null)
             {
@@ -233,6 +232,26 @@ namespace DQueue
                     dispatch.Tasks.Clear();
                     receptionContext.Success();
                 });
+            }
+        }
+
+        public QueueConsumer<TMessage> Exceptions(Action<TMessage, IEnumerable<Exception>> handler)
+        {
+            CheckDisposed();
+
+            if (handler != null)
+            {
+                _exceptionHandlers.Add(handler);
+            }
+
+            return this;
+        }
+
+        private void CheckDisposed()
+        {
+            if (_cts == null || _cts.IsCancellationRequested)
+            {
+                throw new InvalidOperationException("Consumer already disposed");
             }
         }
 
