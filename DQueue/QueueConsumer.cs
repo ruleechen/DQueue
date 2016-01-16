@@ -186,7 +186,7 @@ namespace DQueue
                                 model.DispatchCTS.Cancel();
                                 model.DispatchCTS.Dispose();
                                 model.DispatchTasks.Clear();
-                                receptionContext.Continue();
+                                receptionContext.Success();
                             }
                         });
 
@@ -214,7 +214,7 @@ namespace DQueue
                         {
                             model.DispatchCTS = null;
                             model.DispatchTasks.Clear();
-                            receptionContext.Continue();
+                            receptionContext.Success();
                         });
                     }
                 }

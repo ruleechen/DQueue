@@ -14,7 +14,7 @@ namespace DQueue.Interfaces
             _action = action;
         }
 
-        public void Continue()
+        public void Success()
         {
             _action(ReceptionStatus.Success);
         }
