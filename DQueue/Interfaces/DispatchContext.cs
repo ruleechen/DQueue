@@ -11,11 +11,15 @@ namespace DQueue.Interfaces
     {
         private Action<DispatchStatus> _action;
         private CancellationToken _token;
+        private List<Exception> _exceptions;
+        private object _exceptionsLocker;
 
         public DispatchContext(CancellationToken token, Action<DispatchStatus> action)
         {
             _token = token;
             _action = action;
+            _exceptions = new List<Exception>();
+            _exceptionsLocker = new object();
         }
 
         public CancellationToken Token
@@ -29,6 +33,22 @@ namespace DQueue.Interfaces
         public void Complete()
         {
             _action(DispatchStatus.Complete);
+        }
+
+        public void LogException(Exception ex)
+        {
+            lock (_exceptionsLocker)
+            {
+                _exceptions.Add(ex);
+            }
+        }
+
+        public IEnumerable<Exception> Exceptions
+        {
+            get
+            {
+                return _exceptions;
+            }
         }
     }
 }

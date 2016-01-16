@@ -203,7 +203,15 @@ namespace DQueue
                     var task = Task.Factory.StartNew((state) =>
                     {
                         var param = (DispatchState<TMessage>)state;
-                        param.Handler(param.Message, param.Context);
+
+                        try
+                        {
+                            param.Handler(param.Message, param.Context);
+                        }
+                        catch (Exception ex)
+                        {
+                            param.Context.LogException(ex);
+                        }
                     },
                     new DispatchState<TMessage>
                     {
