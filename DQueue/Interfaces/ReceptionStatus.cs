@@ -9,6 +9,10 @@ namespace DQueue.Interfaces
     {
         Listen,
 
-        Process
+        Process,
+
+        Suspend,
+
+        Withdraw
     }
 }

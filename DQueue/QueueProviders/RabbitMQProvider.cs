@@ -64,9 +64,14 @@ namespace DQueue.QueueProviders
 
                     var receptionStatus = ReceptionStatus.Listen;
 
+                    token.Register(() =>
+                    {
+                        receptionStatus = ReceptionStatus.Withdraw;
+                    });
+
                     while (true)
                     {
-                        if (token.IsCancellationRequested)
+                        if (receptionStatus == ReceptionStatus.Withdraw)
                         {
                             break;
                         }
