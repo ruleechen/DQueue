@@ -59,7 +59,7 @@ namespace DQueue.QueueProviders
             database.ListLeftPush(queueName, json);
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler, CancellationToken token)
+        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationToken token)
         {
             if (string.IsNullOrWhiteSpace(queueName) || handler == null)
             {
@@ -130,7 +130,7 @@ namespace DQueue.QueueProviders
                     {
                         var message = JsonConvert.DeserializeObject<TMessage>(item);
 
-                        var context = new ReceptionContext((sender, status) =>
+                        var context = new ReceptionContext<TMessage>(message, (sender, status) =>
                         {
                             if (status == ReceptionStatus.Success)
                             {
@@ -152,7 +152,7 @@ namespace DQueue.QueueProviders
                             receptionStatus = ReceptionStatus.Process;
                         }
 
-                        handler(message, context);
+                        handler(context);
                     }
                 }
 

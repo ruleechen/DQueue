@@ -22,16 +22,15 @@ namespace DQueue
 
         private class DispatchState<T>
         {
-            public T Message { get; set; }
-            public DispatchContext Context { get; set; }
-            public Action<T, DispatchContext> Handler { get; set; }
+            public DispatchContext<T> Context { get; set; }
+            public Action<DispatchContext<T>> Handler { get; set; }
         }
 
         private class ReceiveState<T>
         {
             public string QueueName { get; set; }
             public IQueueProvider Provider { get; set; }
-            public Action<T, ReceptionContext> Handler { get; set; }
+            public Action<ReceptionContext<T>> Handler { get; set; }
             public CancellationToken Token { get; set; }
         }
         #endregion
@@ -39,8 +38,8 @@ namespace DQueue
         private readonly int _threads;
         private readonly QueueProvider _provider;
         private readonly string _queueName;
-        private readonly List<Action<TMessage, DispatchContext>> _handlers;
-        private readonly List<Action<TMessage, IEnumerable<Exception>>> _exceptionHandlers;
+        private readonly List<Action<DispatchContext<TMessage>>> _handlers;
+        private readonly List<Action<DispatchContext<TMessage>>> _completeHandlers;
 
         private readonly CancellationTokenSource _cts;
         private readonly Dictionary<int, DispatchModel> _tasks;
@@ -65,8 +64,8 @@ namespace DQueue
             _threads = threads;
             _provider = provider;
             _queueName = QueueHelpers.GetQueueName<TMessage>();
-            _handlers = new List<Action<TMessage, DispatchContext>>();
-            _exceptionHandlers = new List<Action<TMessage, IEnumerable<Exception>>>();
+            _handlers = new List<Action<DispatchContext<TMessage>>>();
+            _completeHandlers = new List<Action<DispatchContext<TMessage>>>();
 
             _cts = new CancellationTokenSource();
             _tasks = new Dictionary<int, DispatchModel>();
@@ -98,15 +97,7 @@ namespace DQueue
             }
         }
 
-        public QueueConsumer<TMessage> Receive(Action<TMessage> handler)
-        {
-            return Receive((message, context) =>
-            {
-                handler(message);
-            });
-        }
-
-        public QueueConsumer<TMessage> Receive(Action<TMessage, DispatchContext> handler)
+        public QueueConsumer<TMessage> Receive(Action<DispatchContext<TMessage>> handler)
         {
             CheckDisposed();
 
@@ -166,7 +157,7 @@ namespace DQueue
             return this;
         }
 
-        private void Dispatch(TMessage message, ReceptionContext receptionContext)
+        private void Dispatch(ReceptionContext<TMessage> receptionContext)
         {
             var currentTaskId = Task.CurrentId;
             if (currentTaskId.HasValue && _tasks.ContainsKey(currentTaskId.Value))
@@ -177,11 +168,12 @@ namespace DQueue
                 dispatch.Tasks = new List<Task>();
                 dispatch.CTS = new CancellationTokenSource();
 
-                var dispatchContext = new DispatchContext(dispatch.CTS.Token, (sender, status) =>
+                var dispatchContext = new DispatchContext<TMessage>(
+                    receptionContext.Message, dispatch.CTS.Token, (sender, status) =>
                 {
                     if (status == DispatchStatus.Complete)
                     {
-                        Continue(receptionContext, message, sender, dispatch);
+                        Continue(receptionContext, sender, dispatch);
                     }
                 });
 
@@ -193,17 +185,15 @@ namespace DQueue
 
                         try
                         {
-                            param.Handler(param.Message, param.Context);
+                            param.Handler(param.Context);
                         }
                         catch (Exception ex)
                         {
-                            // detect cancellation?
                             param.Context.LogException(ex);
                         }
                     },
                     new DispatchState<TMessage>
                     {
-                        Message = message,
                         Handler = handler,
                         Context = dispatchContext,
                     },
@@ -216,12 +206,12 @@ namespace DQueue
 
                 Task.Factory.ContinueWhenAll(dispatch.Tasks.ToArray(), (t) =>
                 {
-                    Continue(receptionContext, message, dispatchContext, dispatch);
+                    Continue(receptionContext, dispatchContext, dispatch);
                 });
             }
         }
 
-        private void Continue(ReceptionContext receptionContext, TMessage message, DispatchContext sender, DispatchModel dispatch)
+        private void Continue(ReceptionContext<TMessage> receptionContext, DispatchContext<TMessage> dispatchContext, DispatchModel dispatch)
         {
             if (!dispatch.CTS.IsCancellationRequested)
             {
@@ -229,43 +219,37 @@ namespace DQueue
                 {
                     if (!dispatch.CTS.IsCancellationRequested)
                     {
+                        foreach (var handler in _completeHandlers)
+                        {
+                            try
+                            {
+                                handler(dispatchContext);
+                            }
+                            catch
+                            {
+                            }
+                        }
+
                         dispatch.CTS.Cancel();
                         dispatch.CTS.Dispose();
                         dispatch.Tasks.Clear();
-                        FireExceptions(message, sender);
+
                         receptionContext.Success();
                     }
                 }
             }
         }
 
-        public QueueConsumer<TMessage> Exceptions(Action<TMessage, IEnumerable<Exception>> handler)
+        public QueueConsumer<TMessage> Complete(Action<DispatchContext<TMessage>> handler)
         {
             CheckDisposed();
 
             if (handler != null)
             {
-                _exceptionHandlers.Add(handler);
+                _completeHandlers.Add(handler);
             }
 
             return this;
-        }
-
-        private void FireExceptions(TMessage message, DispatchContext context)
-        {
-            if (context.Exceptions.Any())
-            {
-                foreach (var handler in _exceptionHandlers)
-                {
-                    try
-                    {
-                        handler(message, context.Exceptions);
-                    }
-                    catch
-                    {
-                    }
-                }
-            }
         }
 
         private void CheckDisposed()
@@ -288,7 +272,7 @@ namespace DQueue
 
             _handlers.Clear();
 
-            _exceptionHandlers.Clear();
+            _completeHandlers.Clear();
         }
     }
 }

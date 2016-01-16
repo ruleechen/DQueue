@@ -5,13 +5,23 @@ using System.Text;
 
 namespace DQueue.Interfaces
 {
-    public class ReceptionContext
+    public class ReceptionContext<TMessage>
     {
-        private Action<ReceptionContext, ReceptionStatus> _action;
+        private TMessage _message;
+        private Action<ReceptionContext<TMessage>, ReceptionStatus> _action;
 
-        public ReceptionContext(Action<ReceptionContext, ReceptionStatus> action)
+        public ReceptionContext(TMessage message, Action<ReceptionContext<TMessage>, ReceptionStatus> action)
         {
+            _message = message;
             _action = action;
+        }
+
+        public TMessage Message
+        {
+            get
+            {
+                return _message;
+            }
         }
 
         public void Success()

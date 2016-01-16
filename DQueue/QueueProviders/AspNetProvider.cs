@@ -69,7 +69,7 @@ namespace DQueue.QueueProviders
             }
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler, CancellationToken token)
+        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationToken token)
         {
             if (string.IsNullOrWhiteSpace(queueName) || handler == null)
             {
@@ -143,7 +143,7 @@ namespace DQueue.QueueProviders
 
                     if (message != null)
                     {
-                        var context = new ReceptionContext((sender, status) =>
+                        var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
                         {
                             if (status == ReceptionStatus.Success)
                             {
@@ -165,7 +165,7 @@ namespace DQueue.QueueProviders
                             receptionStatus = ReceptionStatus.Process;
                         }
 
-                        handler((TMessage)message, context);
+                        handler(context);
                     }
                 }
 

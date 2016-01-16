@@ -10,6 +10,6 @@ namespace DQueue.Interfaces
     {
         void Enqueue(string queueName, object message);
 
-        void Dequeue<TMessage>(string queueName, Action<TMessage, ReceptionContext> handler, CancellationToken token);
+        void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationToken token);
     }
 }

@@ -14,18 +14,26 @@ namespace DQueue.CmdTest
         {
             var consumer = new QueueConsumer<SampleMessage>(10);
 
-            consumer.Receive((message) =>
+            consumer.Receive((context) =>
             {
                 Thread.Sleep(1000);
                 var threadId = Thread.CurrentThread.ManagedThreadId;
-                Console.WriteLine(string.Format("[Receiver 1, ThreadID {0}] -> {1}", threadId, message.Text));
+                Console.WriteLine(string.Format("[Receiver 1, ThreadID {0}] -> {1}", threadId, context.Message.Text));
             });
 
-            consumer.Receive((message) =>
+            consumer.Receive((context) =>
             {
                 Thread.Sleep(1100);
                 var threadId = Thread.CurrentThread.ManagedThreadId;
-                Console.WriteLine(string.Format("[Receiver 2, ThreadID {0}] -> {1}", threadId, message.Text));
+                Console.WriteLine(string.Format("[Receiver 2, ThreadID {0}] -> {1}", threadId, context.Message.Text));
+            });
+
+            consumer.Complete((context) =>
+            {
+                foreach (var ex in context.Exceptions)
+                {
+                    Console.WriteLine(ex.Message);
+                }
             });
 
 

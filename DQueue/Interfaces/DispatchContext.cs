@@ -8,27 +8,35 @@ using System.Threading.Tasks;
 
 namespace DQueue.Interfaces
 {
-    public class DispatchContext
+    public class DispatchContext<TMessage>
     {
         private IDictionary _items;
 
-        private Action<DispatchContext, DispatchStatus> _action;
+        private TMessage _message;
         private CancellationToken _token;
-        private List<Exception> _exceptions;
+        private Action<DispatchContext<TMessage>, DispatchStatus> _action;
 
-        private bool _isCompleted;
+        private List<Exception> _exceptions;
         private object _exceptionsLocker;
 
-        public DispatchContext(CancellationToken token, Action<DispatchContext, DispatchStatus> action)
+        public DispatchContext(TMessage message, CancellationToken token, Action<DispatchContext<TMessage>, DispatchStatus> action)
         {
             _items = Hashtable.Synchronized(new Hashtable()); // thread safe
 
+            _message = message;
             _token = token;
             _action = action;
-            _exceptions = new List<Exception>();
 
-            _isCompleted = false;
+            _exceptions = new List<Exception>();
             _exceptionsLocker = new object();
+        }
+
+        public TMessage Message
+        {
+            get
+            {
+                return _message;
+            }
         }
 
         public CancellationToken Token
@@ -49,17 +57,16 @@ namespace DQueue.Interfaces
 
         public void Complete()
         {
-            _isCompleted = true;
             _action(this, DispatchStatus.Complete);
         }
 
         public void LogException(Exception ex)
         {
-            if (!_isCompleted)
+            if (!_token.IsCancellationRequested)
             {
                 lock (_exceptionsLocker)
                 {
-                    if (!_isCompleted)
+                    if (!_token.IsCancellationRequested)
                     {
                         _exceptions.Add(ex);
                     }
