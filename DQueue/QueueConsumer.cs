@@ -181,20 +181,7 @@ namespace DQueue
                 {
                     if (status == DispatchStatus.Complete)
                     {
-                        if (!dispatch.CTS.IsCancellationRequested)
-                        {
-                            lock (dispatch.Locker)
-                            {
-                                if (!dispatch.CTS.IsCancellationRequested)
-                                {
-                                    dispatch.CTS.Cancel();
-                                    dispatch.CTS.Dispose();
-                                    dispatch.Tasks.Clear();
-                                    FireExceptions(message, sender);
-                                    receptionContext.Success();
-                                }
-                            }
-                        }
+                        Continue(receptionContext, message, sender, dispatch);
                     }
                 });
 
@@ -229,12 +216,26 @@ namespace DQueue
 
                 Task.Factory.ContinueWhenAll(dispatch.Tasks.ToArray(), (t) =>
                 {
-                    //dispatch.CTS.Cancel();
-                    dispatch.CTS.Dispose();
-                    dispatch.Tasks.Clear();
-                    FireExceptions(message, dispatchContext);
-                    receptionContext.Success();
+                    Continue(receptionContext, message, dispatchContext, dispatch);
                 });
+            }
+        }
+
+        private void Continue(ReceptionContext receptionContext, TMessage message, DispatchContext sender, DispatchModel dispatch)
+        {
+            if (!dispatch.CTS.IsCancellationRequested)
+            {
+                lock (dispatch.Locker)
+                {
+                    if (!dispatch.CTS.IsCancellationRequested)
+                    {
+                        dispatch.CTS.Cancel();
+                        dispatch.CTS.Dispose();
+                        dispatch.Tasks.Clear();
+                        FireExceptions(message, sender);
+                        receptionContext.Success();
+                    }
+                }
             }
         }
 
