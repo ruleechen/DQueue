@@ -12,12 +12,12 @@ namespace DQueue
         where TMessage : new()
     {
         #region Helpers
-        private class DispatchModel
+        private class ReceiveState<T>
         {
-            public Task ParentTask { get; set; }
-            public object Locker { get; set; }
-            public List<Task> Tasks { get; set; }
-            public CancellationTokenSource CTS { get; set; }
+            public string QueueName { get; set; }
+            public IQueueProvider Provider { get; set; }
+            public Action<ReceptionContext<T>> Handler { get; set; }
+            public CancellationToken Token { get; set; }
         }
 
         private class DispatchState<T>
@@ -26,12 +26,12 @@ namespace DQueue
             public Action<DispatchContext<T>> Handler { get; set; }
         }
 
-        private class ReceiveState<T>
+        private class DispatchModel
         {
-            public string QueueName { get; set; }
-            public IQueueProvider Provider { get; set; }
-            public Action<ReceptionContext<T>> Handler { get; set; }
-            public CancellationToken Token { get; set; }
+            public Task ParentTask { get; set; }
+            public object Locker { get; set; }
+            public List<Task> Tasks { get; set; }
+            public CancellationTokenSource CTS { get; set; }
         }
         #endregion
 
