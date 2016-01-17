@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using DQueue.Helpers;
 using DQueue.Interfaces;
 
 namespace DQueue.QueueProviders
@@ -76,7 +77,7 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var processingQueueName = QueueHelpers.GetProcessingQueueName(queueName);
+            var processingQueueName = QueueNameGenerator.GetProcessingQueueName(queueName);
 
             var queue = GetQueue(queueName);
 

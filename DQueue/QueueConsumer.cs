@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DQueue.Helpers;
 using DQueue.Interfaces;
 
 namespace DQueue
@@ -61,7 +62,7 @@ namespace DQueue
         public QueueConsumer(string queueName, int threads)
         {
             _threads = threads;
-            _queueName = queueName ?? QueueHelpers.GetQueueName<TMessage>();
+            _queueName = queueName ?? QueueNameGenerator.GetQueueName<TMessage>();
 
             if (_threads <= 0)
             {
@@ -109,7 +110,7 @@ namespace DQueue
             {
                 for (var i = 0; i < _threads; i++)
                 {
-                    var provider = QueueHelpers.CreateProvider(QueueProvider.Configured);
+                    var provider = QueueProviderFactory.CreateProvider(QueueProvider.Configured);
 
                     var task = Task.Factory.StartNew((state) =>
                     {

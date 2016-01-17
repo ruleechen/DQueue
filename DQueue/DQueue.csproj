@@ -55,6 +55,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Helpers\QueueProviderFactory.cs" />
+    <Compile Include="Helpers\QueueNameGenerator.cs" />
+    <Compile Include="Helpers\RabbitMQConnectionConfiguration.cs" />
     <Compile Include="Interfaces\DispatchContext.cs" />
     <Compile Include="Interfaces\DispatchStatus.cs" />
     <Compile Include="Interfaces\ReceptionContext.cs" />
@@ -66,7 +69,6 @@
     <Compile Include="QueueProviders\AspNetProvider.cs" />
     <Compile Include="QueueProviders\RabbitMQProvider.cs" />
     <Compile Include="QueueProviders\RedisProvider.cs" />
-    <Compile Include="QueueHelpers.cs" />
     <Compile Include="QueueConsumer.cs" />
     <Compile Include="QueueProducer.cs" />
     <Compile Include="QueueProvider.cs" />

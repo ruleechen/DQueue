@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using DQueue.Helpers;
 using DQueue.Interfaces;
 
 namespace DQueue
@@ -17,13 +18,13 @@ namespace DQueue
 
         public QueueProducer(QueueProvider provider)
         {
-            _provider = QueueHelpers.CreateProvider(provider);
+            _provider = QueueProviderFactory.CreateProvider(provider);
         }
 
         public QueueProducer Send<TMessage>(TMessage message)
             where TMessage : new()
         {
-            var queueName = QueueHelpers.GetQueueName<TMessage>();
+            var queueName = QueueNameGenerator.GetQueueName<TMessage>();
 
             return this.Send(queueName, message);
         }

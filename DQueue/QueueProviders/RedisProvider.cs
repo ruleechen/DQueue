@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using DQueue.Helpers;
 using DQueue.Interfaces;
 using Newtonsoft.Json;
 using StackExchange.Redis;
@@ -66,7 +67,7 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var processingQueueName = QueueHelpers.GetProcessingQueueName(queueName);
+            var processingQueueName = QueueNameGenerator.GetProcessingQueueName(queueName);
 
             var database = _connectionFactory.GetDatabase();
 
