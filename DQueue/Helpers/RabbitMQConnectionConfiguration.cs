@@ -25,12 +25,12 @@ namespace DQueue.Helpers
 
         public RabbitMQConnectionConfiguration()
         {
-            this.Port = DefaultPort;
-            this.VirtualHost = "/";
-            this.UserName = "guest";
-            this.Password = "guest";
-            this.RequestedHeartbeat = DefaultHeartBeatInSeconds;
-            this.ClientProperties = new Dictionary<string, object>();
+            Port = DefaultPort;
+            VirtualHost = "/";
+            UserName = "guest";
+            Password = "guest";
+            RequestedHeartbeat = DefaultHeartBeatInSeconds;
+            ClientProperties = new Dictionary<string, object>();
         }
 
         public static RabbitMQConnectionConfiguration Parse(string connectionString)
