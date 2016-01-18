@@ -38,6 +38,8 @@ namespace DQueue
 
         private readonly int _threads;
         private readonly string _queueName;
+        private readonly QueueProvider _provider;
+
         private readonly List<Action<DispatchContext<TMessage>>> _handlers;
         private readonly List<Action<DispatchContext<TMessage>>> _completeHandlers;
 
@@ -45,24 +47,45 @@ namespace DQueue
         private readonly Dictionary<int, DispatchModel> _tasks;
 
         public QueueConsumer()
-            : this(1)
-        {
-        }
-
-        public QueueConsumer(int threads)
-            : this(null, threads)
+            : this(null, 1, QueueProvider.Configured)
         {
         }
 
         public QueueConsumer(string queueName)
-            : this(queueName, 1)
+            : this(queueName, 1, QueueProvider.Configured)
+        {
+        }
+
+        public QueueConsumer(int threads)
+            : this(null, threads, QueueProvider.Configured)
+        {
+        }
+
+        public QueueConsumer(QueueProvider provider)
+            : this(null, 1, provider)
         {
         }
 
         public QueueConsumer(string queueName, int threads)
+            : this(queueName, threads, QueueProvider.Configured)
+        {
+        }
+
+        public QueueConsumer(string queueName, QueueProvider provider)
+            : this(queueName, 1, provider)
+        {
+        }
+
+        public QueueConsumer(int threads, QueueProvider provider)
+            : this(null, threads, provider)
+        {
+        }
+
+        public QueueConsumer(string queueName, int threads, QueueProvider provider)
         {
             _threads = threads;
             _queueName = queueName ?? QueueNameGenerator.GetQueueName<TMessage>();
+            _provider = provider;
 
             if (_threads <= 0)
             {
@@ -110,7 +133,7 @@ namespace DQueue
             {
                 for (var i = 0; i < _threads; i++)
                 {
-                    var provider = QueueProviderFactory.CreateProvider(QueueProvider.Configured);
+                    var provider = QueueProviderFactory.CreateProvider(_provider);
 
                     var task = Task.Factory.StartNew((state) =>
                     {
