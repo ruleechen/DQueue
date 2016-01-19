@@ -100,17 +100,25 @@ namespace DQueue.QueueProviders
                                     {
                                         lock (receptionLocker)
                                         {
-                                            receptionStatus = status;
+                                            if (receptionStatus != ReceptionStatus.Withdraw)
+                                            {
+                                                receptionStatus = status;
+                                            }
                                         }
                                     }
                                 });
 
-                                lock (receptionLocker)
+                                if (receptionStatus != ReceptionStatus.Withdraw)
                                 {
-                                    receptionStatus = ReceptionStatus.Process;
+                                    lock (receptionLocker)
+                                    {
+                                        if (receptionStatus != ReceptionStatus.Withdraw)
+                                        {
+                                            receptionStatus = ReceptionStatus.Process;
+                                            handler(context);
+                                        }
+                                    }
                                 }
-
-                                handler(context);
                             }
                         }
                     }
