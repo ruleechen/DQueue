@@ -75,38 +75,33 @@ namespace DQueue.QueueProviders
 
                     while (true)
                     {
+                        var eventArg = consumer.Queue.Dequeue();
+
                         if (receptionStatus == ReceptionStatus.Withdraw)
                         {
                             break;
                         }
 
+                        TMessage message = default(TMessage);
+
                         if (receptionStatus == ReceptionStatus.Listen)
                         {
-                            var eventArg = consumer.Queue.Dequeue();
                             if (eventArg != null)
                             {
                                 var json = Encoding.UTF8.GetString(eventArg.Body);
-                                var message = JsonConvert.DeserializeObject<TMessage>(json);
+                                message = JsonConvert.DeserializeObject<TMessage>(json);
+                            }
+                        }
 
-                                var context = new ReceptionContext<TMessage>(message, (sender, status) =>
+                        if (message != null)
+                        {
+                            var context = new ReceptionContext<TMessage>(message, (sender, status) =>
+                            {
+                                if (status == ReceptionStatus.Success)
                                 {
-                                    if (status == ReceptionStatus.Success)
-                                    {
-                                        model.BasicAck(eventArg.DeliveryTag, false);
-                                        status = ReceptionStatus.Listen;
-                                    }
-
-                                    if (receptionStatus != ReceptionStatus.Withdraw)
-                                    {
-                                        lock (receptionLocker)
-                                        {
-                                            if (receptionStatus != ReceptionStatus.Withdraw)
-                                            {
-                                                receptionStatus = status;
-                                            }
-                                        }
-                                    }
-                                });
+                                    model.BasicAck(eventArg.DeliveryTag, false);
+                                    status = ReceptionStatus.Listen;
+                                }
 
                                 if (receptionStatus != ReceptionStatus.Withdraw)
                                 {
@@ -114,13 +109,26 @@ namespace DQueue.QueueProviders
                                     {
                                         if (receptionStatus != ReceptionStatus.Withdraw)
                                         {
-                                            receptionStatus = ReceptionStatus.Process;
-                                            handler(context);
+                                            receptionStatus = status;
                                         }
+                                    }
+                                }
+                            });
+
+                            if (receptionStatus != ReceptionStatus.Withdraw)
+                            {
+                                lock (receptionLocker)
+                                {
+                                    if (receptionStatus != ReceptionStatus.Withdraw)
+                                    {
+                                        receptionStatus = ReceptionStatus.Process;
+                                        handler(context);
                                     }
                                 }
                             }
                         }
+
+                        //Thread.Sleep(100);
                     }
                 }
             }
