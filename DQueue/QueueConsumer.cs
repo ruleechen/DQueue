@@ -255,7 +255,10 @@ namespace DQueue
 
                         dispatch.CTS.Cancel();
                         dispatch.CTS.Dispose();
+                        dispatch.CTS = null;
+
                         dispatch.Tasks.Clear();
+                        dispatch.Tasks = null;
 
                         receptionContext.Success();
                     }
