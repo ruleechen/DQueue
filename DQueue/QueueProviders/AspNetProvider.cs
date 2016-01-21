@@ -12,37 +12,19 @@ namespace DQueue.QueueProviders
     {
         #region static
         static readonly HashSet<string> _initialized;
-        static readonly Dictionary<string, object> _lockers;
         static readonly Dictionary<string, List<object>> _queues;
 
         static AspNetProvider()
         {
             _initialized = new HashSet<string>();
-            _lockers = new Dictionary<string, object>();
             _queues = new Dictionary<string, List<object>>();
-        }
-
-        private static object GetLocker(string key)
-        {
-            if (!_lockers.ContainsKey(key))
-            {
-                lock (typeof(AspNetProvider))
-                {
-                    if (!_lockers.ContainsKey(key))
-                    {
-                        _lockers.Add(key, new object());
-                    }
-                }
-            }
-
-            return _lockers[key];
         }
 
         private static List<object> GetQueue(string key)
         {
             if (!_queues.ContainsKey(key))
             {
-                lock (GetLocker(key))
+                lock (typeof(AspNetProvider))
                 {
                     if (!_queues.ContainsKey(key))
                     {
@@ -64,9 +46,10 @@ namespace DQueue.QueueProviders
 
             var queue = GetQueue(queueName);
 
-            lock (GetLocker(queueName))
+            lock (queue)
             {
                 queue.Add(message);
+                Monitor.Pulse(queue);
             }
         }
 
@@ -85,7 +68,7 @@ namespace DQueue.QueueProviders
 
             if (!_initialized.Contains(queueName))
             {
-                lock (GetLocker(queueName))
+                lock (queue)
                 {
                     if (!_initialized.Contains(queueName))
                     {
@@ -119,6 +102,11 @@ namespace DQueue.QueueProviders
                 {
                     receptionStatus = ReceptionStatus.Withdraw;
                 }
+
+                //lock (queue)
+                //{
+                //    Monitor.PulseAll(queue);
+                //}
             });
 
             while (true)
@@ -128,41 +116,35 @@ namespace DQueue.QueueProviders
                     break;
                 }
 
-                if (receptionStatus == ReceptionStatus.Listen && queue.Count > 0)
+                lock (queue)
                 {
-                    object message = null;
-
-                    lock (GetLocker(queueName))
+                    if (queue.Count == 0)
                     {
-                        if (receptionStatus == ReceptionStatus.Listen && queue.Count > 0)
-                        {
-                            message = queue[0];
-                            queue.RemoveAt(0);
-                            queueProcessing.Add(message);
-                        }
+                        Monitor.Wait(queue);
                     }
+                }
 
-                    if (message != null)
+                object message = null;
+
+                if (receptionStatus == ReceptionStatus.Listen)
+                {
+                    if (queue.Count > 0)
                     {
-                        var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
-                        {
-                            if (status == ReceptionStatus.Success)
-                            {
-                                queueProcessing.Remove(message);
-                                status = ReceptionStatus.Listen;
-                            }
+                        message = queue[0];
+                        queue.RemoveAt(0);
+                        queueProcessing.Add(message);
+                    }
+                }
 
-                            if (receptionStatus != ReceptionStatus.Withdraw)
-                            {
-                                lock (receptionLocker)
-                                {
-                                    if (receptionStatus != ReceptionStatus.Withdraw)
-                                    {
-                                        receptionStatus = status;
-                                    }
-                                }
-                            }
-                        });
+                if (message != null)
+                {
+                    var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
+                    {
+                        if (status == ReceptionStatus.Success)
+                        {
+                            queueProcessing.Remove(message);
+                            status = ReceptionStatus.Listen;
+                        }
 
                         if (receptionStatus != ReceptionStatus.Withdraw)
                         {
@@ -170,15 +152,26 @@ namespace DQueue.QueueProviders
                             {
                                 if (receptionStatus != ReceptionStatus.Withdraw)
                                 {
-                                    receptionStatus = ReceptionStatus.Process;
-                                    handler(context);
+                                    receptionStatus = status;
                                 }
+                            }
+                        }
+                    });
+
+                    if (receptionStatus != ReceptionStatus.Withdraw)
+                    {
+                        lock (receptionLocker)
+                        {
+                            if (receptionStatus != ReceptionStatus.Withdraw)
+                            {
+                                receptionStatus = ReceptionStatus.Process;
+                                handler(context);
                             }
                         }
                     }
                 }
 
-                Thread.Sleep(100);
+                //Thread.Sleep(100);
             }
         }
     }
