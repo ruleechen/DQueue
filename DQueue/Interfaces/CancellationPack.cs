@@ -11,52 +11,54 @@ namespace DQueue.Interfaces
     {
         private object _locker;
         private CancellationToken _token;
-        private List<Action> _lastActions;
-        private CancellationTokenRegistration _registration;
+        private Dictionary<int, List<Action>> _levels;
 
         public CancellationPack(CancellationToken token)
         {
             _token = token;
             _locker = new object();
-            _lastActions = new List<Action>();
-            InitializeLastAction();
-        }
+            _levels = new Dictionary<int, List<Action>>();
 
-        private void InitializeLastAction()
-        {
-            if (_registration != null)
+            token.Register(() =>
             {
-                _registration.Dispose();
-            }
+                var list = _levels.ToList()
+                    .OrderBy(x => x.Key);
 
-            _registration = _token.Register(() =>
-            {
-                foreach (var last in _lastActions)
+                foreach (var level in list)
                 {
-                    last();
+                    foreach (var action in level.Value)
+                    {
+                        action();
+                    }
+
+                    Thread.Sleep(100);
                 }
             });
         }
 
-        public void Register(Action action)
+        public void Register(int level, bool exclusive, Action action)
         {
-            lock (_locker)
+            if (!_levels.ContainsKey(level))
             {
-                _token.Register(action);
-                InitializeLastAction();
+                lock (_locker)
+                {
+                    if (!_levels.ContainsKey(level))
+                    {
+                        _levels.Add(level, new List<Action>());
+                    }
+                }
             }
-        }
 
-        public void RegisterLast(Action action, bool exclusive = true)
-        {
+            var actions = _levels[level];
+
             lock (_locker)
             {
                 if (exclusive)
                 {
-                    _lastActions.Clear();
+                    actions.Clear();
                 }
 
-                _lastActions.Add(action);
+                actions.Add(action);
             }
         }
     }
