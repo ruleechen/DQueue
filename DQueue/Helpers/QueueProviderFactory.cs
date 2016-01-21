@@ -11,9 +11,24 @@ namespace DQueue.Helpers
 {
     public class QueueProviderFactory
     {
+        private static Configuration _exeConfiguration;
+        public static Configuration ExeConfiguration
+        {
+            get
+            {
+                if (_exeConfiguration == null)
+                    _exeConfiguration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                return _exeConfiguration;
+            }
+            set
+            {
+                _exeConfiguration = value;
+            }
+        }
+
         static Lazy<RabbitMQ.Client.ConnectionFactory> _rabbitMQConnectionFactory = new Lazy<RabbitMQ.Client.ConnectionFactory>(() =>
         {
-            var rabbitMQConnectionString = ConfigurationManager.ConnectionStrings["RabbitMQ_Connection"].ConnectionString;
+            var rabbitMQConnectionString = ExeConfiguration.ConnectionStrings.ConnectionStrings["RabbitMQ_Connection"].ConnectionString;
             var rabbitMQConfiguration = RabbitMQConnectionConfiguration.Parse(rabbitMQConnectionString);
             return new RabbitMQ.Client.ConnectionFactory
             {
@@ -29,7 +44,7 @@ namespace DQueue.Helpers
 
         static Lazy<StackExchange.Redis.ConnectionMultiplexer> _redisConnectionFactory = new Lazy<StackExchange.Redis.ConnectionMultiplexer>(() =>
         {
-            var redisConnectionString = ConfigurationManager.ConnectionStrings["Redis_Connection"].ConnectionString;
+            var redisConnectionString = ExeConfiguration.ConnectionStrings.ConnectionStrings["Redis_Connection"].ConnectionString;
             var resisConfiguration = StackExchange.Redis.ConfigurationOptions.Parse(redisConnectionString);
             return StackExchange.Redis.ConnectionMultiplexer.Connect(resisConfiguration);
         }, true);
@@ -39,7 +54,7 @@ namespace DQueue.Helpers
             if (provider == QueueProvider.Configured)
             {
                 QueueProvider outProvider;
-                var strProvider = ConfigurationManager.AppSettings["QueueProvider"];
+                var strProvider = ExeConfiguration.AppSettings.Settings["QueueProvider"].Value;
                 if (Enum.TryParse<QueueProvider>(strProvider, true, out outProvider))
                 {
                     provider = outProvider;
