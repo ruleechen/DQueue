@@ -36,6 +36,14 @@ namespace DQueue.Interfaces
             });
         }
 
+        public CancellationToken Token
+        {
+            get
+            {
+                return _token;
+            }
+        }
+
         public void Register(int level, bool exclusive, Action action)
         {
             if (!_levels.ContainsKey(level))

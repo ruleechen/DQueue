@@ -16,7 +16,7 @@ namespace DQueue
         private class ReceiveState<T>
         {
             public string QueueName { get; set; }
-            public IQueueProvider Provider { get; set; }
+            public QueueProvider Provider { get; set; }
             public Action<ReceptionContext<T>> Handler { get; set; }
             public CancellationPack Token { get; set; }
         }
@@ -131,14 +131,15 @@ namespace DQueue
 
             if (_tasks.Count < _threads)
             {
+                var pack = new CancellationPack(_cts.Token);
+
                 for (var i = 0; i < _threads; i++)
                 {
-                    var provider = QueueProviderFactory.CreateProvider(_provider);
-
                     var task = Task.Factory.StartNew((state) =>
                     {
                         var param = (ReceiveState<TMessage>)state;
-                        param.Provider.Dequeue<TMessage>(
+                        var provider = QueueProviderFactory.CreateProvider(param.Provider);
+                        provider.Dequeue<TMessage>(
                             param.QueueName,
                             param.Handler,
                             param.Token);
@@ -146,18 +147,18 @@ namespace DQueue
                     new ReceiveState<TMessage>
                     {
                         QueueName = _queueName,
-                        Provider = provider,
+                        Provider = _provider,
                         Handler = Dispatch,
-                        Token = new CancellationPack(_cts.Token)
+                        Token = pack
                     },
-                    _cts.Token,
+                    pack.Token,
                     TaskCreationOptions.LongRunning,
                     TaskScheduler.Default);
 
                     _tasks.Add(task.Id, new DispatchModel { ParentTask = task });
                 }
 
-                _cts.Token.Register(() =>
+                pack.Register(1000, true, () =>
                 {
                     foreach (var item in _tasks)
                     {
