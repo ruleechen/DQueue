@@ -60,7 +60,7 @@ namespace DQueue.QueueProviders
             database.ListLeftPush(queueName, json);
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationToken token)
+        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationPack token)
         {
             if (string.IsNullOrWhiteSpace(queueName) || handler == null)
             {
@@ -77,20 +77,11 @@ namespace DQueue.QueueProviders
                 {
                     if (!_initialized.Contains(queueName))
                     {
-                        Action fallback = null;
+                        var items = database.ListRange(processingQueueName);
 
-                        token.Register(fallback = () =>
-                        {
-                            var items = database.ListRange(processingQueueName);
+                        database.ListRightPush(queueName, items);
 
-                            database.ListRightPush(queueName, items);
-
-                            database.KeyDelete(processingQueueName);
-
-                            _initialized.Remove(queueName);
-                        });
-
-                        fallback();
+                        database.KeyDelete(processingQueueName);
 
                         _initialized.Add(queueName);
                     }
@@ -100,12 +91,28 @@ namespace DQueue.QueueProviders
             var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            token.Register(() =>
+            token.Register(1, false, () =>
             {
                 lock (receptionLocker)
                 {
                     receptionStatus = ReceptionStatus.Withdraw;
                 }
+            });
+
+            token.Register(2, true, () =>
+            {
+
+            });
+
+            token.Register(3, true, () =>
+            {
+                var items = database.ListRange(processingQueueName);
+
+                database.ListRightPush(queueName, items);
+
+                database.KeyDelete(processingQueueName);
+
+                _initialized.Add(queueName);
             });
 
             while (true)

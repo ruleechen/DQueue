@@ -18,7 +18,7 @@ namespace DQueue
             public string QueueName { get; set; }
             public IQueueProvider Provider { get; set; }
             public Action<ReceptionContext<T>> Handler { get; set; }
-            public CancellationToken Token { get; set; }
+            public CancellationPack Token { get; set; }
         }
 
         private class DispatchState<T>
@@ -148,7 +148,7 @@ namespace DQueue
                         QueueName = _queueName,
                         Provider = provider,
                         Handler = Dispatch,
-                        Token = _cts.Token
+                        Token = new CancellationPack(_cts.Token)
                     },
                     _cts.Token,
                     TaskCreationOptions.LongRunning,

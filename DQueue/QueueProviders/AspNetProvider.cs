@@ -53,7 +53,7 @@ namespace DQueue.QueueProviders
             }
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationToken token)
+        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationPack token)
         {
             if (string.IsNullOrWhiteSpace(queueName) || handler == null)
             {
@@ -72,21 +72,12 @@ namespace DQueue.QueueProviders
                 {
                     if (!_initialized.Contains(queueName))
                     {
-                        Action fallback = null;
-
-                        token.Register(fallback = () =>
+                        foreach (var item in queueProcessing)
                         {
-                            foreach (var item in queueProcessing)
-                            {
-                                queue.Insert(0, item);
-                            }
+                            queue.Insert(0, item);
+                        }
 
-                            queueProcessing.Clear();
-
-                            _initialized.Remove(queueName);
-                        });
-
-                        fallback();
+                        queueProcessing.Clear();
 
                         _initialized.Add(queueName);
                     }
@@ -96,32 +87,47 @@ namespace DQueue.QueueProviders
             var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            token.Register(() =>
+            token.Register(1, false, () =>
             {
                 lock (receptionLocker)
                 {
                     receptionStatus = ReceptionStatus.Withdraw;
                 }
+            });
 
-                //lock (queue)
-                //{
-                //    Monitor.PulseAll(queue);
-                //}
+            token.Register(2, true, () =>
+            {
+                lock (queue)
+                {
+                    Monitor.PulseAll(queue);
+                }
+            });
+
+            token.Register(3, true, () =>
+            {
+                foreach (var item in queueProcessing)
+                {
+                    queue.Insert(0, item);
+                }
+
+                queueProcessing.Clear();
+
+                _initialized.Remove(queueName);
             });
 
             while (true)
             {
-                if (receptionStatus == ReceptionStatus.Withdraw)
-                {
-                    break;
-                }
-
                 lock (queue)
                 {
                     if (queue.Count == 0)
                     {
                         Monitor.Wait(queue);
                     }
+                }
+
+                if (receptionStatus == ReceptionStatus.Withdraw)
+                {
+                    break;
                 }
 
                 object message = null;

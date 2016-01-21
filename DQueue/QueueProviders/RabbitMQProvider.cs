@@ -42,7 +42,7 @@ namespace DQueue.QueueProviders
             }
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationToken token)
+        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationPack token)
         {
             if (string.IsNullOrWhiteSpace(queueName) || handler == null)
             {
@@ -57,20 +57,20 @@ namespace DQueue.QueueProviders
                     var consumer = new QueueingBasicConsumer(model);
                     model.BasicConsume(queueName, false, consumer);
 
-                    token.Register(() =>
-                    {
-                        model.BasicCancel(consumer.ConsumerTag);
-                    });
-
                     var receptionLocker = new object();
                     var receptionStatus = ReceptionStatus.Listen;
 
-                    token.Register(() =>
+                    token.Register(1, false, () =>
                     {
                         lock (receptionLocker)
                         {
                             receptionStatus = ReceptionStatus.Withdraw;
                         }
+                    });
+
+                    token.Register(2, false, () =>
+                    {
+                        model.BasicCancel(consumer.ConsumerTag);
                     });
 
                     while (true)
