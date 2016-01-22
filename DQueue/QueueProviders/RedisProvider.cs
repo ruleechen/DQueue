@@ -48,7 +48,18 @@ namespace DQueue.QueueProviders
             var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            manager.OnFallback(() =>
+            manager.OnlyOnce(() =>
+            {
+                subscriber.Subscribe(manager.QueueName, (channel, val) =>
+                {
+                    lock (queueLocker)
+                    {
+                        Monitor.Pulse(queueLocker);
+                    }
+                });
+            });
+
+            manager.Fallback(() =>
             {
                 var items = database.ListRange(manager.ProcessingQueueName);
                 database.ListRightPush(manager.QueueName, items);
@@ -70,17 +81,6 @@ namespace DQueue.QueueProviders
                     Monitor.PulseAll(queueLocker);
                 }
             });
-            
-            manager.OnceFor(() =>
-            {
-                subscriber.Subscribe(manager.QueueName, (channel, val) =>
-                {
-                    lock (queueLocker)
-                    {
-                        Monitor.Pulse(queueLocker);
-                    }
-                });
-            });
 
             while (true)
             {
@@ -97,8 +97,8 @@ namespace DQueue.QueueProviders
                     break;
                 }
 
-                var item = RedisValue.Null;
                 object message = null;
+                var item = RedisValue.Null;
 
                 if (receptionStatus == ReceptionStatus.Listen)
                 {
