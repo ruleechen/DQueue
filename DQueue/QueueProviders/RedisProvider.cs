@@ -12,33 +12,6 @@ namespace DQueue.QueueProviders
 {
     public class RedisProvider : IQueueProvider
     {
-        #region static
-        static readonly HashSet<string> _initialized;
-        static readonly Dictionary<string, object> _lockers;
-
-        static RedisProvider()
-        {
-            _initialized = new HashSet<string>();
-            _lockers = new Dictionary<string, object>();
-        }
-
-        private static object GetLocker(string key)
-        {
-            if (!_lockers.ContainsKey(key))
-            {
-                lock (typeof(RedisProvider))
-                {
-                    if (!_lockers.ContainsKey(key))
-                    {
-                        _lockers.Add(key, new object());
-                    }
-                }
-            }
-
-            return _lockers[key];
-        }
-        #endregion
-
         private readonly ConnectionMultiplexer _connectionFactory;
 
         public RedisProvider(ConnectionMultiplexer connectionFactory)
@@ -53,45 +26,36 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var json = JsonConvert.SerializeObject(message);
-
+            var subscriber = _connectionFactory.GetSubscriber();
             var database = _connectionFactory.GetDatabase();
 
+            var json = JsonConvert.SerializeObject(message);
             database.ListLeftPush(queueName, json);
+            subscriber.Publish(queueName, 1);
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationPack token)
+        public void Dequeue<TMessage>(ReceptionManager manager, Action<ReceptionContext<TMessage>> handler)
         {
-            if (string.IsNullOrWhiteSpace(queueName) || handler == null)
+            if (manager == null || string.IsNullOrWhiteSpace(manager.QueueName) || handler == null)
             {
                 return;
             }
 
-            var processingQueueName = QueueNameGenerator.GetProcessingQueueName(queueName);
-
+            var subscriber = _connectionFactory.GetSubscriber();
             var database = _connectionFactory.GetDatabase();
 
-            if (!_initialized.Contains(queueName))
-            {
-                lock (GetLocker(queueName))
-                {
-                    if (!_initialized.Contains(queueName))
-                    {
-                        var items = database.ListRange(processingQueueName);
-
-                        database.ListRightPush(queueName, items);
-
-                        database.KeyDelete(processingQueueName);
-
-                        _initialized.Add(queueName);
-                    }
-                }
-            }
-
+            var queueLocker = manager.QueueLocker();
             var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            token.Register(1, false, () =>
+            manager.OnFallback(() =>
+            {
+                var items = database.ListRange(manager.ProcessingQueueName);
+                database.ListRightPush(manager.QueueName, items);
+                database.KeyDelete(manager.ProcessingQueueName);
+            });
+
+            manager.OnCancel(1, false, () =>
             {
                 lock (receptionLocker)
                 {
@@ -99,64 +63,55 @@ namespace DQueue.QueueProviders
                 }
             });
 
-            token.Register(2, true, () =>
+            manager.OnCancel(2, true, () =>
             {
-
+                lock (queueLocker)
+                {
+                    Monitor.PulseAll(queueLocker);
+                }
             });
 
-            token.Register(3, true, () =>
+            subscriber.Subscribe(manager.QueueName, (channel, val) =>
             {
-                var items = database.ListRange(processingQueueName);
 
-                database.ListRightPush(queueName, items);
-
-                database.KeyDelete(processingQueueName);
-
-                _initialized.Add(queueName);
             });
 
             while (true)
             {
+                lock (queueLocker)
+                {
+                    if (database.ListLength(manager.QueueName) == 0)
+                    {
+                        Monitor.Wait(queueLocker);
+                    }
+                }
+
                 if (receptionStatus == ReceptionStatus.Withdraw)
                 {
                     break;
                 }
 
-                if (receptionStatus == ReceptionStatus.Listen && database.ListLength(queueName) > 0)
+                var item = RedisValue.Null;
+                object message = null;
+
+                if (receptionStatus == ReceptionStatus.Listen)
                 {
-                    var item = RedisValue.Null;
-
-                    lock (GetLocker(queueName))
+                    if (database.ListLength(manager.QueueName) > 0)
                     {
-                        if (receptionStatus == ReceptionStatus.Listen && database.ListLength(queueName) > 0)
-                        {
-                            item = database.ListRightPopLeftPush(queueName, processingQueueName);
-                        }
+                        item = database.ListRightPopLeftPush(manager.QueueName, manager.ProcessingQueueName);
+                        message = JsonConvert.DeserializeObject<TMessage>(item);
                     }
+                }
 
-                    if (item.HasValue)
+                if (message != null)
+                {
+                    var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
                     {
-                        var message = JsonConvert.DeserializeObject<TMessage>(item);
-
-                        var context = new ReceptionContext<TMessage>(message, (sender, status) =>
+                        if (status == ReceptionStatus.Success)
                         {
-                            if (status == ReceptionStatus.Success)
-                            {
-                                database.ListRemove(processingQueueName, item, 1);
-                                status = ReceptionStatus.Listen;
-                            }
-
-                            if (receptionStatus != ReceptionStatus.Withdraw)
-                            {
-                                lock (receptionLocker)
-                                {
-                                    if (receptionStatus != ReceptionStatus.Withdraw)
-                                    {
-                                        receptionStatus = status;
-                                    }
-                                }
-                            }
-                        });
+                            database.ListRemove(manager.ProcessingQueueName, item, 1);
+                            status = ReceptionStatus.Listen;
+                        }
 
                         if (receptionStatus != ReceptionStatus.Withdraw)
                         {
@@ -164,15 +119,26 @@ namespace DQueue.QueueProviders
                             {
                                 if (receptionStatus != ReceptionStatus.Withdraw)
                                 {
-                                    receptionStatus = ReceptionStatus.Process;
-                                    handler(context);
+                                    receptionStatus = status;
                                 }
+                            }
+                        }
+                    });
+
+                    if (receptionStatus != ReceptionStatus.Withdraw)
+                    {
+                        lock (receptionLocker)
+                        {
+                            if (receptionStatus != ReceptionStatus.Withdraw)
+                            {
+                                receptionStatus = ReceptionStatus.Process;
+                                handler(context);
                             }
                         }
                     }
                 }
 
-                Thread.Sleep(100);
+                //Thread.Sleep(100);
             }
         }
     }

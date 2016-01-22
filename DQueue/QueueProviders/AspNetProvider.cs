@@ -11,12 +11,10 @@ namespace DQueue.QueueProviders
     public class AspNetProvider : IQueueProvider
     {
         #region static
-        static readonly HashSet<string> _initialized;
         static readonly Dictionary<string, List<object>> _queues;
 
         static AspNetProvider()
         {
-            _initialized = new HashSet<string>();
             _queues = new Dictionary<string, List<object>>();
         }
 
@@ -45,65 +43,30 @@ namespace DQueue.QueueProviders
             }
 
             var queue = GetQueue(queueName);
+            var queueLocker = ReceptionManager.GetQueueLocker(queueName);
 
-            lock (queue)
+            lock (queueLocker)
             {
                 queue.Add(message);
-                Monitor.Pulse(queue);
+                Monitor.Pulse(queueLocker);
             }
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationPack token)
+        public void Dequeue<TMessage>(ReceptionManager manager, Action<ReceptionContext<TMessage>> handler)
         {
-            if (string.IsNullOrWhiteSpace(queueName) || handler == null)
+            if (manager == null || string.IsNullOrWhiteSpace(manager.QueueName) || handler == null)
             {
                 return;
             }
 
-            var processingQueueName = QueueNameGenerator.GetProcessingQueueName(queueName);
-
-            var queue = GetQueue(queueName);
-
-            var queueProcessing = GetQueue(processingQueueName);
-
-            if (!_initialized.Contains(queueName))
-            {
-                lock (queue)
-                {
-                    if (!_initialized.Contains(queueName))
-                    {
-                        foreach (var item in queueProcessing)
-                        {
-                            queue.Insert(0, item);
-                        }
-
-                        queueProcessing.Clear();
-
-                        _initialized.Add(queueName);
-                    }
-                }
-            }
+            var queue = GetQueue(manager.QueueName);
+            var queueLocker = manager.QueueLocker();
+            var queueProcessing = GetQueue(manager.ProcessingQueueName);
 
             var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            token.Register(1, false, () =>
-            {
-                lock (receptionLocker)
-                {
-                    receptionStatus = ReceptionStatus.Withdraw;
-                }
-            });
-
-            token.Register(2, true, () =>
-            {
-                lock (queue)
-                {
-                    Monitor.PulseAll(queue);
-                }
-            });
-
-            token.Register(3, true, () =>
+            manager.OnFallback(() =>
             {
                 foreach (var item in queueProcessing)
                 {
@@ -111,17 +74,31 @@ namespace DQueue.QueueProviders
                 }
 
                 queueProcessing.Clear();
+            });
 
-                _initialized.Remove(queueName);
+            manager.OnCancel(1, false, () =>
+            {
+                lock (receptionLocker)
+                {
+                    receptionStatus = ReceptionStatus.Withdraw;
+                }
+            });
+
+            manager.OnCancel(2, true, () =>
+            {
+                lock (queueLocker)
+                {
+                    Monitor.PulseAll(queueLocker);
+                }
             });
 
             while (true)
             {
-                lock (queue)
+                lock (queueLocker)
                 {
                     if (queue.Count == 0)
                     {
-                        Monitor.Wait(queue);
+                        Monitor.Wait(queueLocker);
                     }
                 }
 

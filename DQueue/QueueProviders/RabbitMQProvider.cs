@@ -42,9 +42,9 @@ namespace DQueue.QueueProviders
             }
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationPack token)
+        public void Dequeue<TMessage>(ReceptionManager manager, Action<ReceptionContext<TMessage>> handler)
         {
-            if (string.IsNullOrWhiteSpace(queueName) || handler == null)
+            if (manager == null || string.IsNullOrWhiteSpace(manager.QueueName) || handler == null)
             {
                 return;
             }
@@ -53,14 +53,18 @@ namespace DQueue.QueueProviders
             {
                 using (var model = connection.CreateModel())
                 {
-                    model.QueueDeclare(queueName, false, false, false, null);
+                    model.QueueDeclare(manager.QueueName, false, false, false, null);
                     var consumer = new QueueingBasicConsumer(model);
-                    model.BasicConsume(queueName, false, consumer);
+                    model.BasicConsume(manager.QueueName, false, consumer);
 
                     var receptionLocker = new object();
                     var receptionStatus = ReceptionStatus.Listen;
 
-                    token.Register(1, false, () =>
+                    manager.OnFallback(() =>
+                    {
+                    });
+
+                    manager.OnCancel(1, false, () =>
                     {
                         lock (receptionLocker)
                         {
@@ -68,7 +72,7 @@ namespace DQueue.QueueProviders
                         }
                     });
 
-                    token.Register(2, false, () =>
+                    manager.OnCancel(2, false, () =>
                     {
                         model.BasicCancel(consumer.ConsumerTag);
                     });
@@ -82,7 +86,7 @@ namespace DQueue.QueueProviders
                             break;
                         }
 
-                        TMessage message = default(TMessage);
+                        object message = null;
 
                         if (receptionStatus == ReceptionStatus.Listen)
                         {
@@ -95,7 +99,7 @@ namespace DQueue.QueueProviders
 
                         if (message != null)
                         {
-                            var context = new ReceptionContext<TMessage>(message, (sender, status) =>
+                            var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
                             {
                                 if (status == ReceptionStatus.Success)
                                 {

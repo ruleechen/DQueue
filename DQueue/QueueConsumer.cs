@@ -15,10 +15,9 @@ namespace DQueue
         #region Helpers
         private class ReceiveState<T>
         {
-            public string QueueName { get; set; }
             public QueueProvider Provider { get; set; }
             public Action<ReceptionContext<T>> Handler { get; set; }
-            public CancellationPack Token { get; set; }
+            public ReceptionManager Manager { get; set; }
         }
 
         private class DispatchState<T>
@@ -131,7 +130,7 @@ namespace DQueue
 
             if (_tasks.Count < _threads)
             {
-                var pack = new CancellationPack(_cts.Token);
+                var manager = new ReceptionManager(_queueName, _cts.Token);
 
                 for (var i = 0; i < _threads; i++)
                 {
@@ -139,26 +138,22 @@ namespace DQueue
                     {
                         var param = (ReceiveState<TMessage>)state;
                         var provider = QueueProviderFactory.CreateProvider(param.Provider);
-                        provider.Dequeue<TMessage>(
-                            param.QueueName,
-                            param.Handler,
-                            param.Token);
+                        provider.Dequeue<TMessage>(param.Manager, param.Handler);
                     },
                     new ReceiveState<TMessage>
                     {
-                        QueueName = _queueName,
                         Provider = _provider,
                         Handler = Dispatch,
-                        Token = pack
+                        Manager = manager
                     },
-                    pack.Token,
+                    manager.Token,
                     TaskCreationOptions.LongRunning,
                     TaskScheduler.Default);
 
                     _tasks.Add(task.Id, new DispatchModel { ParentTask = task });
                 }
 
-                pack.Register(1000, true, () =>
+                manager.OnCancel(1000, true, () =>
                 {
                     foreach (var item in _tasks)
                     {
