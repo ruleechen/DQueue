@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
+using System.Web;
+using System.Web.Configuration;
 using DQueue.Helpers;
 using DQueue.Interfaces;
 using DQueue.QueueProviders;
-using System.Web.Configuration;
-using System.Web;
 
 namespace DQueue.Helpers
 {
