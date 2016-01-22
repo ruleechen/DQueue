@@ -70,10 +70,16 @@ namespace DQueue.QueueProviders
                     Monitor.PulseAll(queueLocker);
                 }
             });
-
-            subscriber.Subscribe(manager.QueueName, (channel, val) =>
+            
+            manager.OnceFor(() =>
             {
-
+                subscriber.Subscribe(manager.QueueName, (channel, val) =>
+                {
+                    lock (queueLocker)
+                    {
+                        Monitor.Pulse(queueLocker);
+                    }
+                });
             });
 
             while (true)
