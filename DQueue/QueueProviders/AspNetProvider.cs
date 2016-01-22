@@ -66,7 +66,7 @@ namespace DQueue.QueueProviders
             var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            manager.OnFallback(() =>
+            manager.Fallback(() =>
             {
                 foreach (var item in queueProcessing)
                 {
