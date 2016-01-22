@@ -99,7 +99,7 @@ namespace DQueue.QueueProviders
                     if (database.ListLength(manager.QueueName) > 0)
                     {
                         item = database.ListRightPopLeftPush(manager.QueueName, manager.ProcessingQueueName);
-                        message = JsonConvert.DeserializeObject<TMessage>(item);
+                        if (item != RedisValue.Null) { message = JsonConvert.DeserializeObject<TMessage>(item); }
                     }
                 }
 

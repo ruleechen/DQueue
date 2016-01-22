@@ -60,10 +60,6 @@ namespace DQueue.QueueProviders
                     var receptionLocker = new object();
                     var receptionStatus = ReceptionStatus.Listen;
 
-                    manager.OnFallback(() =>
-                    {
-                    });
-
                     manager.OnCancel(1, false, () =>
                     {
                         lock (receptionLocker)
