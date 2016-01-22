@@ -10,6 +10,13 @@ namespace DQueue.Interfaces
 {
     public class ReceptionManager
     {
+        private class QueueItem
+        {
+            public object Locker { get; set; }
+            public Action Fallback { get; set; }
+            public Action OnlyOnce { get; set; }
+        }
+        
         #region static
         static readonly object _fallbackLocker;
         static readonly Dictionary<string, Action> _fallbackHandlers;
@@ -35,8 +42,6 @@ namespace DQueue.Interfaces
                     if (!_fallbackHandlers.ContainsKey(queueName))
                     {
                         _fallbackHandlers.Add(queueName, action);
-
-                        action();
 
                         return true;
                     }
@@ -64,8 +69,9 @@ namespace DQueue.Interfaces
         #endregion
 
         private string _queueName;
-        private object _cancelLocker;
         private CancellationToken _token;
+        
+        private object _cancelLocker;
         private Dictionary<int, List<Action>> _cancelHandlers;
 
         public ReceptionManager(string queueName, CancellationToken token)
@@ -123,12 +129,19 @@ namespace DQueue.Interfaces
         {
             return GetQueueLocker(_queueName);
         }
+        
+        public void OnlyOnce(Action action)
+        {
+            
+        }
 
-        public void OnFallback(Action action)
+        public void Fallback(Action action)
         {
             var register = RegisterFallback(_queueName, action);
             if (register)
             {
+                action();
+                
                 OnCancel(int.MaxValue, true, () =>
                 {
                     lock (_fallbackLocker)
