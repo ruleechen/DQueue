@@ -1,4 +1,4 @@
-﻿using DQueue.Helpers;
+using DQueue.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -81,9 +81,9 @@ namespace DQueue.Interfaces
                 var handlers = _cancelHandlers.ToList()
                     .OrderBy(x => x.Key);
 
-                foreach (var level in handlers)
+                foreach (var order in handlers)
                 {
-                    foreach (var action in level.Value)
+                    foreach (var action in order.Value)
                     {
                         action();
                     }
@@ -140,20 +140,20 @@ namespace DQueue.Interfaces
             }
         }
 
-        public void OnCancel(int execLevel, bool exclusive, Action action)
+        public void OnCancel(int order, bool exclusive, Action action)
         {
-            if (!_cancelHandlers.ContainsKey(execLevel))
+            if (!_cancelHandlers.ContainsKey(order))
             {
                 lock (_cancelLocker)
                 {
-                    if (!_cancelHandlers.ContainsKey(execLevel))
+                    if (!_cancelHandlers.ContainsKey(order))
                     {
-                        _cancelHandlers.Add(execLevel, new List<Action>());
+                        _cancelHandlers.Add(order, new List<Action>());
                     }
                 }
             }
 
-            var actions = _cancelHandlers[execLevel];
+            var actions = _cancelHandlers[order];
 
             lock (_cancelLocker)
             {
