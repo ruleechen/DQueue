@@ -6,6 +6,8 @@ using System.Text;
 using DQueue.Helpers;
 using DQueue.Interfaces;
 using DQueue.QueueProviders;
+using System.Web.Configuration;
+using System.Web;
 
 namespace DQueue.Helpers
 {
@@ -17,7 +19,17 @@ namespace DQueue.Helpers
             get
             {
                 if (_exeConfiguration == null)
-                    _exeConfiguration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                {
+                    if (HttpContext.Current != null)
+                    {
+                        _exeConfiguration = WebConfigurationManager.OpenWebConfiguration("~");
+                    }
+                    else
+                    {
+                        _exeConfiguration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                    }
+                }
+
                 return _exeConfiguration;
             }
             set
