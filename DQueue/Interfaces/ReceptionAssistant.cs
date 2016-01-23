@@ -14,16 +14,10 @@ namespace DQueue.Interfaces
         static readonly object _lockersLock;
         static readonly Dictionary<string, object> _lockers;
 
-        static readonly object _actionsLock;
-        static readonly Dictionary<string, Action> _actions;
-
         static ReceptionAssistant()
         {
             _lockersLock = new object();
             _lockers = new Dictionary<string, object>();
-
-            _actionsLock = new object();
-            _actions = new Dictionary<string, Action>();
         }
 
         public static object GetLocker(string key)
@@ -42,24 +36,6 @@ namespace DQueue.Interfaces
             return _lockers[key];
         }
 
-        public static bool RegisterAction(string key, Action action)
-        {
-            if (!_actions.ContainsKey(key))
-            {
-                lock (_actionsLock)
-                {
-                    if (!_actions.ContainsKey(key))
-                    {
-                        _actions.Add(key, action);
-
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
         public static string GetProcessingQueueName(string associatedQueueName)
         {
             return associatedQueueName + "$processing$";
@@ -67,8 +43,6 @@ namespace DQueue.Interfaces
         #endregion
 
         private object _apisLocker;
-        private Dictionary<int, List<Action>> _cancelActions;
-
         public ReceptionAssistant(int threads, string queueName, CancellationToken token)
         {
             _threads = threads;
@@ -185,24 +159,29 @@ namespace DQueue.Interfaces
             }
         }
 
+        private Action _fallbackAction;
         public void RegisterFallback(Action action)
         {
-            var register = RegisterAction(_queueName, action);
-            if (register)
+            if (_fallbackAction == null && action != null)
             {
-                action();
-
-                RegisterCancel(int.MaxValue, true, () =>
+                lock (_apisLocker)
                 {
-                    lock (_actionsLock)
+                    if (_fallbackAction == null)
                     {
-                        action();
-                        _actions.Remove(_queueName);
+                        _fallbackAction = action;
+                        _fallbackAction();
+
+                        RegisterCancel(int.MaxValue, true, () =>
+                        {
+                            _fallbackAction();
+                            _fallbackAction = null;
+                        });
                     }
-                });
+                }
             }
         }
 
+        private Dictionary<int, List<Action>> _cancelActions;
         public void RegisterCancel(int order, bool exclusive, Action action)
         {
             if (!_cancelActions.ContainsKey(order))
