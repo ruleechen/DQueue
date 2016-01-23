@@ -43,7 +43,7 @@ namespace DQueue.QueueProviders
             }
 
             var queue = GetQueue(queueName);
-            var queueLocker = ReceptionAssistant.GetLocker(queueName);
+            var queueLocker = ReceptionAssistant.GetLocker(queueName, ReceptionAssistant.Flag_MonitorLocker);
 
             lock (queueLocker)
             {

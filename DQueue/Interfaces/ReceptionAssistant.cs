@@ -11,6 +11,10 @@ namespace DQueue.Interfaces
     public class ReceptionAssistant
     {
         #region static
+        public readonly static string Flag_ProcessingQueueName = "-$Processing$";
+        public readonly static string Flag_QueueLocker = "-$QueueLocker$";
+        public readonly static string Flag_MonitorLocker = "-$MonitorLocker$";
+
         static readonly object _lockersLock;
         static readonly Dictionary<string, object> _lockers;
 
@@ -20,7 +24,7 @@ namespace DQueue.Interfaces
             _lockers = new Dictionary<string, object>();
         }
 
-        public static object GetLocker(string key)
+        public static object GetLocker(string key, string flag)
         {
             if (!_lockers.ContainsKey(key))
             {
@@ -34,11 +38,6 @@ namespace DQueue.Interfaces
             }
 
             return _lockers[key];
-        }
-
-        public static string GetProcessingQueueName(string associatedQueueName)
-        {
-            return associatedQueueName + "$processing$";
         }
         #endregion
 
@@ -94,7 +93,7 @@ namespace DQueue.Interfaces
         {
             get
             {
-                return _processingQueueName ?? (_processingQueueName = GetProcessingQueueName(_queueName));
+                return _processingQueueName ?? (_processingQueueName = _queueName + Flag_ProcessingQueueName);
             }
         }
 
@@ -103,7 +102,7 @@ namespace DQueue.Interfaces
         {
             get
             {
-                return _queueLocker ?? (_queueLocker = GetLocker(_queueName + "$QueueLocker$"));
+                return _queueLocker ?? (_queueLocker = GetLocker(_queueName, Flag_QueueLocker));
             }
         }
 
@@ -112,7 +111,7 @@ namespace DQueue.Interfaces
         {
             get
             {
-                return _monitorLocker ?? (_monitorLocker = GetLocker(_queueName + "$MonitorLocker$"));
+                return _monitorLocker ?? (_monitorLocker = GetLocker(_queueName, Flag_MonitorLocker));
             }
         }
 
