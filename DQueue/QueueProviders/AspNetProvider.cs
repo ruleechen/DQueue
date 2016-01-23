@@ -43,12 +43,12 @@ namespace DQueue.QueueProviders
             }
 
             var queue = GetQueue(queueName);
-            var queueLocker = ReceptionAssistant.GetLocker(queueName, ReceptionAssistant.Flag_MonitorLocker);
+            var monitorLocker = ReceptionAssistant.GetLocker(queueName, ReceptionAssistant.Flag_MonitorLocker);
 
-            lock (queueLocker)
+            lock (monitorLocker)
             {
                 queue.Add(message);
-                Monitor.Pulse(queueLocker);
+                Monitor.Pulse(monitorLocker);
             }
         }
 
@@ -93,35 +93,26 @@ namespace DQueue.QueueProviders
 
             while (true)
             {
+                object message = null;
+
                 lock (assistant.MonitorLocker)
                 {
                     if (queue.Count == 0)
                     {
                         Monitor.Wait(assistant.MonitorLocker);
                     }
+
+                    if (receptionStatus == ReceptionStatus.Listen)
+                    {
+                        message = queue[0];
+                        queue.RemoveAt(0);
+                        queueProcessing.Add(message);
+                    }
                 }
 
                 if (receptionStatus == ReceptionStatus.Withdraw)
                 {
                     break;
-                }
-
-                object message = null;
-
-                if (receptionStatus == ReceptionStatus.Listen)
-                {
-                    if (queue.Count > 0)
-                    {
-                        lock (assistant.QueueLocker)
-                        {
-                            if (queue.Count > 0)
-                            {
-                                message = queue[0];
-                                queue.RemoveAt(0);
-                                queueProcessing.Add(message);
-                            }
-                        }
-                    }
                 }
 
                 if (message != null)

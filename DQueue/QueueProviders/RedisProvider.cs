@@ -98,29 +98,26 @@ namespace DQueue.QueueProviders
 
             while (true)
             {
+                object message = null;
+                var item = RedisValue.Null;
+
                 lock (assistant.MonitorLocker)
                 {
                     if (database.ListLength(assistant.QueueName) == 0)
                     {
                         Monitor.Wait(assistant.MonitorLocker);
                     }
+
+                    if (receptionStatus == ReceptionStatus.Listen)
+                    {
+                        item = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
+                        if (item != RedisValue.Null) { message = JsonConvert.DeserializeObject<TMessage>(item); }
+                    }
                 }
 
                 if (receptionStatus == ReceptionStatus.Withdraw)
                 {
                     break;
-                }
-
-                object message = null;
-                var item = RedisValue.Null;
-
-                if (receptionStatus == ReceptionStatus.Listen)
-                {
-                    if (database.ListLength(assistant.QueueName) > 0)
-                    {
-                        item = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
-                        if (item != RedisValue.Null) { message = JsonConvert.DeserializeObject<TMessage>(item); }
-                    }
                 }
 
                 if (message != null)
