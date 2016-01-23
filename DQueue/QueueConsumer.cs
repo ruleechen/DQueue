@@ -17,7 +17,7 @@ namespace DQueue
         {
             public QueueProvider Provider { get; set; }
             public Action<ReceptionContext<T>> Handler { get; set; }
-            public ReceptionManager Manager { get; set; }
+            public ReceptionAssistant Assistant { get; set; }
         }
 
         private class DispatchState<T>
@@ -130,7 +130,7 @@ namespace DQueue
 
             if (_tasks.Count < _threads)
             {
-                var manager = new ReceptionManager(_queueName, _cts.Token);
+                var assistant = new ReceptionAssistant(_threads, _queueName, _cts.Token);
 
                 for (var i = 0; i < _threads; i++)
                 {
@@ -138,22 +138,22 @@ namespace DQueue
                     {
                         var param = (ReceiveState<TMessage>)state;
                         var provider = QueueProviderFactory.CreateProvider(param.Provider);
-                        provider.Dequeue<TMessage>(param.Manager, param.Handler);
+                        provider.Dequeue<TMessage>(param.Assistant, param.Handler);
                     },
                     new ReceiveState<TMessage>
                     {
                         Provider = _provider,
                         Handler = Dispatch,
-                        Manager = manager
+                        Assistant = assistant
                     },
-                    manager.Token,
+                    assistant.Token,
                     TaskCreationOptions.LongRunning,
                     TaskScheduler.Default);
 
                     _tasks.Add(task.Id, new DispatchModel { ParentTask = task });
                 }
 
-                manager.OnCancel(1000, true, () =>
+                assistant.RegisterCancel(1000, true, () =>
                 {
                     foreach (var item in _tasks)
                     {

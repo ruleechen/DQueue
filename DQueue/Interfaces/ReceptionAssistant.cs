@@ -8,29 +8,16 @@ using System.Threading.Tasks;
 
 namespace DQueue.Interfaces
 {
-    public class ReceptionManager
+    public class ReceptionAssistant
     {
-        private class QueueItem
-        {
-            public object Locker { get; set; }
-            public Action Fallback { get; set; }
-            public Action OnlyOnce { get; set; }
-        }
-        
         #region static
         static readonly object _fallbackLocker;
         static readonly Dictionary<string, Action> _fallbackHandlers;
 
-        static readonly object _queueLock;
-        static readonly Dictionary<string, object> _queueLockers;
-
-        static ReceptionManager()
+        static ReceptionAssistant()
         {
             _fallbackLocker = new object();
             _fallbackHandlers = new Dictionary<string, Action>();
-
-            _queueLock = new object();
-            _queueLockers = new Dictionary<string, object>();
         }
 
         public static bool RegisterFallback(string queueName, Action action)
@@ -51,35 +38,28 @@ namespace DQueue.Interfaces
             return false;
         }
 
-        public static object GetQueueLocker(string queueName)
+        public static string GetQueueLocker(string associatedQueueName)
         {
-            if (!_queueLockers.ContainsKey(queueName))
-            {
-                lock (_queueLock)
-                {
-                    if (!_queueLockers.ContainsKey(queueName))
-                    {
-                        _queueLockers.Add(queueName, new object());
-                    }
-                }
-            }
-
-            return _queueLockers[queueName];
+            return associatedQueueName + "$locker$";
         }
+
+        public static string GetProcessingQueueName(string associatedQueueName)
+        {
+            return associatedQueueName + "$processing$";
+        }
+
         #endregion
 
-        private string _queueName;
-        private CancellationToken _token;
-        
-        private object _cancelLocker;
+        private object _locker;
         private Dictionary<int, List<Action>> _cancelHandlers;
 
-        public ReceptionManager(string queueName, CancellationToken token)
+        public ReceptionAssistant(int threads, string queueName, CancellationToken token)
         {
+            _threads = threads;
             _queueName = queueName;
             _token = token;
 
-            _cancelLocker = new object();
+            _locker = new object();
             _cancelHandlers = new Dictionary<int, List<Action>>();
 
             token.Register(() =>
@@ -101,6 +81,16 @@ namespace DQueue.Interfaces
             });
         }
 
+        private int _threads;
+        public int Threads
+        {
+            get
+            {
+                return _threads;
+            }
+        }
+
+        private string _queueName;
         public string QueueName
         {
             get
@@ -109,14 +99,25 @@ namespace DQueue.Interfaces
             }
         }
 
+        private string _processingQueueName;
         public string ProcessingQueueName
         {
             get
             {
-                return QueueNameGenerator.GetProcessingQueueName(_queueName);
+                return _processingQueueName ?? (_processingQueueName = GetProcessingQueueName(_queueName));
             }
         }
 
+        private string _queueLocker;
+        public string QueueLocker
+        {
+            get
+            {
+                return _queueLocker ?? (_queueLocker = GetQueueLocker(_queueName));
+            }
+        }
+
+        private CancellationToken _token;
         public CancellationToken Token
         {
             get
@@ -125,24 +126,48 @@ namespace DQueue.Interfaces
             }
         }
 
-        public object QueueLocker()
+        private int _countExecuteFirstOne;
+        public void ExecuteFirstOne(Action action)
         {
-            return GetQueueLocker(_queueName);
-        }
-        
-        public void OnlyOnce(Action action)
-        {
-            
+            if (action != null)
+            {
+                lock (_locker)
+                {
+                    _countExecuteFirstOne++;
+
+                    if (_countExecuteFirstOne == 1)
+                    {
+                        action();
+                    }
+                }
+            }
         }
 
-        public void Fallback(Action action)
+        private int _countExecuteLastOne;
+        public void ExecuteLastOne(Action action)
+        {
+            if (action != null)
+            {
+                lock (_locker)
+                {
+                    _countExecuteLastOne++;
+
+                    if (_countExecuteLastOne == _threads)
+                    {
+                        action();
+                    }
+                }
+            }
+        }
+
+        public void RegisterFallback(Action action)
         {
             var register = RegisterFallback(_queueName, action);
             if (register)
             {
                 action();
-                
-                OnCancel(int.MaxValue, true, () =>
+
+                RegisterCancel(int.MaxValue, true, () =>
                 {
                     lock (_fallbackLocker)
                     {
@@ -153,11 +178,11 @@ namespace DQueue.Interfaces
             }
         }
 
-        public void OnCancel(int order, bool exclusive, Action action)
+        public void RegisterCancel(int order, bool exclusive, Action action)
         {
             if (!_cancelHandlers.ContainsKey(order))
             {
-                lock (_cancelLocker)
+                lock (_locker)
                 {
                     if (!_cancelHandlers.ContainsKey(order))
                     {
@@ -168,7 +193,7 @@ namespace DQueue.Interfaces
 
             var actions = _cancelHandlers[order];
 
-            lock (_cancelLocker)
+            lock (_locker)
             {
                 if (exclusive)
                 {

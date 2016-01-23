@@ -43,7 +43,7 @@ namespace DQueue.QueueProviders
             }
 
             var queue = GetQueue(queueName);
-            var queueLocker = ReceptionManager.GetQueueLocker(queueName);
+            var queueLocker = ReceptionAssistant.GetQueueLocker(queueName);
 
             lock (queueLocker)
             {
@@ -52,21 +52,20 @@ namespace DQueue.QueueProviders
             }
         }
 
-        public void Dequeue<TMessage>(ReceptionManager manager, Action<ReceptionContext<TMessage>> handler)
+        public void Dequeue<TMessage>(ReceptionAssistant assistant, Action<ReceptionContext<TMessage>> handler)
         {
-            if (manager == null || string.IsNullOrWhiteSpace(manager.QueueName) || handler == null)
+            if (assistant == null || string.IsNullOrWhiteSpace(assistant.QueueName) || handler == null)
             {
                 return;
             }
 
-            var queue = GetQueue(manager.QueueName);
-            var queueLocker = manager.QueueLocker();
-            var queueProcessing = GetQueue(manager.ProcessingQueueName);
+            var queue = GetQueue(assistant.QueueName);
+            var queueProcessing = GetQueue(assistant.ProcessingQueueName);
 
             var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            manager.Fallback(() =>
+            assistant.RegisterFallback(() =>
             {
                 foreach (var item in queueProcessing)
                 {
@@ -76,7 +75,7 @@ namespace DQueue.QueueProviders
                 queueProcessing.Clear();
             });
 
-            manager.OnCancel(1, false, () =>
+            assistant.RegisterCancel(1, false, () =>
             {
                 lock (receptionLocker)
                 {
@@ -84,21 +83,21 @@ namespace DQueue.QueueProviders
                 }
             });
 
-            manager.OnCancel(2, true, () =>
+            assistant.RegisterCancel(2, true, () =>
             {
-                lock (queueLocker)
+                lock (assistant.QueueLocker)
                 {
-                    Monitor.PulseAll(queueLocker);
+                    Monitor.PulseAll(assistant.QueueLocker);
                 }
             });
 
             while (true)
             {
-                lock (queueLocker)
+                lock (assistant.QueueLocker)
                 {
                     if (queue.Count == 0)
                     {
-                        Monitor.Wait(queueLocker);
+                        Monitor.Wait(assistant.QueueLocker);
                     }
                 }
 

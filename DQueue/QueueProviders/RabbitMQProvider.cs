@@ -42,9 +42,9 @@ namespace DQueue.QueueProviders
             }
         }
 
-        public void Dequeue<TMessage>(ReceptionManager manager, Action<ReceptionContext<TMessage>> handler)
+        public void Dequeue<TMessage>(ReceptionAssistant assistant, Action<ReceptionContext<TMessage>> handler)
         {
-            if (manager == null || string.IsNullOrWhiteSpace(manager.QueueName) || handler == null)
+            if (assistant == null || string.IsNullOrWhiteSpace(assistant.QueueName) || handler == null)
             {
                 return;
             }
@@ -53,14 +53,14 @@ namespace DQueue.QueueProviders
             {
                 using (var model = connection.CreateModel())
                 {
-                    model.QueueDeclare(manager.QueueName, false, false, false, null);
+                    model.QueueDeclare(assistant.QueueName, false, false, false, null);
                     var consumer = new QueueingBasicConsumer(model);
-                    model.BasicConsume(manager.QueueName, false, consumer);
+                    model.BasicConsume(assistant.QueueName, false, consumer);
 
                     var receptionLocker = new object();
                     var receptionStatus = ReceptionStatus.Listen;
 
-                    manager.OnCancel(1, false, () =>
+                    assistant.RegisterCancel(1, false, () =>
                     {
                         lock (receptionLocker)
                         {
@@ -68,7 +68,7 @@ namespace DQueue.QueueProviders
                         }
                     });
 
-                    manager.OnCancel(2, false, () =>
+                    assistant.RegisterCancel(2, false, () =>
                     {
                         model.BasicCancel(consumer.ConsumerTag);
                     });

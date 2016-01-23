@@ -12,6 +12,13 @@ namespace DQueue.QueueProviders
 {
     public class RedisProvider : IQueueProvider
     {
+        static string guid;
+
+        static RedisProvider()
+        {
+            guid = Guid.NewGuid().ToString();
+        }
+
         private readonly ConnectionMultiplexer _connectionFactory;
 
         public RedisProvider(ConnectionMultiplexer connectionFactory)
@@ -31,12 +38,12 @@ namespace DQueue.QueueProviders
 
             var json = JsonConvert.SerializeObject(message);
             database.ListLeftPush(queueName, json);
-            subscriber.Publish(queueName, 1);
+            subscriber.Publish(queueName, guid);
         }
 
-        public void Dequeue<TMessage>(ReceptionManager manager, Action<ReceptionContext<TMessage>> handler)
+        public void Dequeue<TMessage>(ReceptionAssistant assistant, Action<ReceptionContext<TMessage>> handler)
         {
-            if (manager == null || string.IsNullOrWhiteSpace(manager.QueueName) || handler == null)
+            if (assistant == null || string.IsNullOrWhiteSpace(assistant.QueueName) || handler == null)
             {
                 return;
             }
@@ -44,29 +51,29 @@ namespace DQueue.QueueProviders
             var subscriber = _connectionFactory.GetSubscriber();
             var database = _connectionFactory.GetDatabase();
 
-            var queueLocker = manager.QueueLocker();
             var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            manager.OnlyOnce(() =>
+            assistant.ExecuteFirstOne(() =>
             {
-                subscriber.Subscribe(manager.QueueName, (channel, val) =>
+                subscriber.Subscribe(assistant.QueueName, (channel, val) =>
                 {
-                    lock (queueLocker)
+                    if (val == guid)
                     {
-                        Monitor.Pulse(queueLocker);
+                        lock (assistant.QueueLocker)
+                        {
+                            Monitor.Pulse(assistant.QueueLocker);
+                        }
                     }
                 });
             });
 
-            manager.Fallback(() =>
+            assistant.RegisterCancel(0, true, () =>
             {
-                var items = database.ListRange(manager.ProcessingQueueName);
-                database.ListRightPush(manager.QueueName, items);
-                database.KeyDelete(manager.ProcessingQueueName);
+                subscriber.Unsubscribe(assistant.QueueName);
             });
 
-            manager.OnCancel(1, false, () =>
+            assistant.RegisterCancel(1, false, () =>
             {
                 lock (receptionLocker)
                 {
@@ -74,21 +81,28 @@ namespace DQueue.QueueProviders
                 }
             });
 
-            manager.OnCancel(2, true, () =>
+            assistant.RegisterCancel(2, true, () =>
             {
-                lock (queueLocker)
+                lock (assistant.QueueLocker)
                 {
-                    Monitor.PulseAll(queueLocker);
+                    Monitor.PulseAll(assistant.QueueLocker);
                 }
+            });
+
+            assistant.RegisterFallback(() =>
+            {
+                var items = database.ListRange(assistant.ProcessingQueueName);
+                database.ListRightPush(assistant.QueueName, items);
+                database.KeyDelete(assistant.ProcessingQueueName);
             });
 
             while (true)
             {
-                lock (queueLocker)
+                lock (assistant.QueueLocker)
                 {
-                    if (database.ListLength(manager.QueueName) == 0)
+                    if (database.ListLength(assistant.QueueName) == 0)
                     {
-                        Monitor.Wait(queueLocker);
+                        Monitor.Wait(assistant.QueueLocker);
                     }
                 }
 
@@ -102,9 +116,9 @@ namespace DQueue.QueueProviders
 
                 if (receptionStatus == ReceptionStatus.Listen)
                 {
-                    if (database.ListLength(manager.QueueName) > 0)
+                    if (database.ListLength(assistant.QueueName) > 0)
                     {
-                        item = database.ListRightPopLeftPush(manager.QueueName, manager.ProcessingQueueName);
+                        item = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
                         if (item != RedisValue.Null) { message = JsonConvert.DeserializeObject<TMessage>(item); }
                     }
                 }
@@ -115,7 +129,7 @@ namespace DQueue.QueueProviders
                     {
                         if (status == ReceptionStatus.Success)
                         {
-                            database.ListRemove(manager.ProcessingQueueName, item, 1);
+                            database.ListRemove(assistant.ProcessingQueueName, item, 1);
                             status = ReceptionStatus.Listen;
                         }
 

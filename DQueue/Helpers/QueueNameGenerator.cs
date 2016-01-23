@@ -41,10 +41,5 @@ namespace DQueue.Helpers
                 return obj.GetType().FullName;
             }
         }
-
-        public static string GetProcessingQueueName(string associatedQueueName)
-        {
-            return associatedQueueName + "$processing$";
-        }
     }
 }

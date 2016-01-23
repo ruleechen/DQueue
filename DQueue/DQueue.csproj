@@ -67,7 +67,7 @@
     <Compile Include="Interfaces\ReceptionContext.cs" />
     <Compile Include="Interfaces\IQueueMessage.cs" />
     <Compile Include="Interfaces\IQueueProvider.cs" />
-    <Compile Include="Interfaces\ReceptionManager.cs" />
+    <Compile Include="Interfaces\ReceptionAssistant.cs" />
     <Compile Include="Interfaces\ReceptionStatus.cs" />
     <Compile Include="Interfaces\IQueueService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
