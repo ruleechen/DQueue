@@ -15,10 +15,9 @@ namespace DQueue
         #region Helpers
         private class ReceiveState<T>
         {
-            public string QueueName { get; set; }
-            public IQueueProvider Provider { get; set; }
+            public QueueProvider Provider { get; set; }
             public Action<ReceptionContext<T>> Handler { get; set; }
-            public CancellationToken Token { get; set; }
+            public ReceptionAssistant Assistant { get; set; }
         }
 
         private class DispatchState<T>
@@ -131,33 +130,30 @@ namespace DQueue
 
             if (_tasks.Count < _threads)
             {
+                var assistant = new ReceptionAssistant(_threads, _queueName, _cts.Token);
+
                 for (var i = 0; i < _threads; i++)
                 {
-                    var provider = QueueProviderFactory.CreateProvider(_provider);
-
                     var task = Task.Factory.StartNew((state) =>
                     {
                         var param = (ReceiveState<TMessage>)state;
-                        param.Provider.Dequeue<TMessage>(
-                            param.QueueName,
-                            param.Handler,
-                            param.Token);
+                        var provider = QueueProviderFactory.CreateProvider(param.Provider);
+                        provider.Dequeue<TMessage>(param.Assistant, param.Handler);
                     },
                     new ReceiveState<TMessage>
                     {
-                        QueueName = _queueName,
-                        Provider = provider,
+                        Provider = _provider,
                         Handler = Dispatch,
-                        Token = _cts.Token
+                        Assistant = assistant
                     },
-                    _cts.Token,
+                    assistant.Token,
                     TaskCreationOptions.LongRunning,
                     TaskScheduler.Default);
 
                     _tasks.Add(task.Id, new DispatchModel { ParentTask = task });
                 }
 
-                _cts.Token.Register(() =>
+                assistant.RegisterCancel(1000, true, () =>
                 {
                     foreach (var item in _tasks)
                     {

@@ -11,12 +11,10 @@ namespace DQueue.QueueProviders
     public class AspNetProvider : IQueueProvider
     {
         #region static
-        static readonly HashSet<string> _initialized;
         static readonly Dictionary<string, List<object>> _queues;
 
         static AspNetProvider()
         {
-            _initialized = new HashSet<string>();
             _queues = new Dictionary<string, List<object>>();
         }
 
@@ -45,83 +43,67 @@ namespace DQueue.QueueProviders
             }
 
             var queue = GetQueue(queueName);
+            var queueLocker = ReceptionAssistant.GetLocker(queueName, ReceptionAssistant.Flag_MonitorLocker);
 
-            lock (queue)
+            lock (queueLocker)
             {
                 queue.Add(message);
-                Monitor.Pulse(queue);
+                Monitor.Pulse(queueLocker);
             }
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationToken token)
+        public void Dequeue<TMessage>(ReceptionAssistant assistant, Action<ReceptionContext<TMessage>> handler)
         {
-            if (string.IsNullOrWhiteSpace(queueName) || handler == null)
+            if (assistant == null || string.IsNullOrWhiteSpace(assistant.QueueName) || handler == null)
             {
                 return;
             }
 
-            var processingQueueName = QueueNameGenerator.GetProcessingQueueName(queueName);
-
-            var queue = GetQueue(queueName);
-
-            var queueProcessing = GetQueue(processingQueueName);
-
-            if (!_initialized.Contains(queueName))
-            {
-                lock (queue)
-                {
-                    if (!_initialized.Contains(queueName))
-                    {
-                        Action fallback = null;
-
-                        token.Register(fallback = () =>
-                        {
-                            foreach (var item in queueProcessing)
-                            {
-                                queue.Insert(0, item);
-                            }
-
-                            queueProcessing.Clear();
-
-                            _initialized.Remove(queueName);
-                        });
-
-                        fallback();
-
-                        _initialized.Add(queueName);
-                    }
-                }
-            }
+            var queue = GetQueue(assistant.QueueName);
+            var queueProcessing = GetQueue(assistant.ProcessingQueueName);
 
             var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            token.Register(() =>
+            assistant.RegisterFallback(() =>
+            {
+                foreach (var item in queueProcessing)
+                {
+                    queue.Insert(0, item);
+                }
+
+                queueProcessing.Clear();
+            });
+
+            assistant.RegisterCancel(1, false, () =>
             {
                 lock (receptionLocker)
                 {
                     receptionStatus = ReceptionStatus.Withdraw;
                 }
+            });
 
-                //lock (queue)
-                //{
-                //    Monitor.PulseAll(queue);
-                //}
+            assistant.RegisterCancel(2, true, () =>
+            {
+                lock (assistant.MonitorLocker)
+                {
+                    Monitor.PulseAll(assistant.MonitorLocker);
+                }
             });
 
             while (true)
             {
-                if (receptionStatus == ReceptionStatus.Withdraw)
-                {
-                    break;
-                }
-
-                lock (queue)
+                lock (assistant.MonitorLocker)
                 {
                     if (queue.Count == 0)
                     {
-                        Monitor.Wait(queue);
+                        Monitor.Wait(assistant.MonitorLocker);
                     }
+                }
+
+                if (receptionStatus == ReceptionStatus.Withdraw)
+                {
+                    break;
                 }
 
                 object message = null;
@@ -130,9 +112,15 @@ namespace DQueue.QueueProviders
                 {
                     if (queue.Count > 0)
                     {
-                        message = queue[0];
-                        queue.RemoveAt(0);
-                        queueProcessing.Add(message);
+                        lock (assistant.QueueLocker)
+                        {
+                            if (queue.Count > 0)
+                            {
+                                message = queue[0];
+                                queue.RemoveAt(0);
+                                queueProcessing.Add(message);
+                            }
+                        }
                     }
                 }
 

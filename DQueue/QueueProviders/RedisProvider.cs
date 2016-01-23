@@ -12,32 +12,12 @@ namespace DQueue.QueueProviders
 {
     public class RedisProvider : IQueueProvider
     {
-        #region static
-        static readonly HashSet<string> _initialized;
-        static readonly Dictionary<string, object> _lockers;
+        static string guid;
 
         static RedisProvider()
         {
-            _initialized = new HashSet<string>();
-            _lockers = new Dictionary<string, object>();
+            guid = Guid.NewGuid().ToString();
         }
-
-        private static object GetLocker(string key)
-        {
-            if (!_lockers.ContainsKey(key))
-            {
-                lock (typeof(RedisProvider))
-                {
-                    if (!_lockers.ContainsKey(key))
-                    {
-                        _lockers.Add(key, new object());
-                    }
-                }
-            }
-
-            return _lockers[key];
-        }
-        #endregion
 
         private readonly ConnectionMultiplexer _connectionFactory;
 
@@ -53,54 +33,47 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var json = JsonConvert.SerializeObject(message);
-
+            var subscriber = _connectionFactory.GetSubscriber();
             var database = _connectionFactory.GetDatabase();
 
+            var json = JsonConvert.SerializeObject(message);
             database.ListLeftPush(queueName, json);
+            subscriber.Publish(queueName, guid);
         }
 
-        public void Dequeue<TMessage>(string queueName, Action<ReceptionContext<TMessage>> handler, CancellationToken token)
+        public void Dequeue<TMessage>(ReceptionAssistant assistant, Action<ReceptionContext<TMessage>> handler)
         {
-            if (string.IsNullOrWhiteSpace(queueName) || handler == null)
+            if (assistant == null || string.IsNullOrWhiteSpace(assistant.QueueName) || handler == null)
             {
                 return;
             }
 
-            var processingQueueName = QueueNameGenerator.GetProcessingQueueName(queueName);
-
+            var subscriber = _connectionFactory.GetSubscriber();
             var database = _connectionFactory.GetDatabase();
-
-            if (!_initialized.Contains(queueName))
-            {
-                lock (GetLocker(queueName))
-                {
-                    if (!_initialized.Contains(queueName))
-                    {
-                        Action fallback = null;
-
-                        token.Register(fallback = () =>
-                        {
-                            var items = database.ListRange(processingQueueName);
-
-                            database.ListRightPush(queueName, items);
-
-                            database.KeyDelete(processingQueueName);
-
-                            _initialized.Remove(queueName);
-                        });
-
-                        fallback();
-
-                        _initialized.Add(queueName);
-                    }
-                }
-            }
 
             var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            token.Register(() =>
+            assistant.ExecuteFirstOne(() =>
+            {
+                subscriber.Subscribe(assistant.QueueName, (channel, val) =>
+                {
+                    if (val == guid)
+                    {
+                        lock (assistant.MonitorLocker)
+                        {
+                            Monitor.Pulse(assistant.MonitorLocker);
+                        }
+                    }
+                });
+            });
+
+            assistant.RegisterCancel(0, true, () =>
+            {
+                subscriber.Unsubscribe(assistant.QueueName);
+            });
+
+            assistant.RegisterCancel(1, false, () =>
             {
                 lock (receptionLocker)
                 {
@@ -108,48 +81,57 @@ namespace DQueue.QueueProviders
                 }
             });
 
+            assistant.RegisterCancel(2, true, () =>
+            {
+                lock (assistant.MonitorLocker)
+                {
+                    Monitor.PulseAll(assistant.MonitorLocker);
+                }
+            });
+
+            assistant.RegisterFallback(() =>
+            {
+                var items = database.ListRange(assistant.ProcessingQueueName);
+                database.ListRightPush(assistant.QueueName, items);
+                database.KeyDelete(assistant.ProcessingQueueName);
+            });
+
             while (true)
             {
+                lock (assistant.MonitorLocker)
+                {
+                    if (database.ListLength(assistant.QueueName) == 0)
+                    {
+                        Monitor.Wait(assistant.MonitorLocker);
+                    }
+                }
+
                 if (receptionStatus == ReceptionStatus.Withdraw)
                 {
                     break;
                 }
 
-                if (receptionStatus == ReceptionStatus.Listen && database.ListLength(queueName) > 0)
+                object message = null;
+                var item = RedisValue.Null;
+
+                if (receptionStatus == ReceptionStatus.Listen)
                 {
-                    var item = RedisValue.Null;
-
-                    lock (GetLocker(queueName))
+                    if (database.ListLength(assistant.QueueName) > 0)
                     {
-                        if (receptionStatus == ReceptionStatus.Listen && database.ListLength(queueName) > 0)
-                        {
-                            item = database.ListRightPopLeftPush(queueName, processingQueueName);
-                        }
+                        item = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
+                        if (item != RedisValue.Null) { message = JsonConvert.DeserializeObject<TMessage>(item); }
                     }
+                }
 
-                    if (item.HasValue)
+                if (message != null)
+                {
+                    var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
                     {
-                        var message = JsonConvert.DeserializeObject<TMessage>(item);
-
-                        var context = new ReceptionContext<TMessage>(message, (sender, status) =>
+                        if (status == ReceptionStatus.Success)
                         {
-                            if (status == ReceptionStatus.Success)
-                            {
-                                database.ListRemove(processingQueueName, item, 1);
-                                status = ReceptionStatus.Listen;
-                            }
-
-                            if (receptionStatus != ReceptionStatus.Withdraw)
-                            {
-                                lock (receptionLocker)
-                                {
-                                    if (receptionStatus != ReceptionStatus.Withdraw)
-                                    {
-                                        receptionStatus = status;
-                                    }
-                                }
-                            }
-                        });
+                            database.ListRemove(assistant.ProcessingQueueName, item, 1);
+                            status = ReceptionStatus.Listen;
+                        }
 
                         if (receptionStatus != ReceptionStatus.Withdraw)
                         {
@@ -157,15 +139,26 @@ namespace DQueue.QueueProviders
                             {
                                 if (receptionStatus != ReceptionStatus.Withdraw)
                                 {
-                                    receptionStatus = ReceptionStatus.Process;
-                                    handler(context);
+                                    receptionStatus = status;
                                 }
+                            }
+                        }
+                    });
+
+                    if (receptionStatus != ReceptionStatus.Withdraw)
+                    {
+                        lock (receptionLocker)
+                        {
+                            if (receptionStatus != ReceptionStatus.Withdraw)
+                            {
+                                receptionStatus = ReceptionStatus.Process;
+                                handler(context);
                             }
                         }
                     }
                 }
 
-                Thread.Sleep(100);
+                //Thread.Sleep(100);
             }
         }
     }
