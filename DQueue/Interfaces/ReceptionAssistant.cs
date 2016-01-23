@@ -11,13 +11,35 @@ namespace DQueue.Interfaces
     public class ReceptionAssistant
     {
         #region static
+        static readonly object _queueLock;
+        static readonly Dictionary<string, object> _queueLockers;
+
         static readonly object _fallbackLocker;
         static readonly Dictionary<string, Action> _fallbackHandlers;
 
         static ReceptionAssistant()
         {
+            _queueLock = new object();
+            _queueLockers = new Dictionary<string, object>();
+
             _fallbackLocker = new object();
             _fallbackHandlers = new Dictionary<string, Action>();
+        }
+
+        public static object GetQueueLocker(string queueName)
+        {
+            if (!_queueLockers.ContainsKey(queueName))
+            {
+                lock (_queueLock)
+                {
+                    if (!_queueLockers.ContainsKey(queueName))
+                    {
+                        _queueLockers.Add(queueName, new object());
+                    }
+                }
+            }
+
+            return _queueLockers[queueName];
         }
 
         public static bool RegisterFallback(string queueName, Action action)
@@ -38,16 +60,10 @@ namespace DQueue.Interfaces
             return false;
         }
 
-        public static string GetQueueLocker(string associatedQueueName)
-        {
-            return associatedQueueName + "$locker$";
-        }
-
         public static string GetProcessingQueueName(string associatedQueueName)
         {
             return associatedQueueName + "$processing$";
         }
-
         #endregion
 
         private object _locker;
@@ -108,8 +124,8 @@ namespace DQueue.Interfaces
             }
         }
 
-        private string _queueLocker;
-        public string QueueLocker
+        private object _queueLocker;
+        public object QueueLocker
         {
             get
             {
