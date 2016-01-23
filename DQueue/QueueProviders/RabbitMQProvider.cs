@@ -75,14 +75,14 @@ namespace DQueue.QueueProviders
 
                     while (true)
                     {
+                        object message = null;
+
                         var eventArg = consumer.Queue.Dequeue();
 
                         if (receptionStatus == ReceptionStatus.Withdraw)
                         {
                             break;
                         }
-
-                        object message = null;
 
                         if (receptionStatus == ReceptionStatus.Listen)
                         {
