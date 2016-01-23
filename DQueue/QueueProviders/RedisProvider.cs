@@ -60,9 +60,9 @@ namespace DQueue.QueueProviders
                 {
                     if (val == guid)
                     {
-                        lock (assistant.QueueLocker)
+                        lock (assistant.MonitorLocker)
                         {
-                            Monitor.Pulse(assistant.QueueLocker);
+                            Monitor.Pulse(assistant.MonitorLocker);
                         }
                     }
                 });
@@ -83,9 +83,9 @@ namespace DQueue.QueueProviders
 
             assistant.RegisterCancel(2, true, () =>
             {
-                lock (assistant.QueueLocker)
+                lock (assistant.MonitorLocker)
                 {
-                    Monitor.PulseAll(assistant.QueueLocker);
+                    Monitor.PulseAll(assistant.MonitorLocker);
                 }
             });
 
@@ -98,11 +98,11 @@ namespace DQueue.QueueProviders
 
             while (true)
             {
-                lock (assistant.QueueLocker)
+                lock (assistant.MonitorLocker)
                 {
                     if (database.ListLength(assistant.QueueName) == 0)
                     {
-                        Monitor.Wait(assistant.QueueLocker);
+                        Monitor.Wait(assistant.MonitorLocker);
                     }
                 }
 

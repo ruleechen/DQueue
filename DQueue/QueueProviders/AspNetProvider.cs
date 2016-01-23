@@ -43,7 +43,7 @@ namespace DQueue.QueueProviders
             }
 
             var queue = GetQueue(queueName);
-            var queueLocker = ReceptionAssistant.GetQueueLocker(queueName);
+            var queueLocker = ReceptionAssistant.GetLocker(queueName);
 
             lock (queueLocker)
             {
@@ -85,19 +85,19 @@ namespace DQueue.QueueProviders
 
             assistant.RegisterCancel(2, true, () =>
             {
-                lock (assistant.QueueLocker)
+                lock (assistant.MonitorLocker)
                 {
-                    Monitor.PulseAll(assistant.QueueLocker);
+                    Monitor.PulseAll(assistant.MonitorLocker);
                 }
             });
 
             while (true)
             {
-                lock (assistant.QueueLocker)
+                lock (assistant.MonitorLocker)
                 {
                     if (queue.Count == 0)
                     {
-                        Monitor.Wait(assistant.QueueLocker);
+                        Monitor.Wait(assistant.MonitorLocker);
                     }
                 }
 
@@ -112,9 +112,15 @@ namespace DQueue.QueueProviders
                 {
                     if (queue.Count > 0)
                     {
-                        message = queue[0];
-                        queue.RemoveAt(0);
-                        queueProcessing.Add(message);
+                        lock (assistant.QueueLocker)
+                        {
+                            if (queue.Count > 0)
+                            {
+                                message = queue[0];
+                                queue.RemoveAt(0);
+                                queueProcessing.Add(message);
+                            }
+                        }
                     }
                 }
 

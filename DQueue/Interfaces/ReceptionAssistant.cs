@@ -11,46 +11,46 @@ namespace DQueue.Interfaces
     public class ReceptionAssistant
     {
         #region static
-        static readonly object _queueLock;
-        static readonly Dictionary<string, object> _queueLockers;
+        static readonly object _lockersLock;
+        static readonly Dictionary<string, object> _lockers;
 
-        static readonly object _fallbackLocker;
-        static readonly Dictionary<string, Action> _fallbackHandlers;
+        static readonly object _actionsLock;
+        static readonly Dictionary<string, Action> _actions;
 
         static ReceptionAssistant()
         {
-            _queueLock = new object();
-            _queueLockers = new Dictionary<string, object>();
+            _lockersLock = new object();
+            _lockers = new Dictionary<string, object>();
 
-            _fallbackLocker = new object();
-            _fallbackHandlers = new Dictionary<string, Action>();
+            _actionsLock = new object();
+            _actions = new Dictionary<string, Action>();
         }
 
-        public static object GetQueueLocker(string queueName)
+        public static object GetLocker(string key)
         {
-            if (!_queueLockers.ContainsKey(queueName))
+            if (!_lockers.ContainsKey(key))
             {
-                lock (_queueLock)
+                lock (_lockersLock)
                 {
-                    if (!_queueLockers.ContainsKey(queueName))
+                    if (!_lockers.ContainsKey(key))
                     {
-                        _queueLockers.Add(queueName, new object());
+                        _lockers.Add(key, new object());
                     }
                 }
             }
 
-            return _queueLockers[queueName];
+            return _lockers[key];
         }
 
-        public static bool RegisterFallback(string queueName, Action action)
+        public static bool RegisterAction(string key, Action action)
         {
-            if (!_fallbackHandlers.ContainsKey(queueName))
+            if (!_actions.ContainsKey(key))
             {
-                lock (_fallbackLocker)
+                lock (_actionsLock)
                 {
-                    if (!_fallbackHandlers.ContainsKey(queueName))
+                    if (!_actions.ContainsKey(key))
                     {
-                        _fallbackHandlers.Add(queueName, action);
+                        _actions.Add(key, action);
 
                         return true;
                     }
@@ -66,8 +66,8 @@ namespace DQueue.Interfaces
         }
         #endregion
 
-        private object _locker;
-        private Dictionary<int, List<Action>> _cancelHandlers;
+        private object _apisLocker;
+        private Dictionary<int, List<Action>> _cancelActions;
 
         public ReceptionAssistant(int threads, string queueName, CancellationToken token)
         {
@@ -75,15 +75,15 @@ namespace DQueue.Interfaces
             _queueName = queueName;
             _token = token;
 
-            _locker = new object();
-            _cancelHandlers = new Dictionary<int, List<Action>>();
+            _apisLocker = new object();
+            _cancelActions = new Dictionary<int, List<Action>>();
 
             token.Register(() =>
             {
-                var handlers = _cancelHandlers.ToList()
+                var actions = _cancelActions.ToList()
                     .OrderBy(x => x.Key);
 
-                foreach (var order in handlers)
+                foreach (var order in actions)
                 {
                     foreach (var action in order.Value)
                     {
@@ -93,7 +93,7 @@ namespace DQueue.Interfaces
                     Thread.Sleep(100);
                 }
 
-                _cancelHandlers.Clear();
+                _cancelActions.Clear();
             });
         }
 
@@ -129,7 +129,16 @@ namespace DQueue.Interfaces
         {
             get
             {
-                return _queueLocker ?? (_queueLocker = GetQueueLocker(_queueName));
+                return _queueLocker ?? (_queueLocker = GetLocker(_queueName + "$QueueLocker$"));
+            }
+        }
+
+        private object _monitorLocker;
+        public object MonitorLocker
+        {
+            get
+            {
+                return _monitorLocker ?? (_monitorLocker = GetLocker(_queueName + "$MonitorLocker$"));
             }
         }
 
@@ -147,7 +156,7 @@ namespace DQueue.Interfaces
         {
             if (action != null)
             {
-                lock (_locker)
+                lock (_apisLocker)
                 {
                     _countExecuteFirstOne++;
 
@@ -164,7 +173,7 @@ namespace DQueue.Interfaces
         {
             if (action != null)
             {
-                lock (_locker)
+                lock (_apisLocker)
                 {
                     _countExecuteLastOne++;
 
@@ -178,17 +187,17 @@ namespace DQueue.Interfaces
 
         public void RegisterFallback(Action action)
         {
-            var register = RegisterFallback(_queueName, action);
+            var register = RegisterAction(_queueName, action);
             if (register)
             {
                 action();
 
                 RegisterCancel(int.MaxValue, true, () =>
                 {
-                    lock (_fallbackLocker)
+                    lock (_actionsLock)
                     {
                         action();
-                        _fallbackHandlers.Remove(_queueName);
+                        _actions.Remove(_queueName);
                     }
                 });
             }
@@ -196,20 +205,20 @@ namespace DQueue.Interfaces
 
         public void RegisterCancel(int order, bool exclusive, Action action)
         {
-            if (!_cancelHandlers.ContainsKey(order))
+            if (!_cancelActions.ContainsKey(order))
             {
-                lock (_locker)
+                lock (_apisLocker)
                 {
-                    if (!_cancelHandlers.ContainsKey(order))
+                    if (!_cancelActions.ContainsKey(order))
                     {
-                        _cancelHandlers.Add(order, new List<Action>());
+                        _cancelActions.Add(order, new List<Action>());
                     }
                 }
             }
 
-            var actions = _cancelHandlers[order];
+            var actions = _cancelActions[order];
 
-            lock (_locker)
+            lock (_apisLocker)
             {
                 if (exclusive)
                 {
