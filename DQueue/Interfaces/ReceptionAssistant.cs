@@ -124,16 +124,16 @@ namespace DQueue.Interfaces
             }
         }
 
-        private int _countExecuteFirstOne;
-        public void ExecuteFirstOne(Action action)
+        private int _countRunForFirstThread;
+        public void RunForFirstThread(Action action)
         {
             if (action != null)
             {
                 lock (_apisLocker)
                 {
-                    _countExecuteFirstOne++;
+                    _countRunForFirstThread++;
 
-                    if (_countExecuteFirstOne == 1)
+                    if (_countRunForFirstThread == 1)
                     {
                         action();
                     }
@@ -141,16 +141,16 @@ namespace DQueue.Interfaces
             }
         }
 
-        private int _countExecuteLastOne;
-        public void ExecuteLastOne(Action action)
+        private int _countRunForLastThread;
+        public void RunForLastThread(Action action)
         {
             if (action != null)
             {
                 lock (_apisLocker)
                 {
-                    _countExecuteLastOne++;
+                    _countRunForLastThread++;
 
-                    if (_countExecuteLastOne == _threads)
+                    if (_countRunForLastThread == _threads)
                     {
                         action();
                     }

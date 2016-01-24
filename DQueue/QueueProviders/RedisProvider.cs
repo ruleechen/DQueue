@@ -54,7 +54,7 @@ namespace DQueue.QueueProviders
             var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            assistant.ExecuteFirstOne(() =>
+            assistant.RunForFirstThread(() =>
             {
                 subscriber.Subscribe(assistant.QueueName, (channel, val) =>
                 {
