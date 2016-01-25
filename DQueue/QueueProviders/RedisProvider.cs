@@ -12,12 +12,7 @@ namespace DQueue.QueueProviders
 {
     public class RedisProvider : IQueueProvider
     {
-        static string guid;
-
-        static RedisProvider()
-        {
-            guid = Guid.NewGuid().ToString();
-        }
+        private static string guid = "$RedisQueueSubscriberValue$";
 
         private readonly ConnectionMultiplexer _connectionFactory;
 
