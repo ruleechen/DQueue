@@ -10,11 +10,9 @@ namespace DQueue.Helpers
 {
     public class RabbitMQConnectionConfiguration
     {
-        // defaults
         public const ushort DefaultPort = 5672;
         public const ushort DefaultHeartBeatInSeconds = 60;
 
-        // fields
         public string HostName { get; set; }
         public ushort Port { get; set; }
         public string VirtualHost { get; set; }
