@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using DQueue.Helpers;
 using DQueue.Interfaces;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
@@ -12,7 +13,28 @@ namespace DQueue.QueueProviders
 {
     public class RabbitMQProvider : IQueueProvider
     {
+        static Lazy<RabbitMQ.Client.ConnectionFactory> _rabbitMQConnectionFactory = new Lazy<RabbitMQ.Client.ConnectionFactory>(() =>
+        {
+            var rabbitMQConnectionString = ConfigSource.Current.ConnectionStrings.ConnectionStrings["RabbitMQ_Connection"].ConnectionString;
+            var rabbitMQConfiguration = RabbitMQConnectionConfiguration.Parse(rabbitMQConnectionString);
+            return new RabbitMQ.Client.ConnectionFactory
+            {
+                HostName = rabbitMQConfiguration.HostName,
+                Port = rabbitMQConfiguration.Port,
+                VirtualHost = rabbitMQConfiguration.VirtualHost,
+                UserName = rabbitMQConfiguration.UserName,
+                Password = rabbitMQConfiguration.Password,
+                RequestedHeartbeat = rabbitMQConfiguration.RequestedHeartbeat,
+                ClientProperties = rabbitMQConfiguration.ClientProperties
+            };
+        }, true);
+
         private readonly ConnectionFactory _connectionFactory;
+
+        public RabbitMQProvider()
+            : this(_rabbitMQConnectionFactory.Value)
+        {
+        }
 
         public RabbitMQProvider(ConnectionFactory connectionFactory)
         {

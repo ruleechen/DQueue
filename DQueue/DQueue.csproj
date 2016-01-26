@@ -59,7 +59,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Helpers\QueueProviderFactory.cs" />
+    <Compile Include="ConfigSource.cs" />
+    <Compile Include="QueueProviderFactory.cs" />
     <Compile Include="Helpers\QueueNameGenerator.cs" />
     <Compile Include="Helpers\RabbitMQConnectionConfiguration.cs" />
     <Compile Include="Interfaces\DispatchContext.cs" />

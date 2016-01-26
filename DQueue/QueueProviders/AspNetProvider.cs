@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using DQueue.Helpers;
 using DQueue.Interfaces;
 
 namespace DQueue.QueueProviders

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using DQueue.Helpers;
 using DQueue.Interfaces;
 using Newtonsoft.Json;
 using StackExchange.Redis;
@@ -12,9 +11,21 @@ namespace DQueue.QueueProviders
 {
     public class RedisProvider : IQueueProvider
     {
+        static Lazy<StackExchange.Redis.ConnectionMultiplexer> _redisConnectionFactory = new Lazy<StackExchange.Redis.ConnectionMultiplexer>(() =>
+        {
+            var redisConnectionString = ConfigSource.Current.ConnectionStrings.ConnectionStrings["Redis_Connection"].ConnectionString;
+            var resisConfiguration = StackExchange.Redis.ConfigurationOptions.Parse(redisConnectionString);
+            return StackExchange.Redis.ConnectionMultiplexer.Connect(resisConfiguration);
+        }, true);
+
         private static string guid = "$RedisQueueSubscriberValue$";
 
         private readonly ConnectionMultiplexer _connectionFactory;
+
+        public RedisProvider()
+            : this(_redisConnectionFactory.Value)
+        {
+        }
 
         public RedisProvider(ConnectionMultiplexer connectionFactory)
         {
