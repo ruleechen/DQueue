@@ -119,6 +119,14 @@ namespace DQueue
             }
         }
 
+        public QueueConsumer<TMessage> Receive<TState>(TState state, Action<TState, DispatchContext<TMessage>> handler)
+        {
+            return Receive((context) =>
+            {
+                handler(state, context);
+            });
+        }
+
         public QueueConsumer<TMessage> Receive(Action<DispatchContext<TMessage>> handler)
         {
             CheckDisposed();
