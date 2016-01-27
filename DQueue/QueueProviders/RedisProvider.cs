@@ -77,7 +77,7 @@ namespace DQueue.QueueProviders
 
             assistant.RegisterCancel(0, true, () =>
             {
-                subscriber.Unsubscribe(assistant.QueueName);
+                subscriber.Unsubscribe(assistant.QueueName + SubscriberKey);
             });
 
             assistant.RegisterCancel(1, false, () =>
