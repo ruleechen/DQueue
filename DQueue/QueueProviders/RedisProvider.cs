@@ -18,7 +18,8 @@ namespace DQueue.QueueProviders
             return StackExchange.Redis.ConnectionMultiplexer.Connect(resisConfiguration);
         }, true);
 
-        private static string guid = "$RedisQueueSubscriberValue$";
+        private static string SubscriberKey = "$RedisQueueSubscriberKey$";
+        private static string SubscriberValue = "$RedisQueueSubscriberValue$";
 
         private readonly ConnectionMultiplexer _connectionFactory;
 
@@ -44,7 +45,7 @@ namespace DQueue.QueueProviders
 
             var json = JsonConvert.SerializeObject(message);
             database.ListLeftPush(queueName, json);
-            subscriber.Publish(queueName, guid);
+            subscriber.Publish(queueName + SubscriberKey, SubscriberValue);
         }
 
         public void Dequeue<TMessage>(ReceptionAssistant assistant, Action<ReceptionContext<TMessage>> handler)
@@ -62,9 +63,9 @@ namespace DQueue.QueueProviders
 
             assistant.RunForFirstThread(() =>
             {
-                subscriber.Subscribe(assistant.QueueName, (channel, val) =>
+                subscriber.Subscribe(assistant.QueueName + SubscriberKey, (channel, val) =>
                 {
-                    if (val == guid)
+                    if (val == SubscriberValue)
                     {
                         lock (assistant.MonitorLocker)
                         {
