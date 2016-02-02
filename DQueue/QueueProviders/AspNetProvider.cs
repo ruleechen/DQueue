@@ -84,6 +84,11 @@ namespace DQueue.QueueProviders
 
             assistant.RegisterCancel(2, true, () =>
             {
+                lock (receptionLocker)
+                {
+                    Monitor.PulseAll(receptionLocker);
+                }
+
                 lock (assistant.MonitorLocker)
                 {
                     Monitor.PulseAll(assistant.MonitorLocker);

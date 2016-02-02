@@ -92,6 +92,11 @@ namespace DQueue.QueueProviders
 
                     assistant.RegisterCancel(2, false, () =>
                     {
+                        lock (receptionLocker)
+                        {
+                            Monitor.PulseAll(receptionLocker);
+                        }
+
                         model.BasicCancel(consumer.ConsumerTag);
                     });
 
