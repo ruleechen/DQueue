@@ -92,6 +92,14 @@ namespace DQueue.QueueProviders
 
             while (true)
             {
+                lock (receptionLocker)
+                {
+                    if (receptionStatus == ReceptionStatus.Process)
+                    {
+                        Monitor.Wait(receptionLocker);
+                    }
+                }
+
                 object message = null;
 
                 lock (assistant.MonitorLocker)
@@ -133,6 +141,11 @@ namespace DQueue.QueueProviders
                                     receptionStatus = status;
                                 }
                             }
+                        }
+
+                        lock (receptionLocker)
+                        {
+                            Monitor.Pulse(receptionLocker);
                         }
                     });
 
