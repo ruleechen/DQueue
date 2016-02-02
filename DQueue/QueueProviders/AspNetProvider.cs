@@ -100,6 +100,11 @@ namespace DQueue.QueueProviders
                     }
                 }
 
+                if (receptionStatus == ReceptionStatus.Withdraw)
+                {
+                    break;
+                }
+
                 object message = null;
 
                 lock (assistant.MonitorLocker)

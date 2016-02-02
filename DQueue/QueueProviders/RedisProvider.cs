@@ -113,6 +113,11 @@ namespace DQueue.QueueProviders
                     }
                 }
 
+                if (receptionStatus == ReceptionStatus.Withdraw)
+                {
+                    break;
+                }
+
                 object message = null;
                 var item = RedisValue.Null;
 
