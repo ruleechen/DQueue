@@ -1,7 +1,8 @@
+CMD should run as administrator!!!
+
+
 http://www.cnblogs.com/yangecnu/p/Introduce-RabbitMQ.html
 http://www.cnblogs.com/gossip/p/4475978.html
-
-CMD should run as administrator!!!
 
 http://www.cnblogs.com/luminji/archive/2011/05/13/2044801.html
 http://www.cnblogs.com/laozhbook/p/redis_queue.html
@@ -9,11 +10,14 @@ http://www.cnblogs.com/laozhbook/p/redis_queue.html
 https://msdn.microsoft.com/en-US/library/7a2f3ay4(v=vs.80).aspx
 http://stackoverflow.com/questions/21842880/multi-threading-based-rabbitmq-consumer
 
+redis MQ sample
+http://codereview.stackexchange.com/questions/105560/redis-message-queue-cloud
+
+redis
+https://github.com/MSOpenTech/redis/releases
+
 reids .net client
 https://github.com/StackExchange/StackExchange.Redis
-
-redis MQ
-http://codereview.stackexchange.com/questions/105560/redis-message-queue-cloud
 
 task learn
 http://www.cnblogs.com/zxj159/p/3629076.html
