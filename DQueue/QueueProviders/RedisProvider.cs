@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using DQueue.Helpers;
 using DQueue.Interfaces;
 using Newtonsoft.Json;
 using StackExchange.Redis;
@@ -18,8 +19,9 @@ namespace DQueue.QueueProviders
             return StackExchange.Redis.ConnectionMultiplexer.Connect(resisConfiguration);
         }, true);
 
-        private static string SubscriberKey = "$RedisQueueSubscriberKey$";
-        private static string SubscriberValue = "$RedisQueueSubscriberValue$";
+        private const string SubscriberKey = "$RedisQueueSubscriberKey$";
+        private const string SubscriberValue = "$RedisQueueSubscriberValue$";
+        private const string HashStorageKey = "$RedisHashStorageKey$";
 
         private readonly ConnectionMultiplexer _connectionFactory;
 
@@ -40,11 +42,19 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var subscriber = _connectionFactory.GetSubscriber();
-            var database = _connectionFactory.GetDatabase();
-
             var json = JsonConvert.SerializeObject(message);
+            var hash = HashCodeGenerator.Calc(json);
+
+            var database = _connectionFactory.GetDatabase();
+            if (database.HashExists(HashStorageKey, hash))
+            {
+                return;
+            }
+
             database.ListLeftPush(queueName, json);
+            database.HashSet(HashStorageKey, hash, 1);
+
+            var subscriber = _connectionFactory.GetSubscriber();
             subscriber.Publish(queueName + SubscriberKey, SubscriberValue);
         }
 
@@ -152,6 +162,7 @@ namespace DQueue.QueueProviders
                         if (status == ReceptionStatus.Success)
                         {
                             database.ListRemove(assistant.ProcessingQueueName, item, 1);
+                            database.HashDelete(HashStorageKey, HashCodeGenerator.Calc(item));
                             status = ReceptionStatus.Listen;
                         }
 
@@ -187,6 +198,24 @@ namespace DQueue.QueueProviders
 
                 //Thread.Sleep(100);
             }
+        }
+
+        public void HashSet(string key)
+        {
+            var database = _connectionFactory.GetDatabase();
+            database.HashSet(HashStorageKey, key, 1);
+        }
+
+        public void HashRemove(string key)
+        {
+            var database = _connectionFactory.GetDatabase();
+            database.HashDelete(HashStorageKey, key);
+        }
+
+        public bool HashExists(string key)
+        {
+            var database = _connectionFactory.GetDatabase();
+            return database.HashExists(HashStorageKey, key);
         }
     }
 }
