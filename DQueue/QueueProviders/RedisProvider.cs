@@ -46,13 +46,13 @@ namespace DQueue.QueueProviders
             var hash = HashCodeGenerator.Calc(json);
 
             var database = _connectionFactory.GetDatabase();
-            if (database.HashExists(HashStorageKey, hash))
+            if (database.HashExists(queueName + HashStorageKey, hash))
             {
                 return;
             }
 
             database.ListLeftPush(queueName, json);
-            database.HashSet(HashStorageKey, hash, 1);
+            database.HashSet(queueName + HashStorageKey, hash, 1);
 
             var subscriber = _connectionFactory.GetSubscriber();
             subscriber.Publish(queueName + SubscriberKey, SubscriberValue);
@@ -162,7 +162,7 @@ namespace DQueue.QueueProviders
                         if (status == ReceptionStatus.Success)
                         {
                             database.ListRemove(assistant.ProcessingQueueName, item, 1);
-                            database.HashDelete(HashStorageKey, HashCodeGenerator.Calc(item));
+                            database.HashDelete(assistant.ProcessingQueueName + HashStorageKey, HashCodeGenerator.Calc(item));
                             status = ReceptionStatus.Listen;
                         }
 
@@ -200,22 +200,5 @@ namespace DQueue.QueueProviders
             }
         }
 
-        public void HashSet(string key)
-        {
-            var database = _connectionFactory.GetDatabase();
-            database.HashSet(HashStorageKey, key, 1);
-        }
-
-        public void HashRemove(string key)
-        {
-            var database = _connectionFactory.GetDatabase();
-            database.HashDelete(HashStorageKey, key);
-        }
-
-        public bool HashExists(string key)
-        {
-            var database = _connectionFactory.GetDatabase();
-            return database.HashExists(HashStorageKey, key);
-        }
     }
 }
