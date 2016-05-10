@@ -116,6 +116,7 @@ namespace DQueue.QueueProviders
                 var items = database.ListRange(assistant.ProcessingQueueName);
                 database.ListRightPush(assistant.QueueName, items);
                 database.KeyDelete(assistant.ProcessingQueueName);
+                database.KeyDelete(assistant.ProcessingQueueName + HashStorageKey);
             });
 
             while (true)
