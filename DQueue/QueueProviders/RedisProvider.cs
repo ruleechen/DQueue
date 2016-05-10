@@ -116,7 +116,6 @@ namespace DQueue.QueueProviders
                 var items = database.ListRange(assistant.ProcessingQueueName);
                 database.ListRightPush(assistant.QueueName, items);
                 database.KeyDelete(assistant.ProcessingQueueName);
-                database.KeyDelete(assistant.ProcessingQueueName + HashStorageKey);
             });
 
             while (true)
@@ -163,7 +162,7 @@ namespace DQueue.QueueProviders
                         if (status == ReceptionStatus.Success)
                         {
                             database.ListRemove(assistant.ProcessingQueueName, item, 1);
-                            database.HashDelete(assistant.ProcessingQueueName + HashStorageKey, HashCodeGenerator.Calc(item));
+                            database.HashDelete(assistant.QueueName + HashStorageKey, HashCodeGenerator.Calc(item));
                             status = ReceptionStatus.Listen;
                         }
 
