@@ -4,20 +4,24 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using DQueue.Interfaces;
+using DQueue.Helpers;
+using Newtonsoft.Json;
 
 namespace DQueue.QueueProviders
 {
     public class AspNetProvider : IQueueProvider
     {
         #region static
-        static readonly Dictionary<string, List<object>> _queues;
+        static readonly Dictionary<string, List<string>> _queues;
+        static readonly Dictionary<string, HashSet<string>> _hashs;
 
         static AspNetProvider()
         {
-            _queues = new Dictionary<string, List<object>>();
+            _queues = new Dictionary<string, List<string>>();
+            _hashs = new Dictionary<string, HashSet<string>>();
         }
 
-        private static List<object> GetQueue(string key)
+        private static List<string> GetQueue(string key)
         {
             if (!_queues.ContainsKey(key))
             {
@@ -25,12 +29,28 @@ namespace DQueue.QueueProviders
                 {
                     if (!_queues.ContainsKey(key))
                     {
-                        _queues.Add(key, new List<object>());
+                        _queues.Add(key, new List<string>());
                     }
                 }
             }
 
             return _queues[key];
+        }
+
+        private static HashSet<string> GetHashSet(string key)
+        {
+            if (!_hashs.ContainsKey(key))
+            {
+                lock (typeof(AspNetProvider))
+                {
+                    if (!_hashs.ContainsKey(key))
+                    {
+                        _hashs.Add(key, new HashSet<string>());
+                    }
+                }
+            }
+
+            return _hashs[key];
         }
         #endregion
 
@@ -41,12 +61,22 @@ namespace DQueue.QueueProviders
                 return;
             }
 
+            var json = JsonConvert.SerializeObject(message);
+            var hash = HashCodeGenerator.Calc(json);
+
+            var hashSet = GetHashSet(queueName);
+            if (hashSet.Contains(hash))
+            {
+                return;
+            }
+
             var queue = GetQueue(queueName);
             var monitorLocker = ReceptionAssistant.GetLocker(queueName, ReceptionAssistant.Flag_MonitorLocker);
 
             lock (monitorLocker)
             {
-                queue.Add(message);
+                queue.Add(json);
+                hashSet.Add(hash);
                 Monitor.Pulse(monitorLocker);
             }
         }
@@ -59,6 +89,7 @@ namespace DQueue.QueueProviders
             }
 
             var queue = GetQueue(assistant.QueueName);
+            var hashSet = GetHashSet(assistant.QueueName);
             var queueProcessing = GetQueue(assistant.ProcessingQueueName);
 
             var receptionLocker = new object();
@@ -111,6 +142,7 @@ namespace DQueue.QueueProviders
                 }
 
                 object message = null;
+                string item = null;
 
                 lock (assistant.MonitorLocker)
                 {
@@ -121,9 +153,10 @@ namespace DQueue.QueueProviders
 
                     if (receptionStatus == ReceptionStatus.Listen)
                     {
-                        message = queue[0];
+                        item = queue[0];
                         queue.RemoveAt(0);
-                        queueProcessing.Add(message);
+                        queueProcessing.Add(item);
+                        if (!string.IsNullOrEmpty(item)) { message = JsonConvert.DeserializeObject<TMessage>(item); }
                     }
                 }
 
@@ -138,7 +171,8 @@ namespace DQueue.QueueProviders
                     {
                         if (status == ReceptionStatus.Success)
                         {
-                            queueProcessing.Remove(message);
+                            queueProcessing.Remove(item);
+                            hashSet.Remove(HashCodeGenerator.Calc(item));
                             status = ReceptionStatus.Listen;
                         }
 
