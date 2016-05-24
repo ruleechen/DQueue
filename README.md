@@ -1,2 +1,2 @@
 # DQueue
-A message queue of yundangnet
+A message queue for yundangnet
