@@ -41,6 +41,8 @@ namespace DQueue.QueueProviders
             _connectionFactory = connectionFactory;
         }
 
+        public bool IgnoreHash { get; set; }
+
         public void Enqueue(string queueName, object message)
         {
             if (string.IsNullOrWhiteSpace(queueName) || message == null)
@@ -178,5 +180,6 @@ namespace DQueue.QueueProviders
                 }
             }
         }
+
     }
 }

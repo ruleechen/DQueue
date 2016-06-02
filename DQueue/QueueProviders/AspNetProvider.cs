@@ -54,6 +54,8 @@ namespace DQueue.QueueProviders
         }
         #endregion
 
+        public bool IgnoreHash { get; set; }
+
         public void Enqueue(string queueName, object message)
         {
             if (string.IsNullOrWhiteSpace(queueName) || message == null)
@@ -65,7 +67,7 @@ namespace DQueue.QueueProviders
             var hash = HashCodeGenerator.Calc(json);
 
             var hashSet = GetHashSet(queueName);
-            if (hashSet.Contains(hash))
+            if (!IgnoreHash && hashSet.Contains(hash))
             {
                 return;
             }
@@ -209,5 +211,6 @@ namespace DQueue.QueueProviders
                 //Thread.Sleep(100);
             }
         }
+
     }
 }

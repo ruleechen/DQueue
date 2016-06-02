@@ -18,7 +18,14 @@ namespace DQueue
 
         public QueueProducer(QueueProvider provider)
         {
+            IgnoreHash = false;
             _provider = QueueProviderFactory.CreateProvider(provider);
+        }
+
+        public bool IgnoreHash
+        {
+            get;
+            set;
         }
 
         public QueueProducer Send<TMessage>(TMessage message)
@@ -36,6 +43,7 @@ namespace DQueue
                 throw new ArgumentNullException("queueName");
             }
 
+            _provider.IgnoreHash = IgnoreHash;
             _provider.Enqueue(queueName, message);
 
             return this;
