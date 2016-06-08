@@ -41,20 +41,23 @@ producer.Send(new SampleMessage { Text = "test" });
 Sample Consumer
 ------------
 ```c#
+// specified 10  threads on receiving queue message
 var consumer = new QueueConsumer<SampleMessage>(10);
 
 consumer.Receive((context) =>
 {
-  // handler 1
+  // handler thread 1
 });
 
 consumer.Receive((context) =>
 {
-  // handler 2
+  // handler thread 2
 });
 
 consumer.Complete((context) =>
 {
+  // will goes here when "handler thread 1" and "handler thread 2" are done
+  
   foreach (var ex in context.Exceptions)
   {
     Console.WriteLine(ex.Message);
