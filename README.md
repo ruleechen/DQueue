@@ -3,6 +3,7 @@ A message queue clients wrapper with multiple threads supported. Queue clients s
 
 Main Message Flow
 ------------
+Each receive threads will queue up one by one to get only one message form queue server
 ```text
                                                      |---> handler thread 1 |
                               |---> receive thread 1 |                      |---> complete 1
@@ -53,8 +54,8 @@ producer.Send(new SampleMessage { Text = "test" });
 Sample Consumer
 ------------
 ```c#
-// specified 10  threads on receiving queue message
-var consumer = new QueueConsumer<SampleMessage>(10);
+// specified 2 threads on receiving queue message
+var consumer = new QueueConsumer<SampleMessage>(2);
 
 consumer.Receive((context) =>
 {
