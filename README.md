@@ -6,11 +6,11 @@ Main Message Flow
 Each receive threads will queue up one by one to get only one message form queue server
 ```text
                                                            |--> handler thread 1 -->|
-message 1 -->|                    |--> receive thread 1 -->|                        |--> complete 1
+message 1 -->|                    |--> receiver thread 1 -->|                        |--> complete 1
              |                    |                        |--> handler thread 2 -->|
              |--> queue server -->|
              |                    |                        |--> handler thread 3 -->|
-message 2 -->|                    |--> receive thread 2 -->|                        |--> complete 2
+message 2 -->|                    |--> receiver thread 2 -->|                        |--> complete 2
                                                            |--> handler thread 4 -->|
 ```
 
