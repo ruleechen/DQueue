@@ -1,5 +1,17 @@
 # DQueue
-A message queue clients wrapper with multiple threads supported. Queue clients support Redis and RabbitMQ.
+A message queue clients wrapper with multiple threads supported. Queue clients support Redis and RabbitMQ. The samples below will give you the first impression of this component.
+
+Main Message Flow
+------------
+```text
+                                                         -----> handler thread 1
+                                  -----> receive thread 1                       -----> complete 1
+                                                         -----> handler thread 2
+message -----> queue server ----->
+                                                         -----> handler thread 3
+                                  -----> receive thread 2                       -----> complete 2
+                                                         -----> handler thread 4
+```
 
 Sample Configuration
 ------------
@@ -65,4 +77,3 @@ consumer.Complete((context) =>
 });
 ```
 
-The samples above to give you the first impression of this component. For more details please turn to wiki.
