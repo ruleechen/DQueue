@@ -54,7 +54,7 @@ producer.Send(new SampleMessage { Text = "test" });
 Sample Consumer
 ------------
 ```c#
-// specified 2 threads on receiving queue message
+// specify 2 threads on receiving "SampleMessage"
 var consumer = new QueueConsumer<SampleMessage>(2);
 
 consumer.Receive((context) =>
