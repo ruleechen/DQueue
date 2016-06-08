@@ -4,13 +4,13 @@ A message queue clients wrapper with multiple threads supported. Queue clients s
 Main Message Flow
 ------------
 ```text
-                                                         -----> handler thread 1
-                                  -----> receive thread 1                       -----> complete 1
-                                                         -----> handler thread 2
-message -----> queue server ----->
-                                                         -----> handler thread 3
-                                  -----> receive thread 2                       -----> complete 2
-                                                         -----> handler thread 4
+                                                     |---> handler thread 1 |
+                              |---> receive thread 1 |                      |---> complete 1
+                              |                      |---> handler thread 2 |
+message ---> queue server --->|
+                              |                      |---> handler thread 3 |
+                              |---> receive thread 2 |                      |---> complete 2
+                                                     |---> handler thread 4 |
 ```
 
 Sample Configuration
