@@ -1,5 +1,5 @@
 # DQueue
-A message queue clients wrapper for yundangnet. Support Redis and RabbitMQ client.
+A message queue clients wrapper with multiple threads supported. Queue clients support Redis and RabbitMQ.
 
 Sample Configuration
 ------------
