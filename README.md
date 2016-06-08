@@ -60,11 +60,13 @@ var consumer = new QueueConsumer<SampleMessage>(2);
 consumer.Receive((context) =>
 {
   // handler thread 1
+  Console.WriteLine(context.Message.Text); // "test"
 });
 
 consumer.Receive((context) =>
 {
   // handler thread 2
+  Console.WriteLine(context.Message.Text); // "test"
 });
 
 consumer.Complete((context) =>
