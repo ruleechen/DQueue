@@ -43,6 +43,11 @@ namespace DQueue.QueueProviders
 
         public bool IgnoreHash { get; set; }
 
+        public bool ExistsMessage(string queueName, object message)
+        {
+            throw new NotImplementedException();
+        }
+
         public void Enqueue(string queueName, object message)
         {
             if (string.IsNullOrWhiteSpace(queueName) || message == null)

@@ -37,6 +37,20 @@ namespace DQueue.QueueProviders
 
         public bool IgnoreHash { get; set; }
 
+        public bool ExistsMessage(string queueName, object message)
+        {
+            if (string.IsNullOrWhiteSpace(queueName) || message == null)
+            {
+                return false;
+            }
+
+            var json = JsonConvert.SerializeObject(message);
+            var hash = HashCodeGenerator.Calc(json);
+
+            var database = _connectionFactory.GetDatabase();
+            return database.HashExists(queueName + HashStorageKey, hash);
+        }
+
         public void Enqueue(string queueName, object message)
         {
             if (string.IsNullOrWhiteSpace(queueName) || message == null)

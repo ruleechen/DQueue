@@ -28,6 +28,25 @@ namespace DQueue
             set;
         }
 
+        public bool ExistsMessage<TMessage>(TMessage message)
+            where TMessage : new()
+        {
+            var queueName = QueueNameGenerator.GetQueueName<TMessage>();
+
+            return this.ExistsMessage(queueName, message);
+        }
+
+        public bool ExistsMessage(string queueName, object message)
+        {
+            if (string.IsNullOrWhiteSpace(queueName))
+            {
+                throw new ArgumentNullException("queueName");
+            }
+
+            _provider.IgnoreHash = IgnoreHash;
+            return _provider.ExistsMessage(queueName, message);
+        }
+
         public QueueProducer Send<TMessage>(TMessage message)
             where TMessage : new()
         {
