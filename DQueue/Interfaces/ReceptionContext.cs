@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace DQueue.Interfaces
 {
@@ -26,7 +23,7 @@ namespace DQueue.Interfaces
 
         public void Success()
         {
-            _action(this, ReceptionStatus.Success);
+            _action(this, ReceptionStatus.Complete);
         }
 
         public void Withdraw()

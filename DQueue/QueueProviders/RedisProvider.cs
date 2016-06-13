@@ -1,22 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using DQueue.Helpers;
+﻿using DQueue.Helpers;
 using DQueue.Interfaces;
 using Newtonsoft.Json;
 using StackExchange.Redis;
+using System;
+using System.Threading;
 
 namespace DQueue.QueueProviders
 {
     public class RedisProvider : IQueueProvider
     {
-        static Lazy<StackExchange.Redis.ConnectionMultiplexer> _redisConnectionFactory = new Lazy<StackExchange.Redis.ConnectionMultiplexer>(() =>
+        static Lazy<ConnectionMultiplexer> _redisConnectionFactory = new Lazy<ConnectionMultiplexer>(() =>
         {
             var redisConnectionString = ConfigSource.Current.ConnectionStrings.ConnectionStrings["Redis_Connection"].ConnectionString;
-            var resisConfiguration = StackExchange.Redis.ConfigurationOptions.Parse(redisConnectionString);
-            return StackExchange.Redis.ConnectionMultiplexer.Connect(resisConfiguration);
+            var resisConfiguration = ConfigurationOptions.Parse(redisConnectionString);
+            return ConnectionMultiplexer.Connect(resisConfiguration);
         }, true);
 
         private const string SubscriberKey = "$RedisQueueSubscriberKey$";
@@ -175,7 +172,7 @@ namespace DQueue.QueueProviders
                 {
                     var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
                     {
-                        if (status == ReceptionStatus.Success)
+                        if (status == ReceptionStatus.Complete)
                         {
                             database.ListRemove(assistant.ProcessingQueueName, item, 1);
                             database.HashDelete(assistant.QueueName + HashStorageKey, HashCodeGenerator.Calc(item));

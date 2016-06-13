@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
+﻿using DQueue.Helpers;
 using DQueue.Interfaces;
-using DQueue.Helpers;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Threading;
 
 namespace DQueue.QueueProviders
 {
@@ -185,7 +183,7 @@ namespace DQueue.QueueProviders
                 {
                     var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
                     {
-                        if (status == ReceptionStatus.Success)
+                        if (status == ReceptionStatus.Complete)
                         {
                             queueProcessing.Remove(item);
                             hashSet.Remove(HashCodeGenerator.Calc(item));

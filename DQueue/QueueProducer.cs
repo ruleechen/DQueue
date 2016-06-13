@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using DQueue.Helpers;
+﻿using DQueue.Helpers;
 using DQueue.Interfaces;
+using System;
 
 namespace DQueue
 {
@@ -33,7 +30,7 @@ namespace DQueue
         {
             var queueName = QueueNameGenerator.GetQueueName<TMessage>();
 
-            return this.ExistsMessage(queueName, message);
+            return ExistsMessage(queueName, message);
         }
 
         public bool ExistsMessage(string queueName, object message)
@@ -52,7 +49,7 @@ namespace DQueue
         {
             var queueName = QueueNameGenerator.GetQueueName<TMessage>();
 
-            return this.Send(queueName, message);
+            return Send(queueName, message);
         }
 
         public QueueProducer Send(string queueName, object message)

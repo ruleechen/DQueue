@@ -1,23 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using DQueue.Helpers;
+﻿using DQueue.Helpers;
 using DQueue.Interfaces;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
+using System;
+using System.Text;
+using System.Threading;
 
 namespace DQueue.QueueProviders
 {
     public class RabbitMQProvider : IQueueProvider
     {
-        static Lazy<RabbitMQ.Client.ConnectionFactory> _rabbitMQConnectionFactory = new Lazy<RabbitMQ.Client.ConnectionFactory>(() =>
+        static Lazy<ConnectionFactory> _rabbitMQConnectionFactory = new Lazy<ConnectionFactory>(() =>
         {
             var rabbitMQConnectionString = ConfigSource.Current.ConnectionStrings.ConnectionStrings["RabbitMQ_Connection"].ConnectionString;
             var rabbitMQConfiguration = RabbitMQConnectionConfiguration.Parse(rabbitMQConnectionString);
-            return new RabbitMQ.Client.ConnectionFactory
+            return new ConnectionFactory
             {
                 HostName = rabbitMQConfiguration.HostName,
                 Port = rabbitMQConfiguration.Port,
@@ -144,7 +141,7 @@ namespace DQueue.QueueProviders
                         {
                             var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
                             {
-                                if (status == ReceptionStatus.Success)
+                                if (status == ReceptionStatus.Complete)
                                 {
                                     model.BasicAck(eventArg.DeliveryTag, false);
                                     status = ReceptionStatus.Listen;

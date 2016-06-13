@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace DQueue.Interfaces
+﻿namespace DQueue.Interfaces
 {
     public enum ReceptionStatus
     {
@@ -11,7 +6,7 @@ namespace DQueue.Interfaces
 
         Process,
 
-        Success,
+        Complete,
 
         //Suspend,
 
