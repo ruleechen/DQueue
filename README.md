@@ -1,5 +1,5 @@
 # DQueue
-A message queue clients wrapper with multiple threads supported. Queue clients support Redis and RabbitMQ. You will no need to care about the parallel on receive or handler the message. The samples below will give you the first impression of this component.
+A message queue clients wrapper with parallel supported. Queue clients support Redis and RabbitMQ. You will no need to care about the parallel on receive or handler the message. The samples below will give you the first impression of this component.
 
 Main Message Flow
 ------------
