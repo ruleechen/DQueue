@@ -18,7 +18,7 @@ namespace DQueue.QueueProviders
 
         private const string SubscriberKey = "$RedisQueueSubscriberKey$";
         private const string SubscriberValue = "$RedisQueueSubscriberValue$";
-        private const string HashStorageKey = "$RedisHashStorageKey$";
+        private const string HashStorageQueueName = "-$Hash$";
 
         private readonly ConnectionMultiplexer _connectionFactory;
 
@@ -45,7 +45,7 @@ namespace DQueue.QueueProviders
             var hash = HashCodeGenerator.Calc(json);
 
             var database = _connectionFactory.GetDatabase();
-            return database.HashExists(queueName + HashStorageKey, hash);
+            return database.HashExists(queueName + HashStorageQueueName, hash);
         }
 
         public void Enqueue(string queueName, object message)
@@ -56,16 +56,24 @@ namespace DQueue.QueueProviders
             }
 
             var json = JsonConvert.SerializeObject(message);
-            var hash = HashCodeGenerator.Calc(json);
-
             var database = _connectionFactory.GetDatabase();
-            if (!IgnoreHash && database.HashExists(queueName + HashStorageKey, hash))
+
+            string hash = null;
+            if (!IgnoreHash)
             {
-                return;
+                hash = HashCodeGenerator.Calc(json);
+                if (database.HashExists(queueName + HashStorageQueueName, hash))
+                {
+                    return;
+                }
             }
 
             database.ListLeftPush(queueName, json);
-            database.HashSet(queueName + HashStorageKey, hash, 1);
+
+            if (!IgnoreHash)
+            {
+                database.HashSet(queueName + HashStorageQueueName, hash, 1);
+            }
 
             var subscriber = _connectionFactory.GetSubscriber();
             subscriber.Publish(queueName + SubscriberKey, SubscriberValue);
@@ -175,7 +183,7 @@ namespace DQueue.QueueProviders
                         if (status == ReceptionStatus.Complete)
                         {
                             database.ListRemove(assistant.ProcessingQueueName, item, 1);
-                            database.HashDelete(assistant.QueueName + HashStorageKey, HashCodeGenerator.Calc(item));
+                            database.HashDelete(assistant.QueueName + HashStorageQueueName, HashCodeGenerator.Calc(item));
                             status = ReceptionStatus.Listen;
                         }
 

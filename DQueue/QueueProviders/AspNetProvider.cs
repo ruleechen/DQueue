@@ -76,21 +76,26 @@ namespace DQueue.QueueProviders
             }
 
             var json = JsonConvert.SerializeObject(message);
-            var hash = HashCodeGenerator.Calc(json);
+            var queue = GetQueue(queueName);
 
-            var hashSet = GetHashSet(queueName);
-            if (!IgnoreHash && hashSet.Contains(hash))
+            string hash = null;
+            HashSet<string> hashSet = null;
+            if (!IgnoreHash)
             {
-                return;
+                hash = HashCodeGenerator.Calc(json);
+                hashSet = GetHashSet(queueName);
+                if (hashSet.Contains(hash))
+                {
+                    return;
+                }
             }
 
-            var queue = GetQueue(queueName);
             var monitorLocker = ReceptionAssistant.GetLocker(queueName, ReceptionAssistant.Flag_MonitorLocker);
 
             lock (monitorLocker)
             {
                 queue.Add(json);
-                hashSet.Add(hash);
+                if (!IgnoreHash) { hashSet.Add(hash); }
                 Monitor.Pulse(monitorLocker);
             }
         }
