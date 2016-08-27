@@ -194,6 +194,12 @@ namespace DQueue.QueueProviders
                             hashSet.Remove(item.GetMD5());
                             status = ReceptionStatus.Listen;
                         }
+                        else if (status == ReceptionStatus.Retry)
+                        {
+                            queueProcessing.Remove(item);
+                            queue.Add(item);
+                            status = ReceptionStatus.Listen;
+                        }
 
                         if (receptionStatus != ReceptionStatus.Withdraw)
                         {

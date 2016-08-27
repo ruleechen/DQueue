@@ -186,6 +186,12 @@ namespace DQueue.QueueProviders
                             database.HashDelete(assistant.QueueName + HashStorageQueueName, item.GetMD5());
                             status = ReceptionStatus.Listen;
                         }
+                        else if (status == ReceptionStatus.Retry)
+                        {
+                            database.ListRemove(assistant.ProcessingQueueName, item, 1);
+                            database.ListLeftPush(assistant.QueueName, item);
+                            status = ReceptionStatus.Listen;
+                        }
 
                         if (receptionStatus != ReceptionStatus.Withdraw)
                         {

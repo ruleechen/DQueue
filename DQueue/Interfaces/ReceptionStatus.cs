@@ -8,6 +8,8 @@
 
         Complete,
 
+        Retry,
+
         //Suspend,
 
         Withdraw

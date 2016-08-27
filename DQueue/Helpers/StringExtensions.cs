@@ -59,7 +59,7 @@ namespace DQueue.Helpers
             var comma = input.Length > 2 ? "," : string.Empty;
             var text = $"\"$EnqueueTime$\":\"{DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss")}\"{comma}";
 
-            return input.Insert(01, text);
+            return input.Insert(1, text);
         }
 
         private static string RemoveEnqueueTime(string input)

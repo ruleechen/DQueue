@@ -146,6 +146,12 @@ namespace DQueue.QueueProviders
                                     model.BasicAck(eventArg.DeliveryTag, false);
                                     status = ReceptionStatus.Listen;
                                 }
+                                else if (status == ReceptionStatus.Retry)
+                                {
+                                    //TODO:
+                                    model.BasicAck(eventArg.DeliveryTag, false);
+                                    status = ReceptionStatus.Listen;
+                                }
 
                                 if (receptionStatus != ReceptionStatus.Withdraw)
                                 {
