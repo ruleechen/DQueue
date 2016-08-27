@@ -28,7 +28,7 @@ namespace DQueue.CmdTest
                 Console.WriteLine(string.Format("[Receiver 2, ThreadID {0}] -> {1}", threadId, context.Message.Text));
             });
 
-            consumer.Complete((context) =>
+            consumer.OnComplete((context) =>
             {
                 foreach (var ex in context.Exceptions)
                 {

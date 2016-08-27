@@ -67,5 +67,17 @@ namespace DQueue.Helpers
             var pattern = "\"\\$EnqueueTime\\$\":\"\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\",*";
             return Regex.Replace(input, pattern, string.Empty);
         }
+
+        public static int? AsNullableInt(this string input)
+        {
+            int val;
+
+            if (int.TryParse(input, out val))
+            {
+                return val;
+            }
+
+            return null;
+        }
     }
 }

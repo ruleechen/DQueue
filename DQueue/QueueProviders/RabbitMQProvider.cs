@@ -12,7 +12,7 @@ namespace DQueue.QueueProviders
     {
         static Lazy<ConnectionFactory> _rabbitMQConnectionFactory = new Lazy<ConnectionFactory>(() =>
         {
-            var rabbitMQConnectionString = ConfigSource.Current.ConnectionStrings.ConnectionStrings["RabbitMQ_Connection"].ConnectionString;
+            var rabbitMQConnectionString = ConfigSource.GetConnection("RabbitMQ_Connection");
             var rabbitMQConfiguration = RabbitMQConnectionConfiguration.Parse(rabbitMQConnectionString);
             return new ConnectionFactory
             {

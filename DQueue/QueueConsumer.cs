@@ -41,6 +41,7 @@ namespace DQueue
         #endregion
 
         private readonly int _threads;
+        private readonly int? _timeout;
         private readonly string _queueName;
         private readonly QueueProvider _provider;
 
@@ -91,6 +92,7 @@ namespace DQueue
             _threads = threads;
             _queueName = queueName ?? QueueNameGenerator.GetQueueName<TMessage>();
             _provider = provider;
+            _timeout = ConfigSource.GetAppSettings("ConsumerTimeout").AsNullableInt();
 
             if (_threads <= 0)
             {
@@ -123,6 +125,14 @@ namespace DQueue
             get
             {
                 return _threads;
+            }
+        }
+
+        public int? Timeout
+        {
+            get
+            {
+                return _timeout;
             }
         }
 
@@ -297,7 +307,7 @@ namespace DQueue
             }
         }
 
-        public QueueConsumer<TMessage> Complete(Action<DispatchContext<TMessage>> handler)
+        public QueueConsumer<TMessage> OnComplete(Action<DispatchContext<TMessage>> handler)
         {
             CheckDisposed();
 
@@ -309,7 +319,7 @@ namespace DQueue
             return this;
         }
 
-        public QueueConsumer<TMessage> Timeout(Action<DispatchContext<TMessage>> handler)
+        public QueueConsumer<TMessage> OnTimeout(Action<DispatchContext<TMessage>> handler)
         {
             CheckDisposed();
 
@@ -338,11 +348,8 @@ namespace DQueue
             }
 
             _tasks.Clear();
-
             _handlers.Clear();
-
             _timeoutHandlers.Clear();
-
             _completeHandlers.Clear();
         }
     }

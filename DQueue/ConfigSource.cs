@@ -30,5 +30,17 @@ namespace DQueue
                 _current = value;
             }
         }
+
+        public static string GetAppSettings(string key)
+        {
+            var item = Current.AppSettings.Settings[key];
+            return item != null ? item.Value : null;
+        }
+
+        public static string GetConnection(string key)
+        {
+            var conn = Current.ConnectionStrings.ConnectionStrings[key];
+            return conn != null ? conn.ConnectionString : null;
+        }
     }
 }

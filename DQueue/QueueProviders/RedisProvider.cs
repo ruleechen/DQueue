@@ -11,7 +11,7 @@ namespace DQueue.QueueProviders
     {
         static Lazy<ConnectionMultiplexer> _redisConnectionFactory = new Lazy<ConnectionMultiplexer>(() =>
         {
-            var redisConnectionString = ConfigSource.Current.ConnectionStrings.ConnectionStrings["Redis_Connection"].ConnectionString;
+            var redisConnectionString = ConfigSource.GetConnection("Redis_Connection");
             var resisConfiguration = ConfigurationOptions.Parse(redisConnectionString);
             return ConnectionMultiplexer.Connect(resisConfiguration);
         }, true);
