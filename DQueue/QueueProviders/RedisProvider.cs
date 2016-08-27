@@ -41,8 +41,8 @@ namespace DQueue.QueueProviders
                 return false;
             }
 
-            var json = JsonConvert.SerializeObject(message);
-            var hash = HashCodeGenerator.Calc(json);
+            var json = message.Serialize();
+            var hash = json.GetMD5();
 
             var database = _connectionFactory.GetDatabase();
             return database.HashExists(queueName + HashStorageQueueName, hash);
@@ -55,13 +55,13 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var json = JsonConvert.SerializeObject(message);
+            var json = message.Serialize();
             var database = _connectionFactory.GetDatabase();
 
             string hash = null;
             if (!IgnoreHash)
             {
-                hash = HashCodeGenerator.Calc(json);
+                hash = json.GetMD5();
                 if (database.HashExists(queueName + HashStorageQueueName, hash))
                 {
                     return;
@@ -167,7 +167,7 @@ namespace DQueue.QueueProviders
                     if (receptionStatus == ReceptionStatus.Listen)
                     {
                         item = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
-                        if (item != RedisValue.Null) { message = JsonConvert.DeserializeObject<TMessage>(item); }
+                        message = item.Deserialize<TMessage>();
                     }
                 }
 
@@ -183,7 +183,7 @@ namespace DQueue.QueueProviders
                         if (status == ReceptionStatus.Complete)
                         {
                             database.ListRemove(assistant.ProcessingQueueName, item, 1);
-                            database.HashDelete(assistant.QueueName + HashStorageQueueName, HashCodeGenerator.Calc(item));
+                            database.HashDelete(assistant.QueueName + HashStorageQueueName, item.GetMD5());
                             status = ReceptionStatus.Listen;
                         }
 

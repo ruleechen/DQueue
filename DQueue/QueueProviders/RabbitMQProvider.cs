@@ -60,7 +60,7 @@ namespace DQueue.QueueProviders
                     var basicProperties = model.CreateBasicProperties();
                     basicProperties.Persistent = true;
 
-                    var json = JsonConvert.SerializeObject(message);
+                    var json = message.Serialize();
                     var body = Encoding.UTF8.GetBytes(json);
 
                     model.BasicPublish(string.Empty, queueName, basicProperties, body);
@@ -133,7 +133,7 @@ namespace DQueue.QueueProviders
                             if (eventArg != null)
                             {
                                 var json = Encoding.UTF8.GetString(eventArg.Body);
-                                message = JsonConvert.DeserializeObject<TMessage>(json);
+                                message = json.Deserialize<TMessage>();
                             }
                         }
 

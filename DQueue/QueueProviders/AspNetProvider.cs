@@ -61,8 +61,8 @@ namespace DQueue.QueueProviders
                 return false;
             }
 
-            var json = JsonConvert.SerializeObject(message);
-            var hash = HashCodeGenerator.Calc(json);
+            var json = message.Serialize();
+            var hash = json.GetMD5();
 
             var hashSet = GetHashSet(queueName);
             return hashSet.Contains(hash);
@@ -75,14 +75,14 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var json = JsonConvert.SerializeObject(message);
+            var json = message.Serialize();
             var queue = GetQueue(queueName);
 
             string hash = null;
             HashSet<string> hashSet = null;
             if (!IgnoreHash)
             {
-                hash = HashCodeGenerator.Calc(json);
+                hash = json.GetMD5();
                 hashSet = GetHashSet(queueName);
                 if (hashSet.Contains(hash))
                 {
@@ -175,7 +175,7 @@ namespace DQueue.QueueProviders
                         item = queue[0];
                         queue.RemoveAt(0);
                         queueProcessing.Add(item);
-                        if (!string.IsNullOrEmpty(item)) { message = JsonConvert.DeserializeObject<TMessage>(item); }
+                        message = item.Deserialize<TMessage>();
                     }
                 }
 
@@ -191,7 +191,7 @@ namespace DQueue.QueueProviders
                         if (status == ReceptionStatus.Complete)
                         {
                             queueProcessing.Remove(item);
-                            hashSet.Remove(HashCodeGenerator.Calc(item));
+                            hashSet.Remove(item.GetMD5());
                             status = ReceptionStatus.Listen;
                         }
 

@@ -2,9 +2,9 @@
 
 namespace DQueue.Helpers
 {
-    public class HashCodeGenerator
+    public static class HashCodeGenerator
     {
-        private static string MD5(string input)
+        public static string MD5(string input)
         {
             // step 1, calculate MD5 hash from input
 
@@ -24,11 +24,6 @@ namespace DQueue.Helpers
             }
 
             return sb.ToString();
-        }
-
-        public static string Calc(string input)
-        {
-            return MD5(input);
         }
     }
 }
