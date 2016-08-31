@@ -68,8 +68,8 @@ namespace DQueue.Helpers
 
         private static string RemoveField(this string json, string name)
         {
-            name = name.Replace("$", "\\$");
-            name = name.Replace("\"", "\\\\\"");
+            name = name.Replace("\"", "\\\"");
+            name = Regex.Escape(name);
 
             var pattern = "\"" + name + "\":\"((\\\\\"|[^\"])*)\",{0,1}";
             return Regex.Replace(json, pattern, string.Empty);
