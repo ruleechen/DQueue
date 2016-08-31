@@ -31,11 +31,16 @@ namespace DQueue
             public CancellationTokenSource CTS { get; set; }
             public void Reset()
             {
-                CTS.Cancel();
-                CTS.Dispose();
-                CTS = null;
-                Tasks.Clear();
-                Tasks = null;
+                if (CTS != null)
+                {
+                    CTS.Cancel();
+                    CTS.Dispose();
+                }
+
+                if (Tasks != null)
+                {
+                    Tasks.Clear();
+                }
             }
         }
         #endregion
@@ -182,18 +187,7 @@ namespace DQueue
                 {
                     foreach (var item in _tasks)
                     {
-                        var dispatch = item.Value;
-
-                        if (dispatch.CTS != null)
-                        {
-                            dispatch.CTS.Cancel();
-                            dispatch.CTS.Dispose();
-                        }
-
-                        if (dispatch.Tasks != null)
-                        {
-                            dispatch.Tasks.Clear();
-                        }
+                        item.Value.Reset();
                     }
                 });
             }
