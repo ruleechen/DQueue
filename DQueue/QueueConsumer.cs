@@ -46,7 +46,7 @@ namespace DQueue
         #endregion
 
         private readonly int _threads;
-        private readonly int? _timeout;
+        private readonly TimeSpan? _timeout;
         private readonly string _queueName;
         private readonly QueueProvider _provider;
 
@@ -97,7 +97,7 @@ namespace DQueue
             _threads = threads;
             _queueName = queueName ?? QueueNameGenerator.GetQueueName<TMessage>();
             _provider = provider;
-            _timeout = ConfigSource.GetAppSettings("ConsumerTimeout").AsNullableInt();
+            _timeout = ConfigSource.GetAppSettings("ConsumerTimeout").AsNullableTimeSpan();
 
             if (_threads <= 0)
             {
@@ -133,7 +133,7 @@ namespace DQueue
             }
         }
 
-        public int? Timeout
+        public TimeSpan? Timeout
         {
             get
             {

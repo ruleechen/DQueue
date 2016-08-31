@@ -86,5 +86,24 @@ namespace DQueue.Helpers
 
             return null;
         }
+
+        public static TimeSpan? AsNullableTimeSpan(this string input)
+        {
+            TimeSpan result;
+
+            if (TimeSpan.TryParse(input, out result))
+            {
+                return result;
+            }
+
+            var number = input.AsNullableInt();
+
+            if (number.HasValue)
+            {
+                return TimeSpan.FromSeconds(number.Value);
+            }
+
+            return null;
+        }
     }
 }
