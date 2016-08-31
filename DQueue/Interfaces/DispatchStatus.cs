@@ -2,6 +2,8 @@
 {
     public enum DispatchStatus
     {
-        Complete
+        Complete,
+
+        Timeout
     }
 }

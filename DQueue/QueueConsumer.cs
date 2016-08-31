@@ -219,6 +219,10 @@ namespace DQueue
                     {
                         ContinueOnSuccess(receptionContext, sender, dispatch);
                     }
+                    else if (status == DispatchStatus.Timeout)
+                    {
+                        ContinueOnTimeout(receptionContext, sender, dispatch);
+                    }
                 });
 
                 foreach (var handler in _handlers)
