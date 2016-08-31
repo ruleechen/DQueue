@@ -7,11 +7,13 @@ namespace DQueue.Helpers
 {
     public static class StringExtensions
     {
+        public const string EnqueueTime = "$EnqueueTime$";
+
         public static string Serialize(this object content)
         {
             if (content == null) { return string.Empty; }
             var json = JsonConvert.SerializeObject(content);
-            return AppendEnqueueTime(json);
+            return json.InsertField(EnqueueTime, DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
         }
 
         public static T Deserialize<T>(this string content)
@@ -21,7 +23,7 @@ namespace DQueue.Helpers
                 return default(T);
             }
 
-            content = RemoveEnqueueTime(content);
+            content = content.RemoveField(EnqueueTime);
             return JsonConvert.DeserializeObject<T>(content);
         }
 
@@ -37,7 +39,7 @@ namespace DQueue.Helpers
 
         public static string GetMD5(this string input)
         {
-            input = RemoveEnqueueTime(input);
+            input = input.RemoveField(EnqueueTime);
             return HashCodeGenerator.MD5(input);
         }
 
@@ -51,21 +53,26 @@ namespace DQueue.Helpers
             return value.ToString().GetMD5();
         }
 
-        private static string AppendEnqueueTime(string input)
+        private static string InsertField(this string json, string name, string value)
         {
-            if (input.Length < 2) { return input; }
-            if (input[0] != '{') { return input; }
+            if (json.Length < 2) { return json; }
+            if (json[0] != '{') { return json; }
 
-            var comma = input.Length > 2 ? "," : string.Empty;
-            var text = $"\"$EnqueueTime$\":\"{DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss")}\"{comma}";
+            name = name.Replace("\"", "\\\"");
+            value = value.Replace("\"", "\\\"");
 
-            return input.Insert(1, text);
+            var comma = json.Length > 2 ? "," : string.Empty;
+            var field = $"\"{name}\":\"{value}\"{comma}";
+            return json.Insert(1, field);
         }
 
-        private static string RemoveEnqueueTime(string input)
+        private static string RemoveField(this string json, string name)
         {
-            var pattern = "\"\\$EnqueueTime\\$\":\"\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\",*";
-            return Regex.Replace(input, pattern, string.Empty);
+            name = name.Replace("$", "\\$");
+            name = name.Replace("\"", "\\\\\"");
+
+            var pattern = "\"" + name + "\":\"((\\\\\"|[^\"])*)\",{0,1}";
+            return Regex.Replace(json, pattern, string.Empty);
         }
 
         public static int? AsNullableInt(this string input)

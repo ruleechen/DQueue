@@ -255,32 +255,6 @@ namespace DQueue
             }
         }
 
-        private void ContinueOnTimeout(ReceptionContext<TMessage> receptionContext, DispatchContext<TMessage> dispatchContext, DispatchModel dispatch)
-        {
-            if (!dispatch.CTS.IsCancellationRequested)
-            {
-                lock (dispatch.Locker)
-                {
-                    if (!dispatch.CTS.IsCancellationRequested)
-                    {
-                        foreach (var handler in _timeoutHandlers)
-                        {
-                            try
-                            {
-                                handler(dispatchContext);
-                            }
-                            catch
-                            {
-                            }
-                        }
-
-                        dispatch.Reset();
-                        receptionContext.Timeout();
-                    }
-                }
-            }
-        }
-
         private void ContinueOnSuccess(ReceptionContext<TMessage> receptionContext, DispatchContext<TMessage> dispatchContext, DispatchModel dispatch)
         {
             if (!dispatch.CTS.IsCancellationRequested)
@@ -302,6 +276,32 @@ namespace DQueue
 
                         dispatch.Reset();
                         receptionContext.Success();
+                    }
+                }
+            }
+        }
+
+        private void ContinueOnTimeout(ReceptionContext<TMessage> receptionContext, DispatchContext<TMessage> dispatchContext, DispatchModel dispatch)
+        {
+            if (!dispatch.CTS.IsCancellationRequested)
+            {
+                lock (dispatch.Locker)
+                {
+                    if (!dispatch.CTS.IsCancellationRequested)
+                    {
+                        foreach (var handler in _timeoutHandlers)
+                        {
+                            try
+                            {
+                                handler(dispatchContext);
+                            }
+                            catch
+                            {
+                            }
+                        }
+
+                        dispatch.Reset();
+                        receptionContext.Timeout();
                     }
                 }
             }
