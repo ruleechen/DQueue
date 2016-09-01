@@ -94,8 +94,13 @@ namespace DQueue.QueueProviders
 
             lock (monitorLocker)
             {
-                queue.Add(json);
-                if (!IgnoreHash) { hashSet.Add(hash); }
+                queue.Add(json.AddEnqueueTime());
+
+                if (!IgnoreHash)
+                {
+                    hashSet.Add(hash);
+                }
+
                 Monitor.Pulse(monitorLocker);
             }
         }
@@ -191,7 +196,7 @@ namespace DQueue.QueueProviders
                         if (status == ReceptionStatus.Complete)
                         {
                             queueProcessing.Remove(item);
-                            hashSet.Remove(item.GetMD5());
+                            hashSet.Remove(item.RemoveEnqueueTime().GetMD5());
                             status = ReceptionStatus.Listen;
                         }
                         else if (status == ReceptionStatus.Retry)

@@ -59,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ConfigSource.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="Helpers\HashCodeGenerator.cs" />
     <Compile Include="Helpers\StringExtensions.cs" />
     <Compile Include="QueueProviderFactory.cs" />

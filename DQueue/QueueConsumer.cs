@@ -31,7 +31,7 @@ namespace DQueue
             public CancellationTokenSource CTS { get; set; }
             public void Reset()
             {
-                if (CTS != null)
+                if (CTS != null && !CTS.IsCancellationRequested)
                 {
                     CTS.Cancel();
                     CTS.Dispose();
@@ -223,6 +223,8 @@ namespace DQueue
                 {
                     var task = Task.Factory.StartNew((state) =>
                     {
+                        Thread.Sleep(100); // for ensure handler task complete after dispatch task
+
                         var param = (DispatchState<TMessage>)state;
 
                         try
@@ -246,10 +248,25 @@ namespace DQueue
                     dispatch.Tasks.Add(task);
                 }
 
-                Task.Factory.ContinueWhenAll(dispatch.Tasks.ToArray(), (t) =>
+                Task.Run(() =>
                 {
-                    ContinueOnSuccess(receptionContext, dispatchContext, dispatch);
-                });
+                    var timeout = Timeout.HasValue ? (int)Timeout.Value.TotalMilliseconds : Constants.DefaultTimeoutMilliseconds;
+
+                    var inTime = Task.WaitAll(dispatch.Tasks.ToArray(), timeout, dispatch.CTS.Token);
+
+                    if (!dispatch.CTS.IsCancellationRequested)
+                    {
+                        if (inTime)
+                        {
+                            ContinueOnSuccess(receptionContext, dispatchContext, dispatch);
+                        }
+                        else
+                        {
+                            ContinueOnTimeout(receptionContext, dispatchContext, dispatch);
+                        }
+                    }
+
+                }, dispatch.CTS.Token);
             }
         }
 
@@ -339,7 +356,7 @@ namespace DQueue
 
         public void Dispose()
         {
-            if (_cts != null)
+            if (_cts != null && !_cts.IsCancellationRequested)
             {
                 _cts.Cancel();
                 _cts.Dispose();

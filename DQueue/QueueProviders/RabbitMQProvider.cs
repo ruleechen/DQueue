@@ -60,7 +60,7 @@ namespace DQueue.QueueProviders
                     var basicProperties = model.CreateBasicProperties();
                     basicProperties.Persistent = true;
 
-                    var json = message.Serialize();
+                    var json = message.Serialize().AddEnqueueTime();
                     var body = Encoding.UTF8.GetBytes(json);
 
                     model.BasicPublish(string.Empty, queueName, basicProperties, body);
