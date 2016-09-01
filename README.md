@@ -21,6 +21,7 @@ Sample Configuration
 <configuration>
   <appSettings>
     <add key="QueueProvider" value="Redis" />
+    <add key="ConsumerTimeout" value="60" /><!--60 seconds, or with the timespan format: 00:01:00-->
   </appSettings>
   <connectionStrings>
     <add name="Redis_Connection" connectionString="127.0.0.1:6379,password=,allowAdmin=true" />
@@ -69,7 +70,7 @@ consumer.Receive((context) =>
   Console.WriteLine(context.Message.Text); // "test"
 });
 
-consumer.Complete((context) =>
+consumer.OnComplete((context) =>
 {
   // will goes here when "handler thread 1" and "handler thread 2" are done
   
@@ -78,5 +79,18 @@ consumer.Complete((context) =>
     Console.WriteLine(ex.Message);
   }
 });
+
+consumer.OnTimeout((context) =>
+{
+  // will goes here when "handler thread 1" and "handler thread 2" are timeout
+  // we can here to send notification email or enqueue again.
+  
+  SendEmail(context.Message);
+});
 ```
 
+Updates 2016.09.01
+------------
+1) new IgnoreHash rule (for KaiSheng's request)
+2) add timeout feature
+3) optimize task scheduler
