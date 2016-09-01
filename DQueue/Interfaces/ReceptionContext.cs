@@ -26,6 +26,18 @@ namespace DQueue.Interfaces
             _action(this, ReceptionStatus.Complete);
         }
 
+        public void Timeout()
+        {
+            if (Constants.RetryOnTimeout)
+            {
+                _action(this, ReceptionStatus.Retry);
+            }
+            else
+            {
+                _action(this, ReceptionStatus.Complete);
+            }
+        }
+
         public void Withdraw()
         {
             _action(this, ReceptionStatus.Withdraw);

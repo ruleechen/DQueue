@@ -11,7 +11,7 @@ namespace DQueue.Helpers
         {
             if (content == null) { return string.Empty; }
             var json = JsonConvert.SerializeObject(content);
-            return AppendEnqueueTime(json);
+            return json;
         }
 
         public static T Deserialize<T>(this string content)
@@ -21,51 +21,85 @@ namespace DQueue.Helpers
                 return default(T);
             }
 
-            content = RemoveEnqueueTime(content);
             return JsonConvert.DeserializeObject<T>(content);
-        }
-
-        public static T Deserialize<T>(this RedisValue content)
-        {
-            if (!content.HasValue || content.IsNull)
-            {
-                return default(T);
-            }
-
-            return content.ToString().Deserialize<T>();
         }
 
         public static string GetMD5(this string input)
         {
-            input = RemoveEnqueueTime(input);
             return HashCodeGenerator.MD5(input);
         }
 
-        public static string GetMD5(this RedisValue value)
+        public static string AddJsonField(this string json, string name, string value)
+        {
+            if (json.Length < 2) { return json; }
+            if (json[json.Length - 1] != '}') { return json; }
+
+            name = name.Replace("\"", "\\\"");
+            value = value.Replace("\"", "\\\"");
+
+            var comma = json.Length > 2 ? "," : string.Empty;
+            var field = $"{comma}\"{name}\":\"{value}\"";
+            return json.Insert(json.Length - 1, field);
+        }
+
+        public static string RemoveJsonField(this string json, string name)
+        {
+            name = name.Replace("\"", "\\\"");
+            name = Regex.Escape(name);
+
+            var pattern = ",{0,1}\"" + name + "\":\"((\\\\\"|[^\"])*)\"";
+            return Regex.Replace(json, pattern, string.Empty);
+        }
+
+        public static string AddEnqueueTime(this string json)
+        {
+            return json.AddJsonField(Constants.JsonField_EnqueueTime, DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
+        }
+
+        public static string RemoveEnqueueTime(this string json)
+        {
+            return json.RemoveJsonField(Constants.JsonField_EnqueueTime);
+        }
+
+        public static int? AsNullableInt(this string input)
+        {
+            int val;
+
+            if (int.TryParse(input, out val))
+            {
+                return val;
+            }
+
+            return null;
+        }
+
+        public static TimeSpan? AsNullableTimeSpan(this string input)
+        {
+            var number = input.AsNullableInt();
+
+            if (number.HasValue)
+            {
+                return TimeSpan.FromSeconds(number.Value);
+            }
+
+            TimeSpan result;
+
+            if (TimeSpan.TryParse(input, out result))
+            {
+                return result;
+            }
+
+            return null;
+        }
+
+        public static string GetString(this RedisValue value)
         {
             if (!value.HasValue || value.IsNull)
             {
                 return string.Empty;
             }
 
-            return value.ToString().GetMD5();
-        }
-
-        private static string AppendEnqueueTime(string input)
-        {
-            if (input.Length < 2) { return input; }
-            if (input[0] != '{') { return input; }
-
-            var comma = input.Length > 2 ? "," : string.Empty;
-            var text = $"\"$EnqueueTime$\":\"{DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss")}\"{comma}";
-
-            return input.Insert(01, text);
-        }
-
-        private static string RemoveEnqueueTime(string input)
-        {
-            var pattern = "\"\\$EnqueueTime\\$\":\"\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\",*";
-            return Regex.Replace(input, pattern, string.Empty);
+            return value.ToString();
         }
     }
 }

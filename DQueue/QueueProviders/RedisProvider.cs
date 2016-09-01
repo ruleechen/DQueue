@@ -11,7 +11,7 @@ namespace DQueue.QueueProviders
     {
         static Lazy<ConnectionMultiplexer> _redisConnectionFactory = new Lazy<ConnectionMultiplexer>(() =>
         {
-            var redisConnectionString = ConfigSource.Current.ConnectionStrings.ConnectionStrings["Redis_Connection"].ConnectionString;
+            var redisConnectionString = ConfigSource.GetConnection("Redis_Connection");
             var resisConfiguration = ConfigurationOptions.Parse(redisConnectionString);
             return ConnectionMultiplexer.Connect(resisConfiguration);
         }, true);
@@ -68,7 +68,7 @@ namespace DQueue.QueueProviders
                 }
             }
 
-            database.ListLeftPush(queueName, json);
+            database.ListLeftPush(queueName, json.AddEnqueueTime());
 
             if (!IgnoreHash)
             {
@@ -167,7 +167,7 @@ namespace DQueue.QueueProviders
                     if (receptionStatus == ReceptionStatus.Listen)
                     {
                         item = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
-                        message = item.Deserialize<TMessage>();
+                        message = item.GetString().Deserialize<TMessage>();
                     }
                 }
 
@@ -183,7 +183,13 @@ namespace DQueue.QueueProviders
                         if (status == ReceptionStatus.Complete)
                         {
                             database.ListRemove(assistant.ProcessingQueueName, item, 1);
-                            database.HashDelete(assistant.QueueName + HashStorageQueueName, item.GetMD5());
+                            database.HashDelete(assistant.QueueName + HashStorageQueueName, item.GetString().RemoveEnqueueTime().GetMD5());
+                            status = ReceptionStatus.Listen;
+                        }
+                        else if (status == ReceptionStatus.Retry)
+                        {
+                            database.ListRemove(assistant.ProcessingQueueName, item, 1);
+                            database.ListLeftPush(assistant.QueueName, item.GetString().RemoveEnqueueTime().AddEnqueueTime());
                             status = ReceptionStatus.Listen;
                         }
 

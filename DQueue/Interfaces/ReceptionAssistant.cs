@@ -8,10 +8,6 @@ namespace DQueue.Interfaces
     public class ReceptionAssistant
     {
         #region static
-        public readonly static string Flag_ProcessingQueueName = "-$Processing$";
-        public readonly static string Flag_QueueLocker = "-$QueueLocker$";
-        public readonly static string Flag_MonitorLocker = "-$MonitorLocker$";
-
         static readonly object _lockersLock;
         static readonly Dictionary<string, object> _lockers;
 
@@ -90,7 +86,7 @@ namespace DQueue.Interfaces
         {
             get
             {
-                return _processingQueueName ?? (_processingQueueName = _queueName + Flag_ProcessingQueueName);
+                return _processingQueueName ?? (_processingQueueName = _queueName + Constants.Flag_ProcessingQueueName);
             }
         }
 
@@ -99,7 +95,7 @@ namespace DQueue.Interfaces
         {
             get
             {
-                return _queueLocker ?? (_queueLocker = GetLocker(_queueName, Flag_QueueLocker));
+                return _queueLocker ?? (_queueLocker = GetLocker(_queueName, Constants.Flag_QueueLocker));
             }
         }
 
@@ -108,7 +104,7 @@ namespace DQueue.Interfaces
         {
             get
             {
-                return _monitorLocker ?? (_monitorLocker = GetLocker(_queueName, Flag_MonitorLocker));
+                return _monitorLocker ?? (_monitorLocker = GetLocker(_queueName, Constants.Flag_MonitorLocker));
             }
         }
 

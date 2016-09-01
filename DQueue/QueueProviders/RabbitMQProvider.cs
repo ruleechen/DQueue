@@ -12,7 +12,7 @@ namespace DQueue.QueueProviders
     {
         static Lazy<ConnectionFactory> _rabbitMQConnectionFactory = new Lazy<ConnectionFactory>(() =>
         {
-            var rabbitMQConnectionString = ConfigSource.Current.ConnectionStrings.ConnectionStrings["RabbitMQ_Connection"].ConnectionString;
+            var rabbitMQConnectionString = ConfigSource.GetConnection("RabbitMQ_Connection");
             var rabbitMQConfiguration = RabbitMQConnectionConfiguration.Parse(rabbitMQConnectionString);
             return new ConnectionFactory
             {
@@ -60,7 +60,7 @@ namespace DQueue.QueueProviders
                     var basicProperties = model.CreateBasicProperties();
                     basicProperties.Persistent = true;
 
-                    var json = message.Serialize();
+                    var json = message.Serialize().AddEnqueueTime();
                     var body = Encoding.UTF8.GetBytes(json);
 
                     model.BasicPublish(string.Empty, queueName, basicProperties, body);
@@ -145,6 +145,10 @@ namespace DQueue.QueueProviders
                                 {
                                     model.BasicAck(eventArg.DeliveryTag, false);
                                     status = ReceptionStatus.Listen;
+                                }
+                                else if (status == ReceptionStatus.Retry)
+                                {
+                                    throw new NotImplementedException();
                                 }
 
                                 if (receptionStatus != ReceptionStatus.Withdraw)
