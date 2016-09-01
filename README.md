@@ -91,6 +91,6 @@ consumer.OnTimeout((context) =>
 
 Updates 2016.09.01
 ------------
-1) new IgnoreHash rule (for KaiSheng's request)
-2) add timeout feature
-3) optimize task scheduler
+1. new IgnoreHash rule (for KaiSheng's request)
+2. add timeout feature
+3. optimize task scheduler
