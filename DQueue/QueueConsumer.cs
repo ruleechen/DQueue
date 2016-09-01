@@ -81,12 +81,12 @@ namespace DQueue
 
             if (_threads <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(threads));
+                throw new ArgumentOutOfRangeException("threads");
             }
 
             if (string.IsNullOrWhiteSpace(_queueName))
             {
-                throw new ArgumentNullException(nameof(queueName));
+                throw new ArgumentNullException("queueName");
             }
 
             _handlers = new List<Action<DispatchContext<TMessage>>>();

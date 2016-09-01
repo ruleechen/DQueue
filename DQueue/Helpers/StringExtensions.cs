@@ -38,7 +38,7 @@ namespace DQueue.Helpers
             value = value.Replace("\"", "\\\"");
 
             var comma = json.Length > 2 ? "," : string.Empty;
-            var field = $"{comma}\"{name}\":\"{value}\"";
+            var field = string.Format("{0}\"{1}\":\"{2}\"", comma, name, value);
             return json.Insert(json.Length - 1, field);
         }
 

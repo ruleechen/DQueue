@@ -37,7 +37,7 @@ namespace DQueue
         {
             if (string.IsNullOrWhiteSpace(queueName))
             {
-                throw new ArgumentNullException(nameof(queueName));
+                throw new ArgumentNullException("queueName");
             }
 
             _provider.IgnoreHash = IgnoreHash;
@@ -56,7 +56,7 @@ namespace DQueue
         {
             if (string.IsNullOrWhiteSpace(queueName))
             {
-                throw new ArgumentNullException(nameof(queueName));
+                throw new ArgumentNullException("queueName");
             }
 
             _provider.IgnoreHash = IgnoreHash;
