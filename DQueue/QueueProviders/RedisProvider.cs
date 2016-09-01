@@ -189,7 +189,7 @@ namespace DQueue.QueueProviders
                         else if (status == ReceptionStatus.Retry)
                         {
                             database.ListRemove(assistant.ProcessingQueueName, item, 1);
-                            database.ListLeftPush(assistant.QueueName, item);
+                            database.ListLeftPush(assistant.QueueName, item.GetString().RemoveEnqueueTime().AddEnqueueTime());
                             status = ReceptionStatus.Listen;
                         }
 

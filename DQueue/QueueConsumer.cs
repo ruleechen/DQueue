@@ -58,55 +58,35 @@ namespace DQueue
         private readonly Dictionary<int, DispatchModel> _tasks;
 
         public QueueConsumer()
-            : this(null, 1, QueueProvider.Configured)
+            : this(null, 1)
         {
         }
 
         public QueueConsumer(string queueName)
-            : this(queueName, 1, QueueProvider.Configured)
+            : this(queueName, 1)
         {
         }
 
         public QueueConsumer(int threads)
-            : this(null, threads, QueueProvider.Configured)
-        {
-        }
-
-        public QueueConsumer(QueueProvider provider)
-            : this(null, 1, provider)
+            : this(null, threads)
         {
         }
 
         public QueueConsumer(string queueName, int threads)
-            : this(queueName, threads, QueueProvider.Configured)
-        {
-        }
-
-        public QueueConsumer(string queueName, QueueProvider provider)
-            : this(queueName, 1, provider)
-        {
-        }
-
-        public QueueConsumer(int threads, QueueProvider provider)
-            : this(null, threads, provider)
-        {
-        }
-
-        public QueueConsumer(string queueName, int threads, QueueProvider provider)
         {
             _threads = threads;
             _queueName = queueName ?? QueueNameGenerator.GetQueueName<TMessage>();
-            _provider = provider;
+            _provider = Constants.DefaultProvider;
             _timeout = ConfigSource.GetAppSettings("ConsumerTimeout").AsNullableTimeSpan();
 
             if (_threads <= 0)
             {
-                throw new ArgumentOutOfRangeException("threads");
+                throw new ArgumentOutOfRangeException(nameof(threads));
             }
 
             if (string.IsNullOrWhiteSpace(_queueName))
             {
-                throw new ArgumentNullException("queueName");
+                throw new ArgumentNullException(nameof(queueName));
             }
 
             _handlers = new List<Action<DispatchContext<TMessage>>>();
@@ -242,7 +222,7 @@ namespace DQueue
                         Context = dispatchContext,
                     },
                     dispatch.CTS.Token,
-                    TaskCreationOptions.AttachedToParent,
+                    TaskCreationOptions.DenyChildAttach,
                     TaskScheduler.Default);
 
                     dispatch.Tasks.Add(task);

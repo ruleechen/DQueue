@@ -148,9 +148,7 @@ namespace DQueue.QueueProviders
                                 }
                                 else if (status == ReceptionStatus.Retry)
                                 {
-                                    //TODO:
-                                    model.BasicAck(eventArg.DeliveryTag, false);
-                                    status = ReceptionStatus.Listen;
+                                    throw new NotImplementedException();
                                 }
 
                                 if (receptionStatus != ReceptionStatus.Withdraw)

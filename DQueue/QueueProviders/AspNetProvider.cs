@@ -90,7 +90,7 @@ namespace DQueue.QueueProviders
                 }
             }
 
-            var monitorLocker = ReceptionAssistant.GetLocker(queueName, ReceptionAssistant.Flag_MonitorLocker);
+            var monitorLocker = ReceptionAssistant.GetLocker(queueName, Constants.Flag_MonitorLocker);
 
             lock (monitorLocker)
             {
@@ -202,7 +202,7 @@ namespace DQueue.QueueProviders
                         else if (status == ReceptionStatus.Retry)
                         {
                             queueProcessing.Remove(item);
-                            queue.Add(item);
+                            queue.Add(item.RemoveEnqueueTime().AddEnqueueTime());
                             status = ReceptionStatus.Listen;
                         }
 
