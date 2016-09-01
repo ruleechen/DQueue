@@ -92,7 +92,7 @@ consumer.OnTimeout((context) =>
 Updates 2016.09.01
 ------------
 1. new IgnoreHash rule (for KaiSheng's request)
-2. add timeout feature
-3. optimize task scheduler
+2. optimize task scheduler
+3. add timeout feature, add consumer.**OnTimeout** event
 4. rename consumer.**Complete** to consumer.**OnComplete**
 5. add timestamp to all messages, such as {"billno":"123456789",**"$EnqueueTime$":"2016-09-01 05:10:56"**}
