@@ -141,61 +141,45 @@ namespace DQueue.QueueProviders
                     break;
                 }
 
-                object message = null;
-                string item = null;
+                var message = default(TMessage);
+                var item = default(string);
 
                 lock (assistant.MonitorLocker)
                 {
                     if (queue.Count == 0)
                     {
+                        receptionStatus = ReceptionStatus.Listen;
                         Monitor.Wait(assistant.MonitorLocker);
                     }
 
-                    if (receptionStatus == ReceptionStatus.Listen)
+                    try
                     {
                         item = queue[0];
                         queue.RemoveAt(0);
                         queueProcessing.Add(item);
                         message = item.Deserialize<TMessage>();
                     }
-                }
-
-                if (receptionStatus == ReceptionStatus.Withdraw)
-                {
-                    break;
+                    catch { }
                 }
 
                 if (message != null)
                 {
-                    var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
+                    receptionStatus = ReceptionStatus.Process;
+
+                    handler(new ReceptionContext<TMessage>(message, (sender, status) =>
                     {
                         if (status == ReceptionStatus.Complete)
                         {
                             queueProcessing.Remove(item);
                             hashSet.Remove(item.RemoveEnqueueTime().GetMD5());
-                            status = ReceptionStatus.Listen;
                         }
                         else if (status == ReceptionStatus.Retry)
                         {
                             queueProcessing.Remove(item);
                             queue.Add(item.RemoveEnqueueTime().AddEnqueueTime());
-                            status = ReceptionStatus.Listen;
                         }
-
-                        if (receptionStatus != ReceptionStatus.Withdraw)
-                        {
-                            receptionStatus = status;
-                        }
-                    });
-
-                    if (receptionStatus != ReceptionStatus.Withdraw)
-                    {
-                        receptionStatus = ReceptionStatus.Process;
-                        handler(context);
-                    }
+                    }));
                 }
-
-                //Thread.Sleep(100);
             }
         }
 

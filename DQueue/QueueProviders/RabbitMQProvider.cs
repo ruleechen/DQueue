@@ -96,8 +96,7 @@ namespace DQueue.QueueProviders
                             break;
                         }
 
-                        object message = null;
-
+                        receptionStatus = ReceptionStatus.Listen;
                         var eventArg = consumer.Queue.Dequeue();
 
                         if (receptionStatus == ReceptionStatus.Withdraw)
@@ -105,43 +104,30 @@ namespace DQueue.QueueProviders
                             break;
                         }
 
-                        if (receptionStatus == ReceptionStatus.Listen)
+                        var message = default(TMessage);
+
+                        if (eventArg != null)
                         {
-                            if (eventArg != null)
-                            {
-                                var json = Encoding.UTF8.GetString(eventArg.Body);
-                                message = json.Deserialize<TMessage>();
-                            }
+                            var json = Encoding.UTF8.GetString(eventArg.Body);
+                            message = json.Deserialize<TMessage>();
                         }
 
                         if (message != null)
                         {
-                            var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
+                            receptionStatus = ReceptionStatus.Process;
+
+                            handler(new ReceptionContext<TMessage>(message, (sender, status) =>
                             {
                                 if (status == ReceptionStatus.Complete)
                                 {
                                     model.BasicAck(eventArg.DeliveryTag, false);
-                                    status = ReceptionStatus.Listen;
                                 }
                                 else if (status == ReceptionStatus.Retry)
                                 {
                                     throw new NotImplementedException();
                                 }
-
-                                if (receptionStatus != ReceptionStatus.Withdraw)
-                                {
-                                    receptionStatus = status;
-                                }
-                            });
-
-                            if (receptionStatus != ReceptionStatus.Withdraw)
-                            {
-                                receptionStatus = ReceptionStatus.Process;
-                                handler(context);
-                            }
+                            }));
                         }
-
-                        //Thread.Sleep(100);
                     }
                 }
             }

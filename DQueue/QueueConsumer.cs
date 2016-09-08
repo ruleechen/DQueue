@@ -145,7 +145,7 @@ namespace DQueue
             {
                 var task = Task.Run(() =>
                 {
-                    Thread.Sleep(100); // for ensure handler task complete after dispatch task
+                    Thread.Sleep(10); // for ensure handler task complete after dispatch task
 
                     try
                     {

@@ -124,59 +124,43 @@ namespace DQueue.QueueProviders
                     break;
                 }
 
-                object message = null;
+                var message = default(TMessage);
                 var item = RedisValue.Null;
 
                 lock (assistant.MonitorLocker)
                 {
                     if (database.ListLength(assistant.QueueName) == 0)
                     {
+                        receptionStatus = ReceptionStatus.Listen;
                         Monitor.Wait(assistant.MonitorLocker);
                     }
 
-                    if (receptionStatus == ReceptionStatus.Listen)
+                    try
                     {
                         item = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
                         message = item.GetString().Deserialize<TMessage>();
                     }
-                }
-
-                if (receptionStatus == ReceptionStatus.Withdraw)
-                {
-                    break;
+                    catch { }
                 }
 
                 if (message != null)
                 {
-                    var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
+                    receptionStatus = ReceptionStatus.Process;
+
+                    handler(new ReceptionContext<TMessage>(message, (sender, status) =>
                     {
                         if (status == ReceptionStatus.Complete)
                         {
                             database.ListRemove(assistant.ProcessingQueueName, item, 1);
                             database.HashDelete(assistant.QueueName + HashStorageQueueName, item.GetString().RemoveEnqueueTime().GetMD5());
-                            status = ReceptionStatus.Listen;
                         }
                         else if (status == ReceptionStatus.Retry)
                         {
                             database.ListRemove(assistant.ProcessingQueueName, item, 1);
                             database.ListLeftPush(assistant.QueueName, item.GetString().RemoveEnqueueTime().AddEnqueueTime());
-                            status = ReceptionStatus.Listen;
                         }
-
-                        if (receptionStatus != ReceptionStatus.Withdraw)
-                        {
-                            receptionStatus = status;
-                        }
-                    });
-
-                    if (receptionStatus != ReceptionStatus.Withdraw)
-                    {
-                        receptionStatus = ReceptionStatus.Process;
-                        handler(context);
-                    }
+                    }));
                 }
-
-                //Thread.Sleep(100);
             }
         }
 
