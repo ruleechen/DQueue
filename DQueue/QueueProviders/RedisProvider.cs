@@ -1,6 +1,5 @@
 ﻿using DQueue.Helpers;
 using DQueue.Interfaces;
-using Newtonsoft.Json;
 using StackExchange.Redis;
 using System;
 using System.Threading;
@@ -89,51 +88,30 @@ namespace DQueue.QueueProviders
             var subscriber = _connectionFactory.GetSubscriber();
             var database = _connectionFactory.GetDatabase();
 
-            var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            assistant.RunForFirstThread(() =>
+            subscriber.Subscribe(assistant.QueueName + SubscriberKey, (channel, val) =>
             {
-                subscriber.Subscribe(assistant.QueueName + SubscriberKey, (channel, val) =>
+                if (val == SubscriberValue)
                 {
-                    if (val == SubscriberValue)
+                    lock (assistant.MonitorLocker)
                     {
-                        lock (assistant.MonitorLocker)
-                        {
-                            Monitor.Pulse(assistant.MonitorLocker);
-                        }
+                        Monitor.Pulse(assistant.MonitorLocker);
                     }
-                });
+                }
             });
 
-            assistant.RegisterCancel(0, true, () =>
+            assistant.Token.Register(() =>
             {
                 subscriber.Unsubscribe(assistant.QueueName + SubscriberKey);
-            });
 
-            assistant.RegisterCancel(1, false, () =>
-            {
-                lock (receptionLocker)
-                {
-                    receptionStatus = ReceptionStatus.Withdraw;
-                }
-            });
-
-            assistant.RegisterCancel(2, true, () =>
-            {
-                lock (receptionLocker)
-                {
-                    Monitor.PulseAll(receptionLocker);
-                }
+                receptionStatus = ReceptionStatus.Withdraw;
 
                 lock (assistant.MonitorLocker)
                 {
                     Monitor.PulseAll(assistant.MonitorLocker);
                 }
-            });
 
-            assistant.RegisterFallback(() =>
-            {
                 var items = database.ListRange(assistant.ProcessingQueueName);
                 database.ListRightPush(assistant.QueueName, items);
                 database.KeyDelete(assistant.ProcessingQueueName);
@@ -141,14 +119,6 @@ namespace DQueue.QueueProviders
 
             while (true)
             {
-                lock (receptionLocker)
-                {
-                    if (receptionStatus == ReceptionStatus.Process)
-                    {
-                        Monitor.Wait(receptionLocker);
-                    }
-                }
-
                 if (receptionStatus == ReceptionStatus.Withdraw)
                 {
                     break;
@@ -195,31 +165,14 @@ namespace DQueue.QueueProviders
 
                         if (receptionStatus != ReceptionStatus.Withdraw)
                         {
-                            lock (receptionLocker)
-                            {
-                                if (receptionStatus != ReceptionStatus.Withdraw)
-                                {
-                                    receptionStatus = status;
-                                }
-                            }
-                        }
-
-                        lock (receptionLocker)
-                        {
-                            Monitor.Pulse(receptionLocker);
+                            receptionStatus = status;
                         }
                     });
 
                     if (receptionStatus != ReceptionStatus.Withdraw)
                     {
-                        lock (receptionLocker)
-                        {
-                            if (receptionStatus != ReceptionStatus.Withdraw)
-                            {
-                                receptionStatus = ReceptionStatus.Process;
-                                handler(context);
-                            }
-                        }
+                        receptionStatus = ReceptionStatus.Process;
+                        handler(context);
                     }
                 }
 

@@ -1,10 +1,8 @@
 ﻿using DQueue.Helpers;
 using DQueue.Interfaces;
-using Newtonsoft.Json;
 using RabbitMQ.Client;
 using System;
 using System.Text;
-using System.Threading;
 
 namespace DQueue.QueueProviders
 {
@@ -83,37 +81,16 @@ namespace DQueue.QueueProviders
                     var consumer = new QueueingBasicConsumer(model);
                     model.BasicConsume(assistant.QueueName, false, consumer);
 
-                    var receptionLocker = new object();
                     var receptionStatus = ReceptionStatus.Listen;
 
-                    assistant.RegisterCancel(1, false, () =>
+                    assistant.Token.Register(() =>
                     {
-                        lock (receptionLocker)
-                        {
-                            receptionStatus = ReceptionStatus.Withdraw;
-                        }
-                    });
-
-                    assistant.RegisterCancel(2, false, () =>
-                    {
-                        lock (receptionLocker)
-                        {
-                            Monitor.PulseAll(receptionLocker);
-                        }
-
+                        receptionStatus = ReceptionStatus.Withdraw;
                         model.BasicCancel(consumer.ConsumerTag);
                     });
 
                     while (true)
                     {
-                        lock (receptionLocker)
-                        {
-                            if (receptionStatus == ReceptionStatus.Process)
-                            {
-                                Monitor.Wait(receptionLocker);
-                            }
-                        }
-
                         if (receptionStatus == ReceptionStatus.Withdraw)
                         {
                             break;
@@ -153,31 +130,14 @@ namespace DQueue.QueueProviders
 
                                 if (receptionStatus != ReceptionStatus.Withdraw)
                                 {
-                                    lock (receptionLocker)
-                                    {
-                                        if (receptionStatus != ReceptionStatus.Withdraw)
-                                        {
-                                            receptionStatus = status;
-                                        }
-                                    }
-                                }
-
-                                lock (receptionLocker)
-                                {
-                                    Monitor.Pulse(receptionLocker);
+                                    receptionStatus = status;
                                 }
                             });
 
                             if (receptionStatus != ReceptionStatus.Withdraw)
                             {
-                                lock (receptionLocker)
-                                {
-                                    if (receptionStatus != ReceptionStatus.Withdraw)
-                                    {
-                                        receptionStatus = ReceptionStatus.Process;
-                                        handler(context);
-                                    }
-                                }
+                                receptionStatus = ReceptionStatus.Process;
+                                handler(context);
                             }
                         }
 

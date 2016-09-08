@@ -53,12 +53,12 @@ namespace DQueue.Helpers
 
         public static string AddEnqueueTime(this string json)
         {
-            return json.AddJsonField(Constants.JsonField_EnqueueTime, DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
+            return json.AddJsonField(Constants.EnqueueTimeField, DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
         }
 
         public static string RemoveEnqueueTime(this string json)
         {
-            return json.RemoveJsonField(Constants.JsonField_EnqueueTime);
+            return json.RemoveJsonField(Constants.EnqueueTimeField);
         }
 
         public static int? AsNullableInt(this string input)

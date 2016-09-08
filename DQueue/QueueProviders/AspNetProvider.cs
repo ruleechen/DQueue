@@ -1,6 +1,5 @@
 ﻿using DQueue.Helpers;
 using DQueue.Interfaces;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -90,7 +89,7 @@ namespace DQueue.QueueProviders
                 }
             }
 
-            var monitorLocker = ReceptionAssistant.GetLocker(queueName, Constants.Flag_MonitorLocker);
+            var monitorLocker = ReceptionAssistant.GetLocker(queueName + Constants.MonitorLockerFlag);
 
             lock (monitorLocker)
             {
@@ -116,11 +115,17 @@ namespace DQueue.QueueProviders
             var hashSet = GetHashSet(assistant.QueueName);
             var queueProcessing = GetQueue(assistant.ProcessingQueueName);
 
-            var receptionLocker = new object();
             var receptionStatus = ReceptionStatus.Listen;
 
-            assistant.RegisterFallback(() =>
+            assistant.Token.Register(() =>
             {
+                receptionStatus = ReceptionStatus.Withdraw;
+
+                lock (assistant.MonitorLocker)
+                {
+                    Monitor.PulseAll(assistant.MonitorLocker);
+                }
+
                 foreach (var item in queueProcessing)
                 {
                     queue.Insert(0, item);
@@ -129,37 +134,8 @@ namespace DQueue.QueueProviders
                 queueProcessing.Clear();
             });
 
-            assistant.RegisterCancel(1, false, () =>
-            {
-                lock (receptionLocker)
-                {
-                    receptionStatus = ReceptionStatus.Withdraw;
-                }
-            });
-
-            assistant.RegisterCancel(2, true, () =>
-            {
-                lock (receptionLocker)
-                {
-                    Monitor.PulseAll(receptionLocker);
-                }
-
-                lock (assistant.MonitorLocker)
-                {
-                    Monitor.PulseAll(assistant.MonitorLocker);
-                }
-            });
-
             while (true)
             {
-                lock (receptionLocker)
-                {
-                    if (receptionStatus == ReceptionStatus.Process)
-                    {
-                        Monitor.Wait(receptionLocker);
-                    }
-                }
-
                 if (receptionStatus == ReceptionStatus.Withdraw)
                 {
                     break;
@@ -208,31 +184,14 @@ namespace DQueue.QueueProviders
 
                         if (receptionStatus != ReceptionStatus.Withdraw)
                         {
-                            lock (receptionLocker)
-                            {
-                                if (receptionStatus != ReceptionStatus.Withdraw)
-                                {
-                                    receptionStatus = status;
-                                }
-                            }
-                        }
-
-                        lock (receptionLocker)
-                        {
-                            Monitor.Pulse(receptionLocker);
+                            receptionStatus = status;
                         }
                     });
 
                     if (receptionStatus != ReceptionStatus.Withdraw)
                     {
-                        lock (receptionLocker)
-                        {
-                            if (receptionStatus != ReceptionStatus.Withdraw)
-                            {
-                                receptionStatus = ReceptionStatus.Process;
-                                handler(context);
-                            }
-                        }
+                        receptionStatus = ReceptionStatus.Process;
+                        handler(context);
                     }
                 }
 
