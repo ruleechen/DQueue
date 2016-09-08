@@ -17,15 +17,13 @@ namespace DQueue.CmdTest
             consumer.Receive((context) =>
             {
                 Thread.Sleep(1100);
-                var threadId = Thread.CurrentThread.ManagedThreadId;
-                Console.WriteLine(string.Format("[Receiver 1, ThreadID {0}] -> {1}", threadId, context.Message.Text));
+                Console.WriteLine(string.Format("[Receiver 1, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text));
             });
 
             consumer.Receive((context) =>
             {
                 Thread.Sleep(1200);
-                var threadId = Thread.CurrentThread.ManagedThreadId;
-                Console.WriteLine(string.Format("[Receiver 2, ThreadID {0}] -> {1}", threadId, context.Message.Text));
+                Console.WriteLine(string.Format("[Receiver 2, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text));
             });
 
             consumer.OnComplete((context) =>

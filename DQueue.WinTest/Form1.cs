@@ -27,9 +27,7 @@ namespace DQueue.WinTest
             _consumer.Receive((context) =>
             {
                 Thread.Sleep(1000);
-                var threadId = Thread.CurrentThread.ManagedThreadId;
-
-                control.Text += string.Format("[Receiver 1, ThreadID {0}] -> {1}", threadId, context.Message.Text) + Environment.NewLine;
+                control.Text += string.Format("[Receiver 1, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text) + Environment.NewLine;
                 control.SelectionStart = control.Text.Length;
                 control.ScrollToCaret();
             });
@@ -37,9 +35,7 @@ namespace DQueue.WinTest
             _consumer.Receive((context) =>
             {
                 Thread.Sleep(1100);
-                var threadId = Thread.CurrentThread.ManagedThreadId;
-
-                control.Text += string.Format("[Receiver 2, ThreadID {0}] -> {1}", threadId, context.Message.Text) + Environment.NewLine;
+                control.Text += string.Format("[Receiver 2, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text) + Environment.NewLine;
                 control.SelectionStart = control.Text.Length;
                 control.ScrollToCaret();
             });
