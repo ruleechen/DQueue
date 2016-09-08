@@ -52,12 +52,12 @@ namespace DQueue.Interfaces
             }
         }
 
-        public void MarkAsComplete()
+        public void GotoComplete()
         {
             _action(this, DispatchStatus.Complete);
         }
 
-        public void MarkAsTimeout()
+        public void GotoTimeout()
         {
             _action(this, DispatchStatus.Timeout);
         }
