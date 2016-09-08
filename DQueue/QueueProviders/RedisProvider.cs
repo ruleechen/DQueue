@@ -101,7 +101,7 @@ namespace DQueue.QueueProviders
                 }
             });
 
-            assistant.Token.Register(() =>
+            assistant.Cancellation.Register(() =>
             {
                 subscriber.Unsubscribe(assistant.QueueName + SubscriberKey);
 

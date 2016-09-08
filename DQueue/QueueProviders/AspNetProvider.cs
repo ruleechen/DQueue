@@ -117,7 +117,7 @@ namespace DQueue.QueueProviders
 
             var receptionStatus = ReceptionStatus.Listen;
 
-            assistant.Token.Register(() =>
+            assistant.Cancellation.Register(() =>
             {
                 receptionStatus = ReceptionStatus.Withdraw;
 

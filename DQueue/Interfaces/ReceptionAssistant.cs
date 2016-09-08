@@ -35,15 +35,15 @@ namespace DQueue.Interfaces
         public string QueueName { get; private set; }
         public string ProcessingQueueName { get; private set; }
 
-        public CancellationToken Token { get; private set; }
         public object MonitorLocker { get; private set; }
+        public CancellationToken Cancellation { get; private set; }
 
-        public ReceptionAssistant(string queueName, CancellationToken token)
+        public ReceptionAssistant(string queueName, CancellationToken cancellation)
         {
             QueueName = queueName;
             ProcessingQueueName = (QueueName + Constants.ProcessingQueueName);
 
-            Token = token;
+            Cancellation = cancellation;
             MonitorLocker = GetLocker(QueueName + Constants.MonitorLockerFlag);
         }
     }
