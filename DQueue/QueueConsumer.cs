@@ -96,7 +96,7 @@ namespace DQueue
             return this;
         }
 
-        private bool _dispatchingPool = false;
+        private bool _dispatchingPool;
         private CancellationTokenSource _delayCancellation;
 
         private void Pooling(ReceptionContext<TMessage> receptionContext)
@@ -139,11 +139,17 @@ namespace DQueue
 
             Task.Run(() =>
             {
-                Parallel.ForEach(_pool, new ParallelOptions
+                try
                 {
-                    CancellationToken = _cts.Token
+                    Parallel.ForEach(_pool, new ParallelOptions
+                    {
+                        CancellationToken = _cts.Token
 
-                }, Dispatch);
+                    }, Dispatch);
+                }
+                catch (OperationCanceledException)
+                {
+                }
 
                 _pool.Clear();
 
@@ -174,12 +180,13 @@ namespace DQueue
 
             var timeout = Timeout.HasValue ? Timeout.Value : TimeSpan.FromMilliseconds(Constants.DefaultTimeoutMilliseconds);
             var timeoutCancellation = new CancellationTokenSource(timeout);
+            var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, timeoutCancellation.Token);
 
             try
             {
                 var options = new ParallelOptions
                 {
-                    CancellationToken = timeoutCancellation.Token
+                    CancellationToken = linkedCancellation.Token
                 };
 
                 var result = Parallel.ForEach(_handlers, options, (handler) =>
@@ -201,7 +208,10 @@ namespace DQueue
             }
             catch (OperationCanceledException)
             {
-                ContinueOnTimeout(receptionContext, dispatchContext);
+                if (!_cts.Token.IsCancellationRequested)
+                {
+                    ContinueOnTimeout(receptionContext, dispatchContext);
+                }
             }
         }
 
