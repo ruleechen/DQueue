@@ -17,13 +17,21 @@ namespace DQueue.CmdTest
             consumer.Receive((context) =>
             {
                 Thread.Sleep(1100);
-                Console.WriteLine(string.Format("[Receiver 1, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text));
+
+                if (!context.CancellationToken.IsCancellationRequested)
+                {
+                    Console.WriteLine(string.Format("[Receiver 1, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text));
+                }
             });
 
             consumer.Receive((context) =>
             {
                 Thread.Sleep(1200);
-                Console.WriteLine(string.Format("[Receiver 2, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text));
+
+                if (!context.CancellationToken.IsCancellationRequested)
+                {
+                    Console.WriteLine(string.Format("[Receiver 2, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text));
+                }
             });
 
             consumer.OnComplete((context) =>
@@ -41,6 +49,19 @@ namespace DQueue.CmdTest
 
 
             var producer = new QueueProducer();
+            producer.IgnoreHash = true;
+
+            //foreach (var i in Enumerable.Range(0, 10))
+            //{
+            //    var msg = new SampleMessage
+            //    {
+            //        Text = "m" + i.ToString()
+            //    };
+
+            //    producer.Send(msg);
+
+            //    Console.WriteLine(string.Format("[send] -> {0}", msg.Text));
+            //}
 
             while (true)
             {

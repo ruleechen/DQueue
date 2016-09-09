@@ -2,11 +2,7 @@
 {
     public enum ReceptionStatus
     {
-        Listen,
-
-        Process,
-
-        Complete,
+        Completed,
 
         Retry,
 

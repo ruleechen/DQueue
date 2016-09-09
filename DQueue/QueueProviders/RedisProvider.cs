@@ -88,15 +88,15 @@ namespace DQueue.QueueProviders
             var subscriber = _connectionFactory.GetSubscriber();
             var database = _connectionFactory.GetDatabase();
 
-            var receptionStatus = ReceptionStatus.Listen;
+            var receptionStatus = ReceptionStatus.Completed;
 
             subscriber.Subscribe(assistant.QueueName + SubscriberKey, (channel, val) =>
             {
                 if (val == SubscriberValue)
                 {
-                    lock (assistant.MonitorLocker)
+                    lock (assistant.DequeueLocker)
                     {
-                        Monitor.Pulse(assistant.MonitorLocker);
+                        Monitor.Pulse(assistant.DequeueLocker);
                     }
                 }
             });
@@ -107,9 +107,9 @@ namespace DQueue.QueueProviders
 
                 receptionStatus = ReceptionStatus.Withdraw;
 
-                lock (assistant.MonitorLocker)
+                lock (assistant.DequeueLocker)
                 {
-                    Monitor.PulseAll(assistant.MonitorLocker);
+                    Monitor.PulseAll(assistant.DequeueLocker);
                 }
 
                 var items = database.ListRange(assistant.ProcessingQueueName);
@@ -127,12 +127,11 @@ namespace DQueue.QueueProviders
                 var message = default(TMessage);
                 var item = RedisValue.Null;
 
-                lock (assistant.MonitorLocker)
+                lock (assistant.DequeueLocker)
                 {
                     if (database.ListLength(assistant.QueueName) == 0)
                     {
-                        receptionStatus = ReceptionStatus.Listen;
-                        Monitor.Wait(assistant.MonitorLocker);
+                        Monitor.Wait(assistant.DequeueLocker);
                     }
 
                     try
@@ -145,11 +144,9 @@ namespace DQueue.QueueProviders
 
                 if (message != null)
                 {
-                    receptionStatus = ReceptionStatus.Process;
-
                     handler(new ReceptionContext<TMessage>(message, (sender, status) =>
                     {
-                        if (status == ReceptionStatus.Complete)
+                        if (status == ReceptionStatus.Completed)
                         {
                             database.ListRemove(assistant.ProcessingQueueName, item, 1);
                             database.HashDelete(assistant.QueueName + HashStorageQueueName, item.GetString().RemoveEnqueueTime().GetMD5());

@@ -89,7 +89,7 @@ namespace DQueue.QueueProviders
                 }
             }
 
-            var monitorLocker = ReceptionAssistant.GetLocker(queueName + Constants.MonitorLockerFlag);
+            var monitorLocker = ReceptionAssistant.GetLocker(queueName + Constants.DequeueLockerFlag);
 
             lock (monitorLocker)
             {
@@ -115,15 +115,15 @@ namespace DQueue.QueueProviders
             var hashSet = GetHashSet(assistant.QueueName);
             var queueProcessing = GetQueue(assistant.ProcessingQueueName);
 
-            var receptionStatus = ReceptionStatus.Listen;
+            var receptionStatus = ReceptionStatus.Completed;
 
             assistant.Cancellation.Register(() =>
             {
                 receptionStatus = ReceptionStatus.Withdraw;
 
-                lock (assistant.MonitorLocker)
+                lock (assistant.DequeueLocker)
                 {
-                    Monitor.PulseAll(assistant.MonitorLocker);
+                    Monitor.PulseAll(assistant.DequeueLocker);
                 }
 
                 foreach (var item in queueProcessing)
@@ -144,12 +144,11 @@ namespace DQueue.QueueProviders
                 var message = default(TMessage);
                 var item = default(string);
 
-                lock (assistant.MonitorLocker)
+                lock (assistant.DequeueLocker)
                 {
                     if (queue.Count == 0)
                     {
-                        receptionStatus = ReceptionStatus.Listen;
-                        Monitor.Wait(assistant.MonitorLocker);
+                        Monitor.Wait(assistant.DequeueLocker);
                     }
 
                     try
@@ -164,11 +163,9 @@ namespace DQueue.QueueProviders
 
                 if (message != null)
                 {
-                    receptionStatus = ReceptionStatus.Process;
-
                     handler(new ReceptionContext<TMessage>(message, (sender, status) =>
                     {
-                        if (status == ReceptionStatus.Complete)
+                        if (status == ReceptionStatus.Completed)
                         {
                             queueProcessing.Remove(item);
                             hashSet.Remove(item.RemoveEnqueueTime().GetMD5());

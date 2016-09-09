@@ -34,17 +34,19 @@ namespace DQueue.Interfaces
 
         public string QueueName { get; private set; }
         public string ProcessingQueueName { get; private set; }
-
-        public object MonitorLocker { get; private set; }
         public CancellationToken Cancellation { get; private set; }
+
+        public object DequeueLocker { get; private set; }
+        public object PoolingLocker { get; private set; }
 
         public ReceptionAssistant(string queueName, CancellationToken cancellation)
         {
             QueueName = queueName;
             ProcessingQueueName = (QueueName + Constants.ProcessingQueueName);
-
             Cancellation = cancellation;
-            MonitorLocker = GetLocker(QueueName + Constants.MonitorLockerFlag);
+
+            DequeueLocker = GetLocker(QueueName + Constants.DequeueLockerFlag);
+            PoolingLocker = GetLocker(QueueName + Constants.PoolingLockerFlag);
         }
     }
 }

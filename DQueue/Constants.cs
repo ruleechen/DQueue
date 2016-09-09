@@ -3,7 +3,8 @@
     public static class Constants
     {
         public static readonly string EnqueueTimeField = "$EnqueueTime$";
-        public static readonly string MonitorLockerFlag = "$MonitorLocker$";
+        public static readonly string DequeueLockerFlag = "$DequeueLocker$";
+        public static readonly string PoolingLockerFlag = "$PoolingLocker$";
         public static readonly string ProcessingQueueName = "-$Processing$";
 
         public static readonly QueueProvider DefaultProvider = QueueProvider.Configured;

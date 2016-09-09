@@ -5,27 +5,31 @@ using System.Threading;
 
 namespace DQueue.Interfaces
 {
-    public class DispatchContext<TMessage>
+    public class DispatchContext<TMessage> : IDisposable
     {
         private IDictionary _items;
 
         private TMessage _message;
-        private CancellationToken _token;
         private Action<DispatchContext<TMessage>, DispatchStatus> _action;
 
         private List<Exception> _exceptions;
         private object _exceptionsLocker;
 
-        public DispatchContext(TMessage message, CancellationToken token, Action<DispatchContext<TMessage>, DispatchStatus> action)
+        internal object Locker { get; private set; }
+        internal CancellationTokenSource Cancellation { get; private set; }
+
+        public DispatchContext(TMessage message, Action<DispatchContext<TMessage>, DispatchStatus> action)
         {
             _items = Hashtable.Synchronized(new Hashtable()); // thread safe
 
             _message = message;
-            _token = token;
             _action = action;
 
             _exceptions = new List<Exception>();
             _exceptionsLocker = new object();
+
+            Locker = new object();
+            Cancellation = new CancellationTokenSource();
         }
 
         public TMessage Message
@@ -36,11 +40,11 @@ namespace DQueue.Interfaces
             }
         }
 
-        public CancellationToken Token
+        public CancellationToken CancellationToken
         {
             get
             {
-                return _token;
+                return Cancellation.Token;
             }
         }
 
@@ -64,15 +68,9 @@ namespace DQueue.Interfaces
 
         public void LogException(Exception ex)
         {
-            if (!_token.IsCancellationRequested)
+            lock (_exceptionsLocker)
             {
-                lock (_exceptionsLocker)
-                {
-                    if (!_token.IsCancellationRequested)
-                    {
-                        _exceptions.Add(ex);
-                    }
-                }
+                _exceptions.Add(ex);
             }
         }
 
@@ -81,6 +79,14 @@ namespace DQueue.Interfaces
             get
             {
                 return _exceptions;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (!Cancellation.IsCancellationRequested)
+            {
+                Cancellation.Cancel();
             }
         }
     }

@@ -81,7 +81,7 @@ namespace DQueue.QueueProviders
                     var consumer = new QueueingBasicConsumer(model);
                     model.BasicConsume(assistant.QueueName, false, consumer);
 
-                    var receptionStatus = ReceptionStatus.Listen;
+                    var receptionStatus = ReceptionStatus.Completed;
 
                     assistant.Cancellation.Register(() =>
                     {
@@ -96,7 +96,6 @@ namespace DQueue.QueueProviders
                             break;
                         }
 
-                        receptionStatus = ReceptionStatus.Listen;
                         var eventArg = consumer.Queue.Dequeue();
 
                         if (receptionStatus == ReceptionStatus.Withdraw)
@@ -114,11 +113,9 @@ namespace DQueue.QueueProviders
 
                         if (message != null)
                         {
-                            receptionStatus = ReceptionStatus.Process;
-
                             handler(new ReceptionContext<TMessage>(message, (sender, status) =>
                             {
-                                if (status == ReceptionStatus.Complete)
+                                if (status == ReceptionStatus.Completed)
                                 {
                                     model.BasicAck(eventArg.DeliveryTag, false);
                                 }

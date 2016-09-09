@@ -23,7 +23,7 @@ namespace DQueue.Interfaces
 
         public void Success()
         {
-            _action(this, ReceptionStatus.Complete);
+            _action(this, ReceptionStatus.Completed);
         }
 
         public void Timeout()
@@ -34,7 +34,7 @@ namespace DQueue.Interfaces
             }
             else
             {
-                _action(this, ReceptionStatus.Complete);
+                _action(this, ReceptionStatus.Completed);
             }
         }
 
