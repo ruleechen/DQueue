@@ -9,7 +9,7 @@
 
         public static readonly QueueProvider DefaultProvider = QueueProvider.Configured;
         public static readonly int DefaultTimeoutMilliseconds = 1000 * 60 * 5; // 5 minutes
-        public static readonly int DefaultMaxParallelThreads = 10;
+        public static readonly int DefaultMaxParallelThreads = 50;
         public static readonly bool RetryOnTimeout = false;
     }
 }

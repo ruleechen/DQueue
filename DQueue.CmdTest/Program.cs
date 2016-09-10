@@ -16,21 +16,23 @@ namespace DQueue.CmdTest
 
             consumer.Receive((context) =>
             {
-                Thread.Sleep(2000);
+                Thread.Sleep(500);
+
+                //throw new Exception("aaa");
 
                 if (!context.Cancellation.IsCancellationRequested)
                 {
-                    Console.WriteLine(string.Format("[Receiver 1, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text));
+                    Console.WriteLine(string.Format("receiver 1, thread {0} -> [{1}]", Task.CurrentId, context.Message.Text));
                 }
             });
 
             consumer.Receive((context) =>
             {
-                Thread.Sleep(3000);
+                Thread.Sleep(600);
 
                 if (!context.Cancellation.IsCancellationRequested)
                 {
-                    Console.WriteLine(string.Format("[Receiver 2, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text));
+                    Console.WriteLine(string.Format("receiver 2, thread {0} -> [{1}]", Task.CurrentId, context.Message.Text));
                 }
             });
 
@@ -38,30 +40,30 @@ namespace DQueue.CmdTest
             {
                 foreach (var ex in context.Exceptions)
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("excpetion: [" + ex.Message + "] [" + context.Message.Text + "]");
                 }
             });
 
             consumer.OnTimeout((context) =>
             {
-                Console.WriteLine("timeout: " + context.Message.Text);
+                Console.WriteLine("timeout: [" + context.Message.Text + "]");
             });
 
 
             var producer = new QueueProducer();
             producer.IgnoreHash = true;
 
-            //foreach (var i in Enumerable.Range(0, 10))
-            //{
-            //    var msg = new SampleMessage
-            //    {
-            //        Text = "m" + i.ToString()
-            //    };
+            foreach (var i in Enumerable.Range(0, 10000))
+            {
+                var msg = new SampleMessage
+                {
+                    Text = "m" + i.ToString()
+                };
 
-            //    producer.Send(msg);
+                producer.Send(msg);
 
-            //    Console.WriteLine(string.Format("[send] -> {0}", msg.Text));
-            //}
+                Console.WriteLine(string.Format("send -> [{0}]", msg.Text));
+            }
 
             while (true)
             {
@@ -77,7 +79,7 @@ namespace DQueue.CmdTest
                     Text = text
                 });
 
-                Console.WriteLine(string.Format("[send] -> {0}", text));
+                Console.WriteLine(string.Format("send -> [{0}]", text));
             }
 
             consumer.Dispose();
