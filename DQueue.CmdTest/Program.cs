@@ -16,7 +16,7 @@ namespace DQueue.CmdTest
 
             consumer.Receive((context) =>
             {
-                Thread.Sleep(1100);
+                Thread.Sleep(2000);
 
                 if (!context.CancellationToken.IsCancellationRequested)
                 {
@@ -26,7 +26,7 @@ namespace DQueue.CmdTest
 
             consumer.Receive((context) =>
             {
-                Thread.Sleep(1200);
+                Thread.Sleep(3000);
 
                 if (!context.CancellationToken.IsCancellationRequested)
                 {

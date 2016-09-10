@@ -24,12 +24,12 @@ namespace DQueue
         public TimeSpan? Timeout { get; set; }
 
         public QueueConsumer()
-            : this(null, 1)
+            : this(null, Constants.DefaultMaxParallelThreads)
         {
         }
 
         public QueueConsumer(string queueName)
-            : this(queueName, 1)
+            : this(queueName, Constants.DefaultMaxParallelThreads)
         {
         }
 
@@ -145,7 +145,7 @@ namespace DQueue
                     {
                         CancellationToken = _cts.Token
 
-                    }, Dispatch);
+                    }, DispatchMessage);
                 }
                 catch (OperationCanceledException)
                 {
@@ -163,7 +163,7 @@ namespace DQueue
             }, _cts.Token);
         }
 
-        private void Dispatch(ReceptionContext<TMessage> receptionContext)
+        private void DispatchMessage(ReceptionContext<TMessage> receptionContext)
         {
             var dispatchContext = new DispatchContext<TMessage>(
                 receptionContext.Message, (sender, status) =>
