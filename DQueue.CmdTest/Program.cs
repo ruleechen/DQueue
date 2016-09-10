@@ -18,7 +18,7 @@ namespace DQueue.CmdTest
             {
                 Thread.Sleep(2000);
 
-                if (!context.CancellationToken.IsCancellationRequested)
+                if (!context.Cancellation.IsCancellationRequested)
                 {
                     Console.WriteLine(string.Format("[Receiver 1, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text));
                 }
@@ -28,7 +28,7 @@ namespace DQueue.CmdTest
             {
                 Thread.Sleep(3000);
 
-                if (!context.CancellationToken.IsCancellationRequested)
+                if (!context.Cancellation.IsCancellationRequested)
                 {
                     Console.WriteLine(string.Format("[Receiver 2, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text));
                 }

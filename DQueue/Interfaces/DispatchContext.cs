@@ -45,7 +45,7 @@ namespace DQueue.Interfaces
             }
         }
 
-        public CancellationToken CancellationToken
+        public CancellationToken Cancellation
         {
             get
             {
