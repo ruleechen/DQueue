@@ -16,9 +16,10 @@ namespace DQueue.Interfaces
         private object _exceptionsLocker;
 
         internal object Locker { get; private set; }
-        internal CancellationTokenSource Cancellation { get; private set; }
+        internal CancellationTokenSource OwnedCancellation { get; private set; }
+        internal CancellationTokenSource LinkedCancellation { get; private set; }
 
-        public DispatchContext(TMessage message, Action<DispatchContext<TMessage>, DispatchStatus> action)
+        public DispatchContext(TMessage message, TimeSpan dispatchTimeout, CancellationTokenSource appCancellation, Action<DispatchContext<TMessage>, DispatchStatus> action)
         {
             _items = Hashtable.Synchronized(new Hashtable()); // thread safe
 
@@ -29,7 +30,11 @@ namespace DQueue.Interfaces
             _exceptionsLocker = new object();
 
             Locker = new object();
-            Cancellation = new CancellationTokenSource();
+            OwnedCancellation = new CancellationTokenSource();
+            LinkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                appCancellation.Token,
+                OwnedCancellation.Token,
+                new CancellationTokenSource(dispatchTimeout).Token);
         }
 
         public TMessage Message
@@ -44,7 +49,7 @@ namespace DQueue.Interfaces
         {
             get
             {
-                return Cancellation.Token;
+                return LinkedCancellation.Token;
             }
         }
 
@@ -84,9 +89,9 @@ namespace DQueue.Interfaces
 
         public void Dispose()
         {
-            if (!Cancellation.IsCancellationRequested)
+            if (!OwnedCancellation.IsCancellationRequested)
             {
-                Cancellation.Cancel();
+                OwnedCancellation.Cancel();
             }
         }
     }

@@ -165,8 +165,10 @@ namespace DQueue
 
         private void DispatchMessage(ReceptionContext<TMessage> receptionContext)
         {
+            var timeout = Timeout.HasValue ? Timeout.Value : TimeSpan.FromMilliseconds(Constants.DefaultTimeoutMilliseconds);
+
             var dispatchContext = new DispatchContext<TMessage>(
-                receptionContext.Message, (sender, status) =>
+                receptionContext.Message, timeout, _cts, (sender, status) =>
             {
                 if (status == DispatchStatus.Complete)
                 {
@@ -178,15 +180,11 @@ namespace DQueue
                 }
             });
 
-            var timeout = Timeout.HasValue ? Timeout.Value : TimeSpan.FromMilliseconds(Constants.DefaultTimeoutMilliseconds);
-            var timeoutCancellation = new CancellationTokenSource(timeout);
-            var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, timeoutCancellation.Token);
-
             try
             {
                 var options = new ParallelOptions
                 {
-                    CancellationToken = linkedCancellation.Token
+                    CancellationToken = dispatchContext.LinkedCancellation.Token
                 };
 
                 var result = Parallel.ForEach(_handlers, options, (handler) =>
@@ -217,11 +215,11 @@ namespace DQueue
 
         private void ContinueOnSuccess(ReceptionContext<TMessage> receptionContext, DispatchContext<TMessage> dispatchContext)
         {
-            if (!dispatchContext.Cancellation.IsCancellationRequested)
+            if (!dispatchContext.OwnedCancellation.IsCancellationRequested)
             {
                 lock (dispatchContext.Locker)
                 {
-                    if (!dispatchContext.Cancellation.IsCancellationRequested)
+                    if (!dispatchContext.OwnedCancellation.IsCancellationRequested)
                     {
                         foreach (var complete in _completeHandlers)
                         {
@@ -238,11 +236,11 @@ namespace DQueue
 
         private void ContinueOnTimeout(ReceptionContext<TMessage> receptionContext, DispatchContext<TMessage> dispatchContext)
         {
-            if (!dispatchContext.Cancellation.IsCancellationRequested)
+            if (!dispatchContext.OwnedCancellation.IsCancellationRequested)
             {
                 lock (dispatchContext.Locker)
                 {
-                    if (!dispatchContext.Cancellation.IsCancellationRequested)
+                    if (!dispatchContext.OwnedCancellation.IsCancellationRequested)
                     {
                         foreach (var timeout in _timeoutHandlers)
                         {
