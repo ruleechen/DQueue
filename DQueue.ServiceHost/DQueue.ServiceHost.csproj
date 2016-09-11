@@ -63,7 +63,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Connection\Class1.cs" />
     <Compile Include="Injector.cs" />
+    <Compile Include="LogFactory.cs" />
     <Compile Include="ProjectInstaller.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -83,17 +85,17 @@
     <None Include="App.config">
       <SubType>Designer</SubType>
     </None>
-    <None Include="bats\deploy-install.bat">
+    <None Include="Commands\deploy-install.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="bats\deploy-uninstall.bat">
+    <None Include="Commands\deploy-uninstall.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
-    <None Include="bats\service-start.bat">
+    <None Include="Commands\service-start.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="bats\service-stop.bat">
+    <None Include="Commands\service-stop.bat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
@@ -108,6 +110,7 @@
       <Name>DQueue</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
