@@ -17,7 +17,7 @@ namespace DQueue
         private readonly List<Action<DispatchContext<TMessage>>> _timeoutHandlers;
         private readonly List<Action<DispatchContext<TMessage>>> _completeHandlers;
 
-        public string QueueName { get; set; }
+        public string QueueName { get; private set; }
         public int MaxThreads { get; set; }
         public TimeSpan? Timeout { get; set; }
 

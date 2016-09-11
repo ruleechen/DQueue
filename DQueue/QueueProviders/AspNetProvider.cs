@@ -89,9 +89,9 @@ namespace DQueue.QueueProviders
                 }
             }
 
-            var monitorLocker = ReceptionAssistant.GetLocker(queueName + Constants.DequeueLockerFlag);
+            var dequeueLocker = ReceptionAssistant.GetLocker(queueName + Constants.DequeueLockerFlag);
 
-            lock (monitorLocker)
+            lock (dequeueLocker)
             {
                 queue.Add(json.AddEnqueueTime());
 
@@ -100,7 +100,7 @@ namespace DQueue.QueueProviders
                     hashSet.Add(hash);
                 }
 
-                Monitor.Pulse(monitorLocker);
+                Monitor.Pulse(dequeueLocker);
             }
         }
 
