@@ -1,11 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DQueue", "DQueue\DQueue.csproj", "{DFB49DB8-AE49-4D85-9323-7171CF6F2AF4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DQueue.CmdTest", "DQueue.CmdTest\DQueue.CmdTest.csproj", "{009B8BCC-A368-4E2B-B9B7-A85F26DE26DC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DQueue.WinTest", "DQueue.WinTest\DQueue.WinTest.csproj", "{49427964-189B-4179-8CA5-AD52372809BD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DQueue.ServiceHost", "DQueue.ServiceHost\DQueue.ServiceHost.csproj", "{1D230C57-4897-4090-AAFF-392E2553E80A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{1569BE12-814A-4A83-9D59-9CA50BF7954E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,8 +31,16 @@ Global
 		{49427964-189B-4179-8CA5-AD52372809BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49427964-189B-4179-8CA5-AD52372809BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{49427964-189B-4179-8CA5-AD52372809BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1D230C57-4897-4090-AAFF-392E2553E80A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D230C57-4897-4090-AAFF-392E2553E80A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D230C57-4897-4090-AAFF-392E2553E80A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D230C57-4897-4090-AAFF-392E2553E80A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{009B8BCC-A368-4E2B-B9B7-A85F26DE26DC} = {1569BE12-814A-4A83-9D59-9CA50BF7954E}
+		{49427964-189B-4179-8CA5-AD52372809BD} = {1569BE12-814A-4A83-9D59-9CA50BF7954E}
 	EndGlobalSection
 EndGlobal
