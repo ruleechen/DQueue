@@ -115,7 +115,7 @@ namespace DQueue.QueueProviders
             var hashSet = GetHashSet(assistant.QueueName);
             var queueProcessing = GetQueue(assistant.ProcessingQueueName);
 
-            var receptionStatus = ReceptionStatus.Completed;
+            var receptionStatus = ReceptionStatus.None;
 
             assistant.Cancellation.Register(() =>
             {

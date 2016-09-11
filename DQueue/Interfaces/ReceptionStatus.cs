@@ -2,6 +2,8 @@
 {
     public enum ReceptionStatus
     {
+        None,
+
         Completed,
 
         Retry,

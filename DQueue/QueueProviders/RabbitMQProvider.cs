@@ -81,7 +81,7 @@ namespace DQueue.QueueProviders
                     var consumer = new QueueingBasicConsumer(model);
                     model.BasicConsume(assistant.QueueName, false, consumer);
 
-                    var receptionStatus = ReceptionStatus.Completed;
+                    var receptionStatus = ReceptionStatus.None;
 
                     assistant.Cancellation.Register(() =>
                     {

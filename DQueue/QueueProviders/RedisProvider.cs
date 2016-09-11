@@ -88,7 +88,7 @@ namespace DQueue.QueueProviders
             var subscriber = _connectionFactory.GetSubscriber();
             var database = _connectionFactory.GetDatabase();
 
-            var receptionStatus = ReceptionStatus.Completed;
+            var receptionStatus = ReceptionStatus.None;
 
             subscriber.Subscribe(assistant.QueueName + SubscriberKey, (channel, val) =>
             {
