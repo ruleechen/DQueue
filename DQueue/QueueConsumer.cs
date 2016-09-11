@@ -12,10 +12,8 @@ namespace DQueue
     {
         private readonly QueueProvider _provider;
         private readonly CancellationTokenSource _cts;
-        private readonly List<ReceptionContext<TMessage>> _pool;
-        private readonly ReceptionAssistant _receptionAssistant;
 
-        private readonly List<Action<DispatchContext<TMessage>>> _handlers;
+        private readonly List<Action<DispatchContext<TMessage>>> _messageHandlers;
         private readonly List<Action<DispatchContext<TMessage>>> _timeoutHandlers;
         private readonly List<Action<DispatchContext<TMessage>>> _completeHandlers;
 
@@ -56,10 +54,8 @@ namespace DQueue
 
             _provider = Constants.DefaultProvider;
             _cts = new CancellationTokenSource();
-            _pool = new List<ReceptionContext<TMessage>>();
-            _receptionAssistant = new ReceptionAssistant(QueueName, _cts.Token);
 
-            _handlers = new List<Action<DispatchContext<TMessage>>>();
+            _messageHandlers = new List<Action<DispatchContext<TMessage>>>();
             _timeoutHandlers = new List<Action<DispatchContext<TMessage>>>();
             _completeHandlers = new List<Action<DispatchContext<TMessage>>>();
         }
@@ -81,14 +77,15 @@ namespace DQueue
                 throw new ArgumentNullException("handler");
             }
 
-            _handlers.Add(handler);
+            _messageHandlers.Add(handler);
 
-            if (_handlers.Count == 1)
+            if (_messageHandlers.Count == 1)
             {
                 Task.Run(() =>
                 {
+                    var assistant = new ReceptionAssistant<TMessage>(QueueName, _cts.Token);
                     var provider = QueueProviderFactory.CreateProvider(_provider);
-                    provider.Dequeue<TMessage>(_receptionAssistant, Pooling);
+                    provider.Dequeue<TMessage>(assistant, Pooling);
 
                 }, _cts.Token);
             }
@@ -96,52 +93,53 @@ namespace DQueue
             return this;
         }
 
-        private bool _dispatchingPool;
-        private CancellationTokenSource _delayCancellation;
-
         private void Pooling(ReceptionContext<TMessage> receptionContext)
         {
-            if (_delayCancellation != null)
+            var assistant = receptionContext.Assistant;
+
+            if (assistant.DelayCancellation != null)
             {
-                _delayCancellation.Cancel();
-                _delayCancellation = null;
+                assistant.DelayCancellation.Cancel();
+                assistant.DelayCancellation = null;
             }
 
-            if (_dispatchingPool)
+            if (assistant.IsDispatchingPool)
             {
-                lock (_receptionAssistant.PoolingLocker)
+                lock (assistant.PoolingLocker)
                 {
-                    Monitor.Wait(_receptionAssistant.PoolingLocker);
+                    Monitor.Wait(assistant.PoolingLocker);
                 }
             }
 
-            _pool.Add(receptionContext);
+            assistant.Pool.Add(receptionContext);
 
-            if (_pool.Count >= MaxThreads)
+            if (assistant.Pool.Count >= MaxThreads)
             {
-                DispatchPool();
+                DispatchPool(assistant);
             }
             else
             {
-                _delayCancellation = new CancellationTokenSource();
-                Task.Delay(1000, _delayCancellation.Token).ContinueWith(DispatchPool);
+                assistant.DelayCancellation = new CancellationTokenSource();
+
+                Task.Delay(1000, assistant.DelayCancellation.Token).ContinueWith((task) =>
+                {
+                    if (!task.IsCanceled)
+                    {
+                        DispatchPool(assistant);
+                    }
+                });
             }
         }
 
-        private void DispatchPool(Task delay = null)
+        private void DispatchPool(ReceptionAssistant<TMessage> assistant)
         {
-            if (delay != null && delay.IsCanceled)
-            {
-                return;
-            }
-
-            _dispatchingPool = true;
+            assistant.IsDispatchingPool = true;
 
             Task.Run(() =>
             {
                 try
                 {
-                    Parallel.ForEach(_pool, new ParallelOptions
+                    Parallel.ForEach(assistant.Pool, new ParallelOptions
                     {
                         CancellationToken = _cts.Token
 
@@ -151,13 +149,13 @@ namespace DQueue
                 {
                 }
 
-                _pool.Clear();
+                assistant.Pool.Clear();
 
-                _dispatchingPool = false;
+                assistant.IsDispatchingPool = false;
 
-                lock (_receptionAssistant.PoolingLocker)
+                lock (assistant.PoolingLocker)
                 {
-                    Monitor.Pulse(_receptionAssistant.PoolingLocker);
+                    Monitor.Pulse(assistant.PoolingLocker);
                 }
 
             }, _cts.Token);
@@ -187,7 +185,7 @@ namespace DQueue
                     CancellationToken = dispatchContext.LinkedCancellation.Token
                 };
 
-                var result = Parallel.ForEach(_handlers, options, (handler) =>
+                var result = Parallel.ForEach(_messageHandlers, options, (handler) =>
                 {
                     try
                     {
@@ -295,8 +293,7 @@ namespace DQueue
                 _cts.Dispose();
             }
 
-            _pool.Clear();
-            _handlers.Clear();
+            _messageHandlers.Clear();
             _timeoutHandlers.Clear();
             _completeHandlers.Clear();
         }

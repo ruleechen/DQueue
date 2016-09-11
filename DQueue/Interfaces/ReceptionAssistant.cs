@@ -5,7 +5,6 @@ namespace DQueue.Interfaces
 {
     public class ReceptionAssistant
     {
-        #region static
         static readonly object _lockersLock;
         static readonly Dictionary<string, object> _lockers;
 
@@ -30,14 +29,20 @@ namespace DQueue.Interfaces
 
             return _lockers[key];
         }
-        #endregion
+    }
 
+    public class ReceptionAssistant<TMessage> : ReceptionAssistant
+    {
         public string QueueName { get; private set; }
         public string ProcessingQueueName { get; private set; }
         public CancellationToken Cancellation { get; private set; }
 
         public object DequeueLocker { get; private set; }
         public object PoolingLocker { get; private set; }
+
+        public List<ReceptionContext<TMessage>> Pool { get; private set; }
+        public bool IsDispatchingPool { get; set; }
+        public CancellationTokenSource DelayCancellation { get; set; }
 
         public ReceptionAssistant(string queueName, CancellationToken cancellation)
         {
@@ -47,6 +52,10 @@ namespace DQueue.Interfaces
 
             DequeueLocker = GetLocker(QueueName + Constants.DequeueLockerFlag);
             PoolingLocker = GetLocker(QueueName + Constants.PoolingLockerFlag);
+
+            Pool = new List<ReceptionContext<TMessage>>();
+            IsDispatchingPool = false;
+            DelayCancellation = null;
         }
     }
 }

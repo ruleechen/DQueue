@@ -10,6 +10,6 @@ namespace DQueue.Interfaces
 
         void Enqueue(string queueName, object message);
 
-        void Dequeue<TMessage>(ReceptionAssistant assistant, Action<ReceptionContext<TMessage>> handler);
+        void Dequeue<TMessage>(ReceptionAssistant<TMessage> assistant, Action<ReceptionContext<TMessage>> handler);
     }
 }

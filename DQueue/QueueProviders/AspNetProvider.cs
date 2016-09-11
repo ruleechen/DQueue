@@ -104,7 +104,7 @@ namespace DQueue.QueueProviders
             }
         }
 
-        public void Dequeue<TMessage>(ReceptionAssistant assistant, Action<ReceptionContext<TMessage>> handler)
+        public void Dequeue<TMessage>(ReceptionAssistant<TMessage> assistant, Action<ReceptionContext<TMessage>> handler)
         {
             if (assistant == null || string.IsNullOrWhiteSpace(assistant.QueueName) || handler == null)
             {
@@ -163,7 +163,7 @@ namespace DQueue.QueueProviders
 
                 if (message != null)
                 {
-                    handler(new ReceptionContext<TMessage>(message, (sender, status) =>
+                    handler(new ReceptionContext<TMessage>(message, assistant, (sender, status) =>
                     {
                         if (status == ReceptionStatus.Completed)
                         {

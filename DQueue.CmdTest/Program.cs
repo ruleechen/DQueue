@@ -14,11 +14,12 @@ namespace DQueue.CmdTest
         {
             var consumer = new QueueConsumer<SampleMessage>(10);
 
+            var completeCount = 0;
+            var timeoutCount = 0;
+
             consumer.Receive((context) =>
             {
                 Thread.Sleep(500);
-
-                //throw new Exception("aaa");
 
                 if (!context.Cancellation.IsCancellationRequested)
                 {
@@ -38,6 +39,8 @@ namespace DQueue.CmdTest
 
             consumer.OnComplete((context) =>
             {
+                completeCount++;
+
                 foreach (var ex in context.Exceptions)
                 {
                     Console.WriteLine("excpetion: [" + ex.Message + "] [" + context.Message.Text + "]");
@@ -46,6 +49,7 @@ namespace DQueue.CmdTest
 
             consumer.OnTimeout((context) =>
             {
+                timeoutCount++;
                 Console.WriteLine("timeout: [" + context.Message.Text + "]");
             });
 
@@ -72,6 +76,16 @@ namespace DQueue.CmdTest
                 if (text == "exit")
                 {
                     break;
+                }
+                else if (text == "complete")
+                {
+                    Console.WriteLine(completeCount);
+                    continue;
+                }
+                else if (text == "timeout")
+                {
+                    Console.WriteLine(timeoutCount);
+                    continue;
                 }
 
                 producer.Send(new SampleMessage
