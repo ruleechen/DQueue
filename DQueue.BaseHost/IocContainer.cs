@@ -5,6 +5,7 @@ using System.ComponentModel.Composition.Hosting;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Web;
 
 namespace DQueue.BaseHost
 {
@@ -14,8 +15,15 @@ namespace DQueue.BaseHost
 
         static IocContainer()
         {
+            var binPath = AppDomain.CurrentDomain.BaseDirectory;
+
+            if (HttpContext.Current.IsAvailable())
+            {
+                binPath = Path.Combine(binPath, "bin");
+            }
+
             // Cause if you load the assembly by using Assembly.LoadFile() the assembly will automatically be put into your CurrentDomain
-            var assembiles = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "*.dll").Select(x => Assembly.LoadFile(x));
+            var assembiles = Directory.GetFiles(binPath, "*.dll").Select(x => Assembly.LoadFile(x));
 
             var catalog = new AggregateCatalog();
             foreach (var assembily in assembiles)

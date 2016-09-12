@@ -1,4 +1,5 @@
 ﻿using DQueue.Interfaces;
+using System;
 using System.Collections.Generic;
 
 namespace DQueue.BaseHost
@@ -11,6 +12,11 @@ namespace DQueue.BaseHost
 
         public void Start(string[] args)
         {
+            if (_queueServices != null)
+            {
+                throw new InvalidOperationException("Host already started!");
+            }
+
             Logger.Debug("--------------- Service Host Start -----------------");
 
             _queueServices = IocContainer.GetQueueServices();

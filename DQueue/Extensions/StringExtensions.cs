@@ -1,9 +1,10 @@
-﻿using Newtonsoft.Json;
+﻿using DQueue.Helpers;
+using Newtonsoft.Json;
 using StackExchange.Redis;
 using System;
 using System.Text.RegularExpressions;
 
-namespace DQueue.Helpers
+namespace DQueue
 {
     public static class StringExtensions
     {

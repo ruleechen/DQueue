@@ -13,7 +13,7 @@ namespace DQueue
             {
                 if (_current == null)
                 {
-                    if (HttpContext.Current != null)
+                    if (HttpContext.Current.IsAvailable())
                     {
                         _current = WebConfigurationManager.OpenWebConfiguration("~");
                     }
