@@ -1,6 +1,5 @@
-﻿using DQueue.Interfaces;
+﻿using DQueue.BaseHost;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.ServiceProcess;
 
@@ -42,23 +41,13 @@ namespace DQueue.ServiceHost
             InitializeComponent();
         }
 
-        private IEnumerable<IQueueService> _queueServices;
+        private DQueueHost _dqueueHost;
 
         protected override void OnStart(string[] args)
         {
             try
             {
-                Logger.Debug("--------------- Service Host Start -----------------");
-
-                _queueServices = Injector.GetAllExports<IQueueService>();
-
-                if (_queueServices != null)
-                {
-                    foreach (var item in _queueServices)
-                    {
-                        item.Start(args);
-                    }
-                }
+                _dqueueHost.Start(args);
             }
             catch (Exception ex)
             {
@@ -71,16 +60,14 @@ namespace DQueue.ServiceHost
 
         protected override void OnStop()
         {
-            Logger.Debug("------------------ Service Host Stop --------------");
-
-            if (_queueServices != null)
+            try
             {
-                foreach (var item in _queueServices)
-                {
-                    item.Stop();
-                }
+                _dqueueHost.Stop();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("OnStop error!", ex);
             }
         }
-
     }
 }

@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DQueue.ServiceHost", "DQueu
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{1569BE12-814A-4A83-9D59-9CA50BF7954E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DQueue.ConsoleHost", "DQueue.ConsoleHost\DQueue.ConsoleHost.csproj", "{A6C8917B-6315-4256-986A-54BE48D6B52D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DQueue.BaseHost", "DQueue.BaseHost\DQueue.BaseHost.csproj", "{83D716E6-649C-483D-B720-51D62710FC40}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +39,14 @@ Global
 		{1D230C57-4897-4090-AAFF-392E2553E80A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1D230C57-4897-4090-AAFF-392E2553E80A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1D230C57-4897-4090-AAFF-392E2553E80A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6C8917B-6315-4256-986A-54BE48D6B52D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6C8917B-6315-4256-986A-54BE48D6B52D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6C8917B-6315-4256-986A-54BE48D6B52D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6C8917B-6315-4256-986A-54BE48D6B52D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83D716E6-649C-483D-B720-51D62710FC40}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83D716E6-649C-483D-B720-51D62710FC40}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83D716E6-649C-483D-B720-51D62710FC40}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83D716E6-649C-483D-B720-51D62710FC40}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

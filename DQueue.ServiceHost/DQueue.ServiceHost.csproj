@@ -63,9 +63,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Connection\Class1.cs" />
-    <Compile Include="Injector.cs" />
-    <Compile Include="LogFactory.cs" />
     <Compile Include="ProjectInstaller.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -105,6 +102,10 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\DQueue.BaseHost\DQueue.BaseHost.csproj">
+      <Project>{83d716e6-649c-483d-b720-51d62710fc40}</Project>
+      <Name>DQueue.BaseHost</Name>
+    </ProjectReference>
     <ProjectReference Include="..\DQueue\DQueue.csproj">
       <Project>{dfb49db8-ae49-4d85-9323-7171cf6f2af4}</Project>
       <Name>DQueue</Name>

@@ -1,17 +1,18 @@
-﻿using System;
+﻿using DQueue.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition.Hosting;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 
-namespace DQueue.ServiceHost
+namespace DQueue.BaseHost
 {
-    public class Injector
+    public class IocContainer
     {
         static CompositionContainer _container;
 
-        static Injector()
+        static IocContainer()
         {
             // Cause if you load the assembly by using Assembly.LoadFile() the assembly will automatically be put into your CurrentDomain
             var assembiles = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "*.dll").Select(x => Assembly.LoadFile(x));
@@ -30,6 +31,11 @@ namespace DQueue.ServiceHost
         {
             var lazy = _container.GetExports<TService>();
             return lazy.Select(x => x.Value);
+        }
+
+        public static IEnumerable<IQueueService> GetQueueServices()
+        {
+            return GetAllExports<IQueueService>();
         }
     }
 }
