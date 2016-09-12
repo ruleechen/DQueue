@@ -30,6 +30,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
@@ -41,6 +45,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Connection\Commands\GetServerInfoCommand.cs" />
+    <Compile Include="Connection\DQClient.cs" />
+    <Compile Include="Connection\Commands\BaseCommand.cs" />
+    <Compile Include="Connection\Commands\HostRegisterCommand.cs" />
+    <Compile Include="Connection\ICommand.cs" />
+    <Compile Include="Connection\Models\HostInfo.cs" />
+    <Compile Include="Connection\Models\ConsumerInfo.cs" />
+    <Compile Include="Connection\Models\ServerInfo.cs" />
+    <Compile Include="Connection\Models\ServerWorkload.cs" />
     <Compile Include="DQueueHost.cs" />
     <Compile Include="IocContainer.cs" />
     <Compile Include="LogFactory.cs" />
@@ -53,8 +66,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Connection\" />
+    <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

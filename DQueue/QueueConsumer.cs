@@ -18,7 +18,7 @@ namespace DQueue
         private readonly List<Action<DispatchContext<TMessage>>> _completeHandlers;
 
         public string QueueName { get; private set; }
-        public int MaxThreads { get; set; }
+        public int MaximumThreads { get; set; }
         public TimeSpan? Timeout { get; set; }
 
         public QueueConsumer()
@@ -31,20 +31,20 @@ namespace DQueue
         {
         }
 
-        public QueueConsumer(int maxThreads)
-            : this(null, maxThreads)
+        public QueueConsumer(int maximumThreads)
+            : this(null, maximumThreads)
         {
         }
 
-        public QueueConsumer(string queueName, int maxThreads)
+        public QueueConsumer(string queueName, int maximumThreads)
         {
-            MaxThreads = maxThreads;
+            MaximumThreads = maximumThreads;
             QueueName = queueName ?? QueueNameGenerator.GetQueueName<TMessage>();
             Timeout = ConfigSource.GetAppSettings("ConsumerTimeout").AsNullableTimeSpan();
 
-            if (MaxThreads < 1)
+            if (MaximumThreads < 1)
             {
-                throw new ArgumentOutOfRangeException("maxThreads");
+                throw new ArgumentOutOfRangeException("maximumThreads");
             }
 
             if (string.IsNullOrWhiteSpace(QueueName))
@@ -113,7 +113,7 @@ namespace DQueue
 
             assistant.Pool.Add(receptionContext);
 
-            if (assistant.Pool.Count >= MaxThreads)
+            if (assistant.Pool.Count >= MaximumThreads)
             {
                 DispatchPool(assistant);
             }

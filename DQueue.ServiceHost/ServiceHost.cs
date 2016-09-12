@@ -47,6 +47,7 @@ namespace DQueue.ServiceHost
         {
             try
             {
+                _dqueueHost = new DQueueHost();
                 _dqueueHost.Start(args);
             }
             catch (Exception ex)
@@ -60,13 +61,16 @@ namespace DQueue.ServiceHost
 
         protected override void OnStop()
         {
-            try
+            if (_dqueueHost != null)
             {
-                _dqueueHost.Stop();
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("OnStop error!", ex);
+                try
+                {
+                    _dqueueHost.Stop();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error("OnStop error!", ex);
+                }
             }
         }
     }
