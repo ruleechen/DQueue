@@ -22,7 +22,7 @@ namespace DQueue.WinTest
 
             var control = txtReceive;
 
-            _consumer = new QueueConsumer<SampleMessage>(10);
+            _consumer = new QueueConsumer<SampleMessage>(50);
 
             _consumer.Receive((context) =>
             {
@@ -44,6 +44,7 @@ namespace DQueue.WinTest
         private void btnSend_Click(object sender, EventArgs e)
         {
             var producer = new QueueProducer();
+            producer.IgnoreHash = true;
 
             var text = txtSend.Text;
 
