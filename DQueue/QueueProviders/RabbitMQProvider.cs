@@ -22,7 +22,7 @@ namespace DQueue.QueueProviders
                 RequestedHeartbeat = rabbitMQConfiguration.RequestedHeartbeat,
                 ClientProperties = rabbitMQConfiguration.ClientProperties
             };
-        }, true);
+        }, false);
 
         private readonly ConnectionFactory _connectionFactory;
 

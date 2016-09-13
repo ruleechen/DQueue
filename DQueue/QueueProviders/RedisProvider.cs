@@ -12,7 +12,7 @@ namespace DQueue.QueueProviders
             var redisConnectionString = ConfigSource.GetConnection("Redis_Connection");
             var resisConfiguration = ConfigurationOptions.Parse(redisConnectionString);
             return ConnectionMultiplexer.Connect(resisConfiguration);
-        }, true);
+        }, false);
 
         private const string SubscriberKey = "$RedisQueueSubscriberKey$";
         private const string SubscriberValue = "$RedisQueueSubscriberValue$";
