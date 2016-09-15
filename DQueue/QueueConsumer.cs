@@ -18,7 +18,7 @@ namespace DQueue
         private readonly List<Action<DispatchContext<TMessage>>> _completeHandlers;
 
         public string HostId { get; private set; }
-        public string QueueName { get; private set; }        
+        public string QueueName { get; private set; }
         public int MaximumThreads { get; set; }
         public TimeSpan? Timeout { get; set; }
 

@@ -19,9 +19,9 @@ namespace DQueue.CmdTest
             var completeCount = 0;
             var timeoutCount = 0;
 
-            for (var i = 0; i < 10; i++)
+            for (var i = 0; i < 200; i++)
             {
-                var consumer = new QueueConsumer<SampleMessage>("Queue" + i, 50);
+                var consumer = new QueueConsumer<SampleMessage>("Queue" + i, 10);
                 consumers.Add(consumer);
 
                 consumer.Receive((context) =>

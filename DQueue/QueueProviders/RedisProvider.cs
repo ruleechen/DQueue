@@ -7,27 +7,45 @@ namespace DQueue.QueueProviders
 {
     public class RedisProvider : IQueueProvider
     {
-        static Lazy<ConnectionMultiplexer> _redisConnectionFactory = new Lazy<ConnectionMultiplexer>(() =>
+        class ConnectionFactoryWrapper
+        {
+            private IDatabase _database;
+            private ISubscriber _subscriber;
+
+            public ConnectionFactoryWrapper(IConnectionMultiplexer connection)
+            {
+                _database = connection.GetDatabase();
+                _subscriber = connection.GetSubscriber();
+            }
+
+            public IDatabase GetDatabase()
+            {
+                return _database;
+            }
+
+            public ISubscriber GetSubscriber()
+            {
+                return _subscriber;
+            }
+        }
+
+        static Lazy<ConnectionFactoryWrapper> _redisConnectionFactory = new Lazy<ConnectionFactoryWrapper>(() =>
         {
             var redisConnectionString = ConfigSource.GetConnection("Redis_Connection");
             var resisConfiguration = ConfigurationOptions.Parse(redisConnectionString);
-            return ConnectionMultiplexer.Connect(resisConfiguration);
+            var connection = ConnectionMultiplexer.Connect(resisConfiguration);
+            return new ConnectionFactoryWrapper(connection);
         }, false);
 
         private const string SubscriberKey = "$RedisQueueSubscriberKey$";
         private const string SubscriberValue = "$RedisQueueSubscriberValue$";
         private const string HashStorageQueueName = "-$Hash$";
 
-        private readonly ConnectionMultiplexer _connectionFactory;
+        private ConnectionFactoryWrapper _connectionFactory;
 
         public RedisProvider()
-            : this(_redisConnectionFactory.Value)
         {
-        }
-
-        public RedisProvider(ConnectionMultiplexer connectionFactory)
-        {
-            _connectionFactory = connectionFactory;
+            _connectionFactory = _redisConnectionFactory.Value;
         }
 
         public bool IgnoreHash { get; set; }

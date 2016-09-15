@@ -1,12 +1,36 @@
 ﻿using DQueue.Interfaces;
 using DQueue.QueueProviders;
 using System;
+using System.Collections.Generic;
 
 namespace DQueue
 {
     public class QueueProviderFactory
     {
-        public static IQueueProvider CreateProvider(QueueProvider provider)
+        static Dictionary<QueueProvider, IQueueProvider> _singletons;
+
+        static QueueProviderFactory()
+        {
+            _singletons = new Dictionary<QueueProvider, IQueueProvider>();
+        }
+
+        public static IQueueProvider GetSingleton(QueueProvider provider)
+        {
+            if (!_singletons.ContainsKey(provider))
+            {
+                lock (typeof(QueueProviderFactory))
+                {
+                    if (!_singletons.ContainsKey(provider))
+                    {
+                        _singletons[provider] = CreateProvider(provider);
+                    }
+                }
+            }
+
+            return _singletons[provider];
+        }
+
+        public static IQueueProvider CreateProvider(QueueProvider provider, bool singleton = false)
         {
             if (provider == QueueProvider.Configured)
             {
