@@ -17,7 +17,8 @@ namespace DQueue
         private readonly List<Action<DispatchContext<TMessage>>> _timeoutHandlers;
         private readonly List<Action<DispatchContext<TMessage>>> _completeHandlers;
 
-        public string QueueName { get; private set; }
+        public string HostId { get; private set; }
+        public string QueueName { get; private set; }        
         public int MaximumThreads { get; set; }
         public TimeSpan? Timeout { get; set; }
 
@@ -39,17 +40,23 @@ namespace DQueue
         public QueueConsumer(string queueName, int maximumThreads)
         {
             MaximumThreads = maximumThreads;
+            HostId = ConfigSource.GetAppSettings("DQueue.HostId");
             QueueName = queueName ?? QueueNameGenerator.GetQueueName<TMessage>();
-            Timeout = ConfigSource.GetAppSettings("ConsumerTimeout").AsNullableTimeSpan();
+            Timeout = ConfigSource.GetAppSettings("DQueue.ConsumerTimeout").AsNullableTimeSpan();
 
-            if (MaximumThreads < 1)
+            if (string.IsNullOrWhiteSpace(HostId))
             {
-                throw new ArgumentOutOfRangeException("maximumThreads");
+                throw new ArgumentNullException("HostId");
             }
 
             if (string.IsNullOrWhiteSpace(QueueName))
             {
                 throw new ArgumentNullException("queueName");
+            }
+
+            if (MaximumThreads < 1)
+            {
+                throw new ArgumentOutOfRangeException("maximumThreads");
             }
 
             _provider = Constants.DefaultProvider;
@@ -83,7 +90,7 @@ namespace DQueue
             {
                 Task.Run(() =>
                 {
-                    var assistant = new ReceptionAssistant<TMessage>(QueueName, _cts.Token);
+                    var assistant = new ReceptionAssistant<TMessage>(HostId, QueueName, _cts.Token);
                     var provider = QueueProviderFactory.CreateProvider(_provider);
                     provider.Dequeue<TMessage>(assistant, Pooling);
 

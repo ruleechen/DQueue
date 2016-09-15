@@ -100,6 +100,8 @@ namespace DQueue.QueueProviders
                 }
             });
 
+            RequeueProcessingMessages(assistant, database);
+
             assistant.Cancellation.Register(() =>
             {
                 subscriber.Unsubscribe(assistant.QueueName + SubscriberKey);
@@ -111,9 +113,7 @@ namespace DQueue.QueueProviders
                     Monitor.PulseAll(assistant.DequeueLocker);
                 }
 
-                var items = database.ListRange(assistant.ProcessingQueueName);
-                database.ListRightPush(assistant.QueueName, items);
-                database.KeyDelete(assistant.ProcessingQueueName);
+                RequeueProcessingMessages(assistant, database);
             });
 
             while (true)
@@ -160,5 +160,11 @@ namespace DQueue.QueueProviders
             }
         }
 
+        private static void RequeueProcessingMessages<TMessage>(ReceptionAssistant<TMessage> assistant, IDatabase database)
+        {
+            var items = database.ListRange(assistant.ProcessingQueueName);
+            database.ListRightPush(assistant.QueueName, items);
+            database.KeyDelete(assistant.ProcessingQueueName);
+        }
     }
 }

@@ -116,6 +116,8 @@ namespace DQueue.QueueProviders
 
             var receptionStatus = ReceptionStatus.None;
 
+            RequeueProcessingMessages(queue, queueProcessing);
+
             assistant.Cancellation.Register(() =>
             {
                 receptionStatus = ReceptionStatus.Withdraw;
@@ -125,12 +127,7 @@ namespace DQueue.QueueProviders
                     Monitor.PulseAll(assistant.DequeueLocker);
                 }
 
-                foreach (var item in queueProcessing)
-                {
-                    queue.Insert(0, item);
-                }
-
-                queueProcessing.Clear();
+                RequeueProcessingMessages(queue, queueProcessing);
             });
 
             while (true)
@@ -179,5 +176,14 @@ namespace DQueue.QueueProviders
             }
         }
 
+        private static void RequeueProcessingMessages(List<string> queue, List<string> queueProcessing)
+        {
+            foreach (var item in queueProcessing)
+            {
+                queue.Insert(0, item);
+            }
+
+            queueProcessing.Clear();
+        }
     }
 }

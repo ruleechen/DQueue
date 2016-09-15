@@ -44,14 +44,14 @@ namespace DQueue.Interfaces
         public bool IsDispatchingPool { get; set; }
         public CancellationTokenSource DelayCancellation { get; set; }
 
-        public ReceptionAssistant(string queueName, CancellationToken cancellation)
+        public ReceptionAssistant(string hostId, string queueName, CancellationToken cancellation)
         {
             QueueName = queueName;
-            ProcessingQueueName = (QueueName + Constants.ProcessingQueueName);
+            ProcessingQueueName = (QueueName + string.Format(Constants.ProcessingQueueName, hostId));
             Cancellation = cancellation;
 
-            DequeueLocker = GetLocker(QueueName + Constants.DequeueLockerFlag);
-            PoolingLocker = GetLocker(QueueName + Constants.PoolingLockerFlag);
+            DequeueLocker = GetLocker(QueueName + string.Format(Constants.DequeueLockerFlag, hostId));
+            PoolingLocker = GetLocker(QueueName + string.Format(Constants.PoolingLockerFlag, hostId));
 
             Pool = new List<ReceptionContext<TMessage>>();
             IsDispatchingPool = false;
