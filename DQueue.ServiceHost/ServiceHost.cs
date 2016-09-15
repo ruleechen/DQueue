@@ -39,6 +39,7 @@ namespace DQueue.ServiceHost
         public ServiceHost()
         {
             InitializeComponent();
+            ServiceName = SERVICENAME;
         }
 
         private DQueueHost _dqueueHost;

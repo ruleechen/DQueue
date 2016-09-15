@@ -1,6 +1,7 @@
 ﻿using DQueue.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DQueue.BaseHost
 {
@@ -23,6 +24,8 @@ namespace DQueue.BaseHost
 
             if (_queueServices != null)
             {
+                Logger.Debug("Queue Service Count:" + _queueServices.Count());
+
                 foreach (var item in _queueServices)
                 {
                     item.Start(args);
