@@ -53,7 +53,10 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy /y "$(TargeDir)$(TargetName).dll" "$(SolutionDir)DQueue.ServiceHost\$(OutDir)"
-xcopy /y "$(TargeDir)$(TargetName).pdb" "$(SolutionDir)DQueue.ServiceHost\$(OutDir)"</PostBuildEvent>
+xcopy /y "$(TargeDir)$(TargetName).pdb" "$(SolutionDir)DQueue.ServiceHost\$(OutDir)"
+
+xcopy /y "$(TargeDir)$(TargetName).dll" "$(SolutionDir)DQueue.ConsoleHost\$(OutDir)"
+xcopy /y "$(TargeDir)$(TargetName).pdb" "$(SolutionDir)DQueue.ConsoleHost\$(OutDir)"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

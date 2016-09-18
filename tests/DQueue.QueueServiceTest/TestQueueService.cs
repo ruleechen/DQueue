@@ -20,7 +20,7 @@ namespace DQueue.QueueServiceTest
         public string Text { get; set; }
     }
 
-    [Export("test", typeof(IQueueService))]
+    [Export(typeof(IQueueService))]
     public class TestQueueService : IQueueService
     {
         List<QueueConsumer<SampleMessage>> consumers;
@@ -97,7 +97,7 @@ namespace DQueue.QueueServiceTest
         {
             if (consumers != null)
             {
-                foreach(var item in consumers)
+                foreach (var item in consumers)
                 {
                     item.Dispose();
                 }
