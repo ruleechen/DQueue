@@ -63,6 +63,7 @@
     <Compile Include="Helpers\HashCodeGenerator.cs" />
     <Compile Include="Extensions\HttpContextExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
+    <Compile Include="LogFactory.cs" />
     <Compile Include="QueueProviderFactory.cs" />
     <Compile Include="Helpers\QueueNameGenerator.cs" />
     <Compile Include="Helpers\RabbitMQConnectionConfiguration.cs" />

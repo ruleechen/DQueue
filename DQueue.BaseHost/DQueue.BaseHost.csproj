@@ -57,7 +57,6 @@
     <Compile Include="Connection\Models\ServerWorkload.cs" />
     <Compile Include="DQueueHost.cs" />
     <Compile Include="IocContainer.cs" />
-    <Compile Include="LogFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

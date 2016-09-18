@@ -2,7 +2,7 @@
 using System.IO;
 using System.Text;
 
-namespace DQueue.BaseHost
+namespace DQueue
 {
     public interface ILogger
     {
