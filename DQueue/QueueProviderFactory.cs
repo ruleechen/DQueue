@@ -35,7 +35,7 @@ namespace DQueue
             if (provider == QueueProvider.Configured)
             {
                 QueueProvider outProvider;
-                var strProvider = ConfigSource.GetAppSettings("DQueue.Provider");
+                var strProvider = ConfigSource.FirstAppSetting("DQueue.Provider", "QueueProvider");
                 if (Enum.TryParse<QueueProvider>(strProvider, true, out outProvider))
                 {
                     provider = outProvider;

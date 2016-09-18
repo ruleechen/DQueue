@@ -31,10 +31,21 @@ namespace DQueue
             }
         }
 
-        public static string GetAppSettings(string key)
+        public static string GetAppSetting(string key)
         {
             var item = Current.AppSettings.Settings[key];
             return item != null ? item.Value : null;
+        }
+
+        public static string FirstAppSetting(params string[] keys)
+        {
+            foreach (var key in keys)
+            {
+                var value = GetAppSetting(key);
+                if (value != null) { return value; }
+            }
+
+            return null;
         }
 
         public static string GetConnection(string key)

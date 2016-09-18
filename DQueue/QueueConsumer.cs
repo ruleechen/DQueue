@@ -40,9 +40,9 @@ namespace DQueue
         public QueueConsumer(string queueName, int maximumThreads)
         {
             MaximumThreads = maximumThreads;
-            HostId = ConfigSource.GetAppSettings("DQueue.HostId");
+            HostId = ConfigSource.GetAppSetting("DQueue.HostId");
             QueueName = queueName ?? QueueNameGenerator.GetQueueName<TMessage>();
-            Timeout = ConfigSource.GetAppSettings("DQueue.ConsumerTimeout").AsNullableTimeSpan();
+            Timeout = ConfigSource.FirstAppSetting("DQueue.ConsumerTimeout", "ConsumerTimeout").AsNullableTimeSpan();
 
             if (string.IsNullOrWhiteSpace(HostId))
             {
