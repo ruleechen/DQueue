@@ -35,7 +35,7 @@ namespace DQueue.QueueProviders
             var resisConfiguration = ConfigurationOptions.Parse(redisConnectionString);
             var connection = ConnectionMultiplexer.Connect(resisConfiguration);
             return new ConnectionFactoryWrapper(connection);
-        }, false);
+        }, true);
 
         private const string SubscriberKey = "$RedisQueueSubscriberKey$";
         private const string SubscriberValue = "$RedisQueueSubscriberValue$";

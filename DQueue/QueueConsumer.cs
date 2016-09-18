@@ -91,8 +91,16 @@ namespace DQueue
                 Task.Run(() =>
                 {
                     var assistant = new ReceptionAssistant<TMessage>(HostId, QueueName, _cts.Token);
-                    var provider = QueueProviderFactory.CreateProvider(_provider);
-                    provider.Dequeue<TMessage>(assistant, Pooling);
+
+                    try
+                    {
+                        var provider = QueueProviderFactory.CreateProvider(_provider);
+                        provider.Dequeue<TMessage>(assistant, Pooling);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogFactory.GetLogger().Error("Receive Task Error for queue [" + assistant.QueueName + "]", ex);
+                    }
 
                 }, _cts.Token);
             }
