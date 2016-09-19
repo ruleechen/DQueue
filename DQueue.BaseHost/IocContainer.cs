@@ -15,6 +15,18 @@ namespace DQueue.BaseHost
 
         static IocContainer()
         {
+            var binPath = GetBinPath();
+            var binCatalog = new DirectoryCatalog(binPath, "*.dll");
+
+            var exeAssembly = Assembly.GetExecutingAssembly();
+            var exeAssemblyCatalog = new AssemblyCatalog(exeAssembly);
+
+            var aggregateCatalog = new AggregateCatalog(binCatalog, exeAssemblyCatalog);
+            _container = new CompositionContainer(aggregateCatalog);
+        }
+
+        private static string GetBinPath()
+        {
             var binPath = AppDomain.CurrentDomain.BaseDirectory;
 
             if (HttpContext.Current.IsAvailable())
@@ -22,28 +34,17 @@ namespace DQueue.BaseHost
                 binPath = Path.Combine(binPath, "bin");
             }
 
-            // Cause if you load the assembly by using Assembly.LoadFile() the assembly will automatically be put into your CurrentDomain
-            var assembiles = Directory.GetFiles(binPath, "*.dll").Select(x => Assembly.LoadFile(x));
-
-            var catalog = new AggregateCatalog();
-            foreach (var assembily in assembiles)
-            {
-                var item = new AssemblyCatalog(assembily);
-                catalog.Catalogs.Add(item);
-            }
-
-            _container = new CompositionContainer(catalog);
+            return binPath;
         }
 
-        public static IEnumerable<TService> GetAllExports<TService>()
+        public static IEnumerable<TExport> GetExports<TExport>()
         {
-            var lazy = _container.GetExports<TService>();
-            return lazy.Select(x => x.Value);
+            return _container.GetExportedValues<TExport>().ToList();
         }
 
         public static IEnumerable<IQueueService> GetQueueServices()
         {
-            return GetAllExports<IQueueService>();
+            return GetExports<IQueueService>();
         }
     }
 }
