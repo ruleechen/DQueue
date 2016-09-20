@@ -1,9 +1,5 @@
 ﻿using DQueue.BaseHost;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DQueue.ConsoleHost
 {
@@ -15,6 +11,26 @@ namespace DQueue.ConsoleHost
         {
             OnStart(args);
             Console.WriteLine("Console Host Started!");
+
+            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            {
+                if (e.ExceptionObject != null)
+                {
+                    if (e.ExceptionObject is Exception)
+                    {
+                        Logger.Error("Unhandled Exception!", (Exception)e.ExceptionObject);
+                    }
+                    else
+                    {
+                        Logger.Debug("Unhandled Exception:" + e.ExceptionObject.ToString());
+                    }
+                }
+            };
+
+            AppDomain.CurrentDomain.ProcessExit += (s, e) =>
+            {
+                OnStop();
+            };
 
             while (true)
             {
@@ -49,6 +65,7 @@ namespace DQueue.ConsoleHost
                 try
                 {
                     _dqueueHost.Stop();
+                    _dqueueHost = null;
                 }
                 catch (Exception ex)
                 {

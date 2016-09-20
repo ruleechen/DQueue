@@ -19,11 +19,11 @@ namespace DQueue.ServiceHost
                 {
                     if (e.ExceptionObject is Exception)
                     {
-                        Logger.Error("UnhandledException!", (Exception)e.ExceptionObject);
+                        Logger.Error("Unhandled Exception!", (Exception)e.ExceptionObject);
                     }
                     else
                     {
-                        Logger.Debug("UnhandledException:" + e.ExceptionObject.ToString());
+                        Logger.Debug("Unhandled Exception:" + e.ExceptionObject.ToString());
                     }
                 }
 
