@@ -42,9 +42,9 @@ namespace DQueue.Consumer
             return _container.GetExportedValues<TExport>().ToList();
         }
 
-        public static IEnumerable<IQueueService> GetConsumerServices()
+        public static IEnumerable<IConsumerService> GetConsumerServices()
         {
-            return GetExports<IQueueService>();
+            return GetExports<IConsumerService>();
         }
     }
 }

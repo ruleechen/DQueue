@@ -8,7 +8,7 @@ namespace DQueue.Consumer
     {
         static ILogger Logger = LogFactory.GetLogger();
 
-        private IEnumerable<IQueueService> _consumerServices;
+        private IEnumerable<IConsumerService> _consumerServices;
 
         public void Start(string[] args)
         {

@@ -20,8 +20,8 @@ namespace DQueue.QueueServiceTest
         public string Text { get; set; }
     }
 
-    [Export(typeof(IQueueService))]
-    public class TestQueueService : IQueueService
+    [Export(typeof(IConsumerService))]
+    public class TestQueueService : IConsumerService
     {
         List<QueueConsumer<SampleMessage>> consumers;
 

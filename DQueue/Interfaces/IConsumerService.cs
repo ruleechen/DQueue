@@ -1,6 +1,6 @@
 ﻿namespace DQueue.Interfaces
 {
-    public interface IQueueService
+    public interface IConsumerService
     {
         void Start(string[] args);
 
