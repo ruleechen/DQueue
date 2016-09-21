@@ -7,7 +7,6 @@ namespace DQueue.Consumer.ServiceHost
 {
     public partial class ServiceHost : ServiceBase
     {
-        const string SERVICENAME = "DQueue.Consumer.Service";
         static ILogger Logger = LogFactory.GetLogger();
 
         static ServiceHost()
@@ -27,9 +26,9 @@ namespace DQueue.Consumer.ServiceHost
                     }
                 }
 
-                if (EventLog.SourceExists(SERVICENAME))
+                if (EventLog.SourceExists(Constants.SERVICE_NAME))
                 {
-                    EventLog.WriteEntry(SERVICENAME,
+                    EventLog.WriteEntry(Constants.SERVICE_NAME,
                         "Fatal Exception : " + Environment.NewLine +
                         e.ExceptionObject, EventLogEntryType.Error);
                 }
@@ -39,7 +38,7 @@ namespace DQueue.Consumer.ServiceHost
         public ServiceHost()
         {
             InitializeComponent();
-            ServiceName = SERVICENAME;
+            ServiceName = Constants.SERVICE_NAME;
         }
 
         private ConsumerHost _consumerHost;

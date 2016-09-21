@@ -39,8 +39,8 @@
             // 
             // serviceInstaller1
             // 
-            this.serviceInstaller1.Description = "DQueue Service Host";
-            this.serviceInstaller1.ServiceName = "DQueue.Service";
+            this.serviceInstaller1.Description = Constants.SERVICE_DESC;
+            this.serviceInstaller1.ServiceName = Constants.SERVICE_NAME;
             this.serviceInstaller1.StartType = System.ServiceProcess.ServiceStartMode.Automatic;
             // 
             // ProjectInstaller

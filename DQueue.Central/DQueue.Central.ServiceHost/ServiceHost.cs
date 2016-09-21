@@ -7,13 +7,12 @@ namespace DQueue.Central.ServiceHost
 {
     public partial class ServiceHost : ServiceBase
     {
-        const string SERVICENAME = "DQueue.Central.Service";
         static ILogger Logger = LogFactory.GetLogger();
 
         public ServiceHost()
         {
             InitializeComponent();
-            ServiceName = SERVICENAME;
+            ServiceName = Constants.SERVICE_NAME;
         }
 
         protected override void OnStart(string[] args)

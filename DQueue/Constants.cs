@@ -1,6 +1,6 @@
 ﻿namespace DQueue
 {
-    public static class Constants
+    internal class Constants
     {
         public static readonly string EnqueueTimeField = "$EnqueueTime$";
         public static readonly string DequeueLockerFlag = "-$DequeueLocker-{0}$";
