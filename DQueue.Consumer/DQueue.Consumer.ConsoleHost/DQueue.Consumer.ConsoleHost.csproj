@@ -4,15 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{40A0C9DC-8E82-40AB-BAD1-15893736EBD9}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <ProjectGuid>{A6C8917B-6315-4256-986A-54BE48D6B52D}</ProjectGuid>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>DQueue.QueueServiceTest</RootNamespace>
-    <AssemblyName>DQueue.QueueServiceTest</AssemblyName>
+    <RootNamespace>DQueue.Consumer.ConsoleHost</RootNamespace>
+    <AssemblyName>DQueue.Consumer.ConsoleHost</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -22,6 +23,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -31,7 +33,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -41,23 +42,24 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="TestQueueService.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DQueue.Consumer\DQueue.Consumer.csproj">
+      <Project>{83d716e6-649c-483d-b720-51d62710fc40}</Project>
+      <Name>DQueue.Consumer</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\DQueue\DQueue.csproj">
       <Project>{dfb49db8-ae49-4d85-9323-7171cf6f2af4}</Project>
       <Name>DQueue</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>xcopy /y "$(TargeDir)$(TargetName).dll" "$(SolutionDir)DQueue.Consumer/DQueue.Consumer.ServiceHost\$(OutDir)"
-xcopy /y "$(TargeDir)$(TargetName).pdb" "$(SolutionDir)DQueue.Consumer/DQueue.Consumer.ServiceHost\$(OutDir)"
-
-xcopy /y "$(TargeDir)$(TargetName).dll" "$(SolutionDir)DQueue.Consumer/DQueue.Consumer.ConsoleHost\$(OutDir)"
-xcopy /y "$(TargeDir)$(TargetName).pdb" "$(SolutionDir)DQueue.Consumer/DQueue.Consumer.ConsoleHost\$(OutDir)"</PostBuildEvent>
-  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
