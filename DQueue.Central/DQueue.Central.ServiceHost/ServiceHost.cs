@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DQueue.Infrastructure;
+using System;
 using System.Diagnostics;
 using System.ServiceProcess;
 

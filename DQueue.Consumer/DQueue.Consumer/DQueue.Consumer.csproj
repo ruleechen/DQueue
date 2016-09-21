@@ -60,6 +60,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\DQueue.Infrastructure\DQueue.Infrastructure.csproj">
+      <Project>{8f127b8c-d6ce-4774-ba65-4487be74a600}</Project>
+      <Name>DQueue.Infrastructure</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\DQueue\DQueue.csproj">
       <Project>{dfb49db8-ae49-4d85-9323-7171cf6f2af4}</Project>
       <Name>DQueue</Name>

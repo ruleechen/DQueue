@@ -49,6 +49,10 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\DQueue.Infrastructure\DQueue.Infrastructure.csproj">
+      <Project>{8f127b8c-d6ce-4774-ba65-4487be74a600}</Project>
+      <Name>DQueue.Infrastructure</Name>
+    </ProjectReference>
     <ProjectReference Include="..\DQueue.Consumer\DQueue.Consumer.csproj">
       <Project>{83d716e6-649c-483d-b720-51d62710fc40}</Project>
       <Name>DQueue.Consumer</Name>

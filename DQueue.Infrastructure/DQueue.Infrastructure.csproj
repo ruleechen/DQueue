@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{40A0C9DC-8E82-40AB-BAD1-15893736EBD9}</ProjectGuid>
+    <ProjectGuid>{8F127B8C-D6CE-4774-BA65-4487BE74A600}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>DQueue.QueueServiceTest</RootNamespace>
-    <AssemblyName>DQueue.QueueServiceTest</AssemblyName>
+    <RootNamespace>DQueue.Infrastructure</RootNamespace>
+    <AssemblyName>DQueue.Infrastructure</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -31,7 +31,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -41,27 +40,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="TestQueueService.cs" />
+    <Compile Include="LogFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\DQueue.Infrastructure\DQueue.Infrastructure.csproj">
-      <Project>{8f127b8c-d6ce-4774-ba65-4487be74a600}</Project>
-      <Name>DQueue.Infrastructure</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\DQueue\DQueue.csproj">
-      <Project>{dfb49db8-ae49-4d85-9323-7171cf6f2af4}</Project>
-      <Name>DQueue</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>xcopy /y "$(TargeDir)$(TargetName).dll" "$(SolutionDir)DQueue.Consumer/DQueue.Consumer.ServiceHost\$(OutDir)"
-xcopy /y "$(TargeDir)$(TargetName).pdb" "$(SolutionDir)DQueue.Consumer/DQueue.Consumer.ServiceHost\$(OutDir)"
-
-xcopy /y "$(TargeDir)$(TargetName).dll" "$(SolutionDir)DQueue.Consumer/DQueue.Consumer.ConsoleHost\$(OutDir)"
-xcopy /y "$(TargeDir)$(TargetName).pdb" "$(SolutionDir)DQueue.Consumer/DQueue.Consumer.ConsoleHost\$(OutDir)"</PostBuildEvent>
-  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

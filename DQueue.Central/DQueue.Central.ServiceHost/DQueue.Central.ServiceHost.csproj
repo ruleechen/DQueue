@@ -94,6 +94,10 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\DQueue.Infrastructure\DQueue.Infrastructure.csproj">
+      <Project>{8f127b8c-d6ce-4774-ba65-4487be74a600}</Project>
+      <Name>DQueue.Infrastructure</Name>
+    </ProjectReference>
     <ProjectReference Include="..\DQueue.Central\DQueue.Central.csproj">
       <Project>{7c68be8d-3bb8-4e98-820e-dec8f1a9bfdc}</Project>
       <Name>DQueue.Central</Name>

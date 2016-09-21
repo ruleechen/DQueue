@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DQueue.Central.ServiceHost"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DQueue.Central.WebSite", "DQueue.Central\DQueue.Central.WebSite\DQueue.Central.WebSite.csproj", "{6BDC09CF-A7F9-4CD5-9E3E-3CF832C1E111}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DQueue.Infrastructure", "DQueue.Infrastructure\DQueue.Infrastructure.csproj", "{8F127B8C-D6CE-4774-BA65-4487BE74A600}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,6 +83,10 @@ Global
 		{6BDC09CF-A7F9-4CD5-9E3E-3CF832C1E111}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6BDC09CF-A7F9-4CD5-9E3E-3CF832C1E111}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6BDC09CF-A7F9-4CD5-9E3E-3CF832C1E111}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F127B8C-D6CE-4774-BA65-4487BE74A600}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F127B8C-D6CE-4774-BA65-4487BE74A600}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F127B8C-D6CE-4774-BA65-4487BE74A600}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F127B8C-D6CE-4774-BA65-4487BE74A600}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -63,7 +63,7 @@
     <Compile Include="Helpers\HashCodeGenerator.cs" />
     <Compile Include="Extensions\HttpContextExtensions.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
-    <Compile Include="LogFactory.cs" />
+    <Compile Include="Interfaces\IConsumerService.cs" />
     <Compile Include="QueueProviderFactory.cs" />
     <Compile Include="Helpers\QueueNameGenerator.cs" />
     <Compile Include="Helpers\RabbitMQConnectionConfiguration.cs" />
@@ -74,7 +74,6 @@
     <Compile Include="Interfaces\IQueueProvider.cs" />
     <Compile Include="Interfaces\ReceptionAssistant.cs" />
     <Compile Include="Interfaces\ReceptionStatus.cs" />
-    <Compile Include="Interfaces\IConsumerService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QueueProviders\AspNetProvider.cs" />
     <Compile Include="QueueProviders\RabbitMQProvider.cs" />
@@ -83,7 +82,12 @@
     <Compile Include="QueueProducer.cs" />
     <Compile Include="QueueProvider.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\DQueue.Infrastructure\DQueue.Infrastructure.csproj">
+      <Project>{8f127b8c-d6ce-4774-ba65-4487be74a600}</Project>
+      <Name>DQueue.Infrastructure</Name>
+    </ProjectReference>
+  </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
