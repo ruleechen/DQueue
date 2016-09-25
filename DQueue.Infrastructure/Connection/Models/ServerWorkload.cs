@@ -1,4 +1,4 @@
-﻿namespace DQueue.Consumer.Connection.Models
+﻿namespace DQueue.Infrastructure.Connection.Models
 {
     public class ServerWorkload
     {

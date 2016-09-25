@@ -1,22 +1,21 @@
-﻿using DQueue.Consumer.Connection.Models;
+﻿using DQueue.Infrastructure.Connection.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DQueue.Consumer.Connection.Commands
+namespace DQueue.Infrastructure.Connection.Commands
 {
-    public class GetServerInfoCommand : BaseCommand
+    public class HostRegisterCommand : BaseCommand
     {
-        public GetServerInfoCommand()
+        public HostRegisterCommand()
         {
-
         }
 
         public override object GetCommandBody()
         {
-            return new ServerInfo
+            return new HostInfo
             {
 
             };

@@ -1,4 +1,4 @@
-﻿namespace DQueue.Consumer.Connection
+﻿namespace DQueue.Infrastructure.Connection
 {
     public interface ICommand
     {

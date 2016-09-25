@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace DQueue.Consumer.Connection.Commands
+namespace DQueue.Infrastructure.Connection.Commands
 {
     public abstract class BaseCommand : ICommand
     {

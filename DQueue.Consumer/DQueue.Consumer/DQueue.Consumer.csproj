@@ -46,15 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Connection\Commands\GetServerInfoCommand.cs" />
-    <Compile Include="Connection\DQClient.cs" />
-    <Compile Include="Connection\Commands\BaseCommand.cs" />
-    <Compile Include="Connection\Commands\HostRegisterCommand.cs" />
-    <Compile Include="Connection\ICommand.cs" />
-    <Compile Include="Connection\Models\HostInfo.cs" />
-    <Compile Include="Connection\Models\ConsumerInfo.cs" />
-    <Compile Include="Connection\Models\ServerInfo.cs" />
-    <Compile Include="Connection\Models\ServerWorkload.cs" />
+    <Compile Include="Connection\SyncClient.cs" />
     <Compile Include="ConsumerHost.cs" />
     <Compile Include="IocContainer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
