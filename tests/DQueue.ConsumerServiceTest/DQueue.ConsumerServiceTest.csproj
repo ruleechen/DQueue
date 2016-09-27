@@ -7,8 +7,8 @@
     <ProjectGuid>{40A0C9DC-8E82-40AB-BAD1-15893736EBD9}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>DQueue.QueueServiceTest</RootNamespace>
-    <AssemblyName>DQueue.QueueServiceTest</AssemblyName>
+    <RootNamespace>DQueue.ConsumerServiceTest</RootNamespace>
+    <AssemblyName>DQueue.ConsumerServiceTest</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -41,7 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="TestQueueService.cs" />
+    <Compile Include="MyConsumerService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

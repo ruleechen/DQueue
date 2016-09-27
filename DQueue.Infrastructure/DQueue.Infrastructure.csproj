@@ -35,7 +35,9 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -44,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConfigSource.cs" />
     <Compile Include="Connection\Commands\BaseCommand.cs" />
     <Compile Include="Connection\Commands\GetServerInfoCommand.cs" />
     <Compile Include="Connection\Commands\HostRegisterCommand.cs" />
@@ -52,12 +55,14 @@
     <Compile Include="Connection\Models\HostInfo.cs" />
     <Compile Include="Connection\Models\ServerInfo.cs" />
     <Compile Include="Connection\Models\ServerWorkload.cs" />
+    <Compile Include="Extensions\HttpContextExtensions.cs" />
     <Compile Include="LogFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

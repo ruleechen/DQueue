@@ -1,4 +1,5 @@
-﻿using DQueue.Interfaces;
+﻿using DQueue.Infrastructure;
+using DQueue.Interfaces;
 using StackExchange.Redis;
 using System;
 using System.Threading;

@@ -5,7 +5,7 @@ using System.ComponentModel.Composition;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DQueue.QueueServiceTest
+namespace DQueue.ConsumerServiceTest
 {
     public class SampleMessage : IQueueMessage
     {
@@ -21,11 +21,11 @@ namespace DQueue.QueueServiceTest
     }
 
     [Export(typeof(IConsumerService))]
-    public class TestQueueService : IConsumerService
+    public class MyConsumerService : IConsumerService
     {
         List<QueueConsumer<SampleMessage>> consumers;
 
-        public TestQueueService()
+        public MyConsumerService()
         {
             consumers = new List<QueueConsumer<SampleMessage>>();
         }
@@ -40,6 +40,18 @@ namespace DQueue.QueueServiceTest
 
             for (var i = 0; i < 200; i++)
             {
+                for (var j = 0; j < 100; j++)
+                {
+                    var msg = new SampleMessage
+                    {
+                        Text = "m" + i.ToString() + "-" + j.ToString()
+                    };
+
+                    producer.Send("Queue" + i, msg);
+
+                    Console.WriteLine(string.Format("send -> [{0}]", msg.Text));
+                }
+
                 var consumer = new QueueConsumer<SampleMessage>("Queue" + i, 10);
                 consumers.Add(consumer);
 
@@ -78,18 +90,6 @@ namespace DQueue.QueueServiceTest
                     timeoutCount++;
                     Console.WriteLine("timeout: [" + context.Message.Text + "]");
                 });
-
-                for (var j = 0; j < 100; j++)
-                {
-                    var msg = new SampleMessage
-                    {
-                        Text = "m" + i.ToString() + "-" + j.ToString()
-                    };
-
-                    producer.Send("Queue" + i, msg);
-
-                    Console.WriteLine(string.Format("send -> [{0}]", msg.Text));
-                }
             }
         }
 

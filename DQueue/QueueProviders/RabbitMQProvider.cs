@@ -1,4 +1,5 @@
 ﻿using DQueue.Helpers;
+using DQueue.Infrastructure;
 using DQueue.Interfaces;
 using RabbitMQ.Client;
 using System;

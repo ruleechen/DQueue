@@ -2,7 +2,7 @@
 using System.Web;
 using System.Web.Configuration;
 
-namespace DQueue
+namespace DQueue.Infrastructure
 {
     public class ConfigSource
     {
