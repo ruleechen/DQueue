@@ -38,9 +38,9 @@ namespace DQueue.QueueProviders
             return new ConnectionFactoryWrapper(connection);
         }, true);
 
-        private const string SubscriberKey = "$RedisQueueSubscriberKey$";
-        private const string SubscriberValue = "$RedisQueueSubscriberValue$";
-        private const string HashStorageQueueName = "-$Hash$";
+        private const string SubscriberKey = "-$SubscriberKey$";
+        private const string SubscriberValue = "-$SubscriberValue$";
+        private const string HashQueuePostfix = "-$Hash$";
 
         private ConnectionFactoryWrapper _connectionFactory;
 
@@ -62,7 +62,7 @@ namespace DQueue.QueueProviders
             var hash = json.GetMD5();
 
             var database = _connectionFactory.GetDatabase();
-            return database.HashExists(queueName + HashStorageQueueName, hash);
+            return database.HashExists(queueName + HashQueuePostfix, hash);
         }
 
         public void Enqueue(string queueName, object message)
@@ -79,7 +79,7 @@ namespace DQueue.QueueProviders
             if (!IgnoreHash)
             {
                 hash = json.GetMD5();
-                if (database.HashExists(queueName + HashStorageQueueName, hash))
+                if (database.HashExists(queueName + HashQueuePostfix, hash))
                 {
                     return;
                 }
@@ -89,7 +89,7 @@ namespace DQueue.QueueProviders
 
             if (!IgnoreHash)
             {
-                database.HashSet(queueName + HashStorageQueueName, hash, 1);
+                database.HashSet(queueName + HashQueuePostfix, hash, 1);
             }
 
             var subscriber = _connectionFactory.GetSubscriber();
@@ -167,7 +167,7 @@ namespace DQueue.QueueProviders
                         if (status == ReceptionStatus.Completed)
                         {
                             database.ListRemove(assistant.ProcessingQueueName, item, 1);
-                            database.HashDelete(assistant.QueueName + HashStorageQueueName, item.GetString().RemoveEnqueueTime().GetMD5());
+                            database.HashDelete(assistant.QueueName + HashQueuePostfix, item.GetString().RemoveEnqueueTime().GetMD5());
                         }
                         else if (status == ReceptionStatus.Retry)
                         {
