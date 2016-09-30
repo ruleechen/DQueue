@@ -114,7 +114,7 @@ namespace DQueue.QueueProviders
 
                         if (message != null)
                         {
-                            handler(new ReceptionContext<TMessage>(message, assistant, (sender, status) =>
+                            handler(new ReceptionContext<TMessage>(message, null, assistant, (sender, status) =>
                             {
                                 if (status == ReceptionStatus.Completed)
                                 {

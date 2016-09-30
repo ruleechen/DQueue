@@ -8,45 +8,28 @@ namespace DQueue.QueueProviders
 {
     public class RedisProvider : IQueueProvider
     {
-        class ConnectionFactoryWrapper
-        {
-            private IDatabase _database;
-            private ISubscriber _subscriber;
+        //https://github.com/StackExchange/StackExchange.Redis/blob/master/Docs/Basics.md
+        //Because the ConnectionMultiplexer does a lot, it is designed to be shared and reused between callers.
+        //You should not create a ConnectionMultiplexer per operation.
+        //It is fully thread-safe and ready for this usage.
+        static ConnectionMultiplexer _redisConnectionFactory;
 
-            public ConnectionFactoryWrapper(IConnectionMultiplexer connection)
-            {
-                _database = connection.GetDatabase();
-                _subscriber = connection.GetSubscriber();
-            }
-
-            public IDatabase GetDatabase()
-            {
-                return _database;
-            }
-
-            public ISubscriber GetSubscriber()
-            {
-                return _subscriber;
-            }
-        }
-
-        static Lazy<ConnectionFactoryWrapper> _redisConnectionFactory = new Lazy<ConnectionFactoryWrapper>(() =>
+        static RedisProvider()
         {
             var redisConnectionString = ConfigSource.GetConnection("Redis_Connection");
             var resisConfiguration = ConfigurationOptions.Parse(redisConnectionString);
-            var connection = ConnectionMultiplexer.Connect(resisConfiguration);
-            return new ConnectionFactoryWrapper(connection);
-        }, true);
+            _redisConnectionFactory = ConnectionMultiplexer.Connect(resisConfiguration);
+        }
 
         private const string SubscriberKey = "-$SubscriberKey$";
         private const string SubscriberValue = "-$SubscriberValue$";
         private const string HashQueuePostfix = "-$Hash$";
 
-        private ConnectionFactoryWrapper _connectionFactory;
+        private ConnectionMultiplexer _connectionFactory;
 
         public RedisProvider()
         {
-            _connectionFactory = _redisConnectionFactory.Value;
+            _connectionFactory = _redisConnectionFactory;
         }
 
         public bool IgnoreHash { get; set; }
@@ -103,12 +86,9 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var subscriber = _connectionFactory.GetSubscriber();
-            var database = _connectionFactory.GetDatabase();
-
             var receptionStatus = ReceptionStatus.None;
 
-            subscriber.Subscribe(assistant.QueueName + SubscriberKey, (channel, val) =>
+            _connectionFactory.GetSubscriber().Subscribe(assistant.QueueName + SubscriberKey, (channel, val) =>
             {
                 if (val == SubscriberValue)
                 {
@@ -119,11 +99,11 @@ namespace DQueue.QueueProviders
                 }
             });
 
-            RequeueProcessingMessages(assistant, database);
+            RequeueProcessingMessages(assistant);
 
             assistant.Cancellation.Register(() =>
             {
-                subscriber.Unsubscribe(assistant.QueueName + SubscriberKey);
+                _connectionFactory.GetSubscriber().Unsubscribe(assistant.QueueName + SubscriberKey);
 
                 receptionStatus = ReceptionStatus.Withdraw;
 
@@ -132,7 +112,7 @@ namespace DQueue.QueueProviders
                     Monitor.PulseAll(assistant.DequeueLocker);
                 }
 
-                RequeueProcessingMessages(assistant, database);
+                RequeueProcessingMessages(assistant);
             });
 
             while (true)
@@ -143,10 +123,11 @@ namespace DQueue.QueueProviders
                 }
 
                 var message = default(TMessage);
-                var item = RedisValue.Null;
+                var rawMessage = RedisValue.Null;
 
                 lock (assistant.DequeueLocker)
                 {
+                    var database = _connectionFactory.GetDatabase();
                     if (database.ListLength(assistant.QueueName) == 0)
                     {
                         Monitor.Wait(assistant.DequeueLocker);
@@ -154,33 +135,43 @@ namespace DQueue.QueueProviders
 
                     try
                     {
-                        item = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
-                        message = item.GetString().Deserialize<TMessage>();
+                        rawMessage = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
+                        message = rawMessage.GetString().Deserialize<TMessage>();
                     }
-                    catch { }
+                    catch(Exception ex)
+                    {
+                        LogFactory.GetLogger().Error("[RedisProvider] Get Message Error!", ex);
+                    }
                 }
 
                 if (message != null)
                 {
-                    handler(new ReceptionContext<TMessage>(message, assistant, (sender, status) =>
-                    {
-                        if (status == ReceptionStatus.Completed)
-                        {
-                            database.ListRemove(assistant.ProcessingQueueName, item, 1);
-                            database.HashDelete(assistant.QueueName + HashQueuePostfix, item.GetString().RemoveEnqueueTime().GetMD5());
-                        }
-                        else if (status == ReceptionStatus.Retry)
-                        {
-                            database.ListRemove(assistant.ProcessingQueueName, item, 1);
-                            database.ListLeftPush(assistant.QueueName, item.GetString().RemoveEnqueueTime().AddEnqueueTime());
-                        }
-                    }));
+                    handler(new ReceptionContext<TMessage>(message, rawMessage, assistant, HandlerCallback));
                 }
             }
         }
 
-        private static void RequeueProcessingMessages<TMessage>(ReceptionAssistant<TMessage> assistant, IDatabase database)
+        private void HandlerCallback<TMessage>(ReceptionContext<TMessage> sender, ReceptionStatus status)
         {
+            var assistant = sender.Assistant;
+            var rawMessage = (RedisValue)sender.RawMessage;
+            var database = _connectionFactory.GetDatabase();
+
+            if (status == ReceptionStatus.Completed)
+            {
+                database.ListRemove(assistant.ProcessingQueueName, rawMessage, 1);
+                database.HashDelete(assistant.QueueName + HashQueuePostfix, rawMessage.GetString().RemoveEnqueueTime().GetMD5());
+            }
+            else if (status == ReceptionStatus.Retry)
+            {
+                database.ListRemove(assistant.ProcessingQueueName, rawMessage, 1);
+                database.ListLeftPush(assistant.QueueName, rawMessage.GetString().RemoveEnqueueTime().AddEnqueueTime());
+            }
+        }
+
+        private void RequeueProcessingMessages<TMessage>(ReceptionAssistant<TMessage> assistant)
+        {
+            var database = _connectionFactory.GetDatabase();
             var items = database.ListRange(assistant.ProcessingQueueName);
             database.ListRightPush(assistant.QueueName, items);
             database.KeyDelete(assistant.ProcessingQueueName);

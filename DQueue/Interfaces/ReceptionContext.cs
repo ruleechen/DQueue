@@ -6,14 +6,16 @@ namespace DQueue.Interfaces
     {
         private Action<ReceptionContext<TMessage>, ReceptionStatus> _action;
 
-        public ReceptionContext(TMessage message, ReceptionAssistant<TMessage> assistant, Action<ReceptionContext<TMessage>, ReceptionStatus> action)
+        public ReceptionContext(TMessage message, object rawMessage, ReceptionAssistant<TMessage> assistant, Action<ReceptionContext<TMessage>, ReceptionStatus> action)
         {
             Message = message;
+            RawMessage = rawMessage;
             Assistant = assistant;
             _action = action;
         }
 
         public TMessage Message { get; private set; }
+        public object RawMessage { get; private set; }
         public ReceptionAssistant<TMessage> Assistant { get; private set; }
 
         public void Success()

@@ -64,7 +64,7 @@ namespace DQueue.CmdTest
                 {
                     var msg = new SampleMessage
                     {
-                        Text = "m" + i.ToString() + "-" + j.ToString()
+                        Text = "msg" + i.ToString() + "-" + j.ToString()
                     };
 
                     producer.Send("Queue" + i, msg);
