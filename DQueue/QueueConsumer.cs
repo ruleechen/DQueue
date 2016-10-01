@@ -179,7 +179,7 @@ namespace DQueue
 
         private void DispatchMessage(ReceptionContext<TMessage> receptionContext)
         {
-            var timeout = Timeout.HasValue ? Timeout.Value : TimeSpan.FromMilliseconds(Constants.DefaultTimeoutMilliseconds);
+            var timeout = Timeout.HasValue ? Timeout.Value : Constants.DefaultTimeoutMilliseconds.AsNullableTimeSpan().Value;
 
             var dispatchContext = new DispatchContext<TMessage>(
                 receptionContext.Message, timeout, _cts, (sender, status) =>

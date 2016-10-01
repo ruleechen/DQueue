@@ -85,6 +85,7 @@ namespace DQueue
 
             TimeSpan result;
 
+            // d.hh:mm:ss.fffffff
             if (TimeSpan.TryParse(input, out result))
             {
                 return result;
