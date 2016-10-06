@@ -11,13 +11,13 @@ namespace DQueue
     public class ConsumerHealth
     {
         static ILogger Logger = LogFactory.GetLogger();
-        static IDictionary<IQueueConsumer, string> _consumers;
+        static HashSet<IQueueConsumer> _consumers;
         static object _locker;
         static Timer _timer;
 
         static ConsumerHealth()
         {
-            _consumers = new ConcurrentDictionary<IQueueConsumer, string>();
+            _consumers = new HashSet<IQueueConsumer>();
             _locker = new object();
             StartTimer();
         }
@@ -26,9 +26,9 @@ namespace DQueue
         {
             lock (_locker)
             {
-                if (!_consumers.ContainsKey(consumer))
+                if (!_consumers.Contains(consumer))
                 {
-                    _consumers.Add(consumer, string.Empty);
+                    _consumers.Add(consumer);
                 }
             }
         }
@@ -59,7 +59,7 @@ namespace DQueue
             {
                 var deadConsumers = new List<IQueueConsumer>();
 
-                foreach (var consumer in _consumers.Select(x => x.Key))
+                foreach (var consumer in _consumers)
                 {
                     try
                     {
