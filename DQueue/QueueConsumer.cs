@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DQueue
 {
-    public class QueueConsumer<TMessage> : IDisposable
+    public class QueueConsumer<TMessage> : IQueueConsumer, IDisposable
         where TMessage : new()
     {
         private readonly QueueProvider _provider;
@@ -22,6 +22,7 @@ namespace DQueue
         public string QueueName { get; private set; }
         public int MaximumThreads { get; set; }
         public TimeSpan? Timeout { get; set; }
+        private Task DequeueTask { get; set; }
 
         public QueueConsumer()
             : this(null, Constants.DefaultMaxParallelThreads)
@@ -89,15 +90,16 @@ namespace DQueue
 
             if (_messageHandlers.Count == 1)
             {
-                Dequeue();
+                StartDequeue();
+                ConsumerHealth.Register(this);
             }
 
             return this;
         }
 
-        private void Dequeue()
+        private void StartDequeue()
         {
-            Task.Run(() =>
+            DequeueTask = Task.Run(() =>
             {
                 var assistant = new ReceptionAssistant<TMessage>(HostId, QueueName, _cts.Token);
 
@@ -108,11 +110,7 @@ namespace DQueue
                 }
                 catch (Exception ex)
                 {
-                    LogFactory.GetLogger().Error("Receive Task Error for queue [" + assistant.QueueName + "]", ex);
-
-                    // restart
-                    Thread.Sleep(TimeSpan.FromMinutes(1));
-                    Dequeue();
+                    LogFactory.GetLogger().Error(string.Format("Receive Task Error for queue \"{0}\".", assistant.QueueName), ex);
                 }
 
             }, _cts.Token);
@@ -321,6 +319,19 @@ namespace DQueue
             _messageHandlers.Clear();
             _timeoutHandlers.Clear();
             _completeHandlers.Clear();
+        }
+
+        public bool IsAlive()
+        {
+            return DequeueTask != null &&
+                !DequeueTask.IsCanceled &&
+                !DequeueTask.IsCompleted &&
+                !DequeueTask.IsFaulted;
+        }
+
+        public void Rescue()
+        {
+            StartDequeue();
         }
     }
 }
