@@ -10,21 +10,26 @@ namespace DQueue
 {
     public class ConsumerHealth
     {
-        static Timer _timer;
+        static ILogger Logger = LogFactory.GetLogger();
         static IDictionary<IQueueConsumer, string> _consumers;
+        static object _locker;
+        static Timer _timer;
 
         static ConsumerHealth()
         {
             _consumers = new ConcurrentDictionary<IQueueConsumer, string>();
-
+            _locker = new object();
             StartTimer();
         }
 
         public static void Register(IQueueConsumer consumer)
         {
-            if (!_consumers.ContainsKey(consumer))
+            lock (_locker)
             {
-                _consumers.Add(consumer, string.Empty);
+                if (!_consumers.ContainsKey(consumer))
+                {
+                    _consumers.Add(consumer, string.Empty);
+                }
             }
         }
 
@@ -50,18 +55,40 @@ namespace DQueue
 
         public static void Diagnose()
         {
-            try
+            lock (_locker)
             {
-                var dead = _consumers.Where(x => !x.Key.IsAlive());
+                var deadConsumers = new List<IQueueConsumer>();
 
-                foreach (var item in dead)
+                foreach (var consumer in _consumers.Select(x => x.Key))
                 {
-                    item.Key.Rescue();
+                    try
+                    {
+                        if (!consumer.IsAlive())
+                        {
+                            deadConsumers.Add(consumer);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("[ConsumerHealth] Error occurs on diagnosing \"{0}\".", ex);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                LogFactory.GetLogger().Error("[ConsumerHealth] Error occurs on Diagnose", ex);
+
+                foreach (var consumer in deadConsumers)
+                {
+                    try
+                    {
+                        Logger.Debug(string.Format("[ConsumerHealth] Consumer \"{0}\" diagnosed dead.", consumer.QueueName));
+
+                        consumer.Rescue();
+
+                        Logger.Debug(string.Format("[ConsumerHealth] Consumer \"{0}\" is rescued.", consumer.QueueName));
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(string.Format("[ConsumerHealth] Error occurs on rescuing \"{0}\".", consumer.QueueName), ex);
+                    }
+                }
             }
         }
     }
