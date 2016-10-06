@@ -157,7 +157,8 @@ namespace DQueue.QueueProviders
                     }
                     catch (Exception ex)
                     {
-                        LogFactory.GetLogger().Error("[AspNetProvider] Get Message Error!", ex);
+                        LogFactory.GetLogger().Error(string.Format("[AspNetProvider] Get Message Error! Raw Message: \"{0}\".", rawMessage), ex);
+                        RemoveProcessingMessage(assistant, queueProcessing, rawMessage);
                     }
                 }
 
@@ -168,18 +169,33 @@ namespace DQueue.QueueProviders
             }
         }
 
-        private void HandlerCallback<TMessage>(ReceptionContext<TMessage> sender, ReceptionStatus status)
+        private void RemoveProcessingMessage<TMessage>(ReceptionAssistant<TMessage> assistant, List<string> queueProcessing, string rawMessage)
         {
-            var assistant = sender.Assistant;
-            var rawMessage = (string)sender.RawMessage;
+            if (rawMessage == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var hashSet = GetHashSet(assistant.QueueName);
+
+                queueProcessing.Remove(rawMessage);
+                hashSet.Remove(rawMessage.RemoveEnqueueTime().GetMD5());
+            }
+            catch { }
+        }
+
+        private void HandlerCallback<TMessage>(ReceptionContext<TMessage> context, ReceptionStatus status)
+        {
+            var assistant = context.Assistant;
+            var rawMessage = (string)context.RawMessage;
             var queue = GetQueue(assistant.QueueName);
-            var hashSet = GetHashSet(assistant.QueueName);
             var queueProcessing = GetQueue(assistant.ProcessingQueueName);
 
             if (status == ReceptionStatus.Completed)
             {
-                queueProcessing.Remove(rawMessage);
-                hashSet.Remove(rawMessage.RemoveEnqueueTime().GetMD5());
+                RemoveProcessingMessage(context.Assistant, queueProcessing, rawMessage);
             }
             else if (status == ReceptionStatus.Retry)
             {

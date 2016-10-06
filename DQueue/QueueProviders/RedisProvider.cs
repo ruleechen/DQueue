@@ -138,9 +138,10 @@ namespace DQueue.QueueProviders
                         rawMessage = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
                         message = rawMessage.GetString().Deserialize<TMessage>();
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
-                        LogFactory.GetLogger().Error("[RedisProvider] Get Message Error!", ex);
+                        LogFactory.GetLogger().Error(string.Format("[RedisProvider] Get Message Error! Raw Message: \"{0}\".", rawMessage), ex);
+                        RemoveProcessingMessage(assistant, database, rawMessage);
                     }
                 }
 
@@ -151,16 +152,30 @@ namespace DQueue.QueueProviders
             }
         }
 
-        private void HandlerCallback<TMessage>(ReceptionContext<TMessage> sender, ReceptionStatus status)
+        private void RemoveProcessingMessage<TMessage>(ReceptionAssistant<TMessage> assistant, IDatabase database, RedisValue rawMessage)
         {
-            var assistant = sender.Assistant;
-            var rawMessage = (RedisValue)sender.RawMessage;
+            if (rawMessage == RedisValue.Null)
+            {
+                return;
+            }
+
+            try
+            {
+                database.ListRemove(assistant.ProcessingQueueName, rawMessage, 1);
+                database.HashDelete(assistant.QueueName + HashQueuePostfix, rawMessage.GetString().RemoveEnqueueTime().GetMD5());
+            }
+            catch { }
+        }
+
+        private void HandlerCallback<TMessage>(ReceptionContext<TMessage> context, ReceptionStatus status)
+        {
+            var assistant = context.Assistant;
+            var rawMessage = (RedisValue)context.RawMessage;
             var database = _connectionFactory.GetDatabase();
 
             if (status == ReceptionStatus.Completed)
             {
-                database.ListRemove(assistant.ProcessingQueueName, rawMessage, 1);
-                database.HashDelete(assistant.QueueName + HashQueuePostfix, rawMessage.GetString().RemoveEnqueueTime().GetMD5());
+                RemoveProcessingMessage(assistant, database, rawMessage);
             }
             else if (status == ReceptionStatus.Retry)
             {
