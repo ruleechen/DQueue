@@ -44,8 +44,9 @@ namespace DQueue.Infrastructure
 
         public Logger()
         {
-            var folder = AppDomain.CurrentDomain.BaseDirectory;
-            _filePath = Path.Combine(folder, "app.log");
+            var folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AppLogs");
+            if (!Directory.Exists(folder)) { Directory.CreateDirectory(folder); }
+            _filePath = Path.Combine(folder, DateTime.Now.ToString("yyyyMMdd") + ".log");
         }
 
         public void Error(string message, Exception ex)
