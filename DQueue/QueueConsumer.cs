@@ -323,14 +323,17 @@ namespace DQueue
 
         public bool IsAlive()
         {
+            CheckDisposed();
+
             return DequeueTask != null &&
-                !DequeueTask.IsCanceled &&
                 !DequeueTask.IsCompleted &&
                 !DequeueTask.IsFaulted;
         }
 
         public void Rescue()
         {
+            CheckDisposed();
+
             StartDequeue();
         }
     }
