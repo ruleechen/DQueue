@@ -89,24 +89,33 @@ namespace DQueue
 
             if (_messageHandlers.Count == 1)
             {
-                Task.Run(() =>
-                {
-                    var assistant = new ReceptionAssistant<TMessage>(HostId, QueueName, _cts.Token);
-
-                    try
-                    {
-                        var provider = QueueProviderFactory.CreateProvider(_provider);
-                        provider.Dequeue<TMessage>(assistant, Pooling);
-                    }
-                    catch (Exception ex)
-                    {
-                        LogFactory.GetLogger().Error("Receive Task Error for queue [" + assistant.QueueName + "]", ex);
-                    }
-
-                }, _cts.Token);
+                Dequeue();
             }
 
             return this;
+        }
+
+        private void Dequeue()
+        {
+            Task.Run(() =>
+            {
+                var assistant = new ReceptionAssistant<TMessage>(HostId, QueueName, _cts.Token);
+
+                try
+                {
+                    var provider = QueueProviderFactory.CreateProvider(_provider);
+                    provider.Dequeue<TMessage>(assistant, Pooling);
+                }
+                catch (Exception ex)
+                {
+                    LogFactory.GetLogger().Error("Receive Task Error for queue [" + assistant.QueueName + "]", ex);
+
+                    // restart
+                    Thread.Sleep(TimeSpan.FromMinutes(1));
+                    Dequeue();
+                }
+
+            }, _cts.Token);
         }
 
         private void Pooling(ReceptionContext<TMessage> receptionContext)
