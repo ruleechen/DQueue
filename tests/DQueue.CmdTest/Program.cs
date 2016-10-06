@@ -18,8 +18,9 @@ namespace DQueue.CmdTest
 
             var completeCount = 0;
             var timeoutCount = 0;
+            var sendData = true;
 
-            for (var i = 0; i < 200; i++)
+            for (var i = 0; i < 10; i++)
             {
                 var consumer = new QueueConsumer<SampleMessage>("Queue" + i, 10);
                 consumers.Add(consumer);
@@ -60,16 +61,19 @@ namespace DQueue.CmdTest
                     Console.WriteLine("timeout: [" + context.Message.Text + "]");
                 });
 
-                for (var j = 0; j < 100; j++)
+                if (sendData)
                 {
-                    var msg = new SampleMessage
+                    for (var j = 0; j < 10; j++)
                     {
-                        Text = "msg" + i.ToString() + "-" + j.ToString()
-                    };
+                        var msg = new SampleMessage
+                        {
+                            Text = "msg" + i.ToString() + "-" + j.ToString()
+                        };
 
-                    producer.Send("Queue" + i, msg);
+                        producer.Send("Queue" + i, msg);
 
-                    Console.WriteLine(string.Format("send -> [{0}]", msg.Text));
+                        Console.WriteLine(string.Format("send -> [{0}]", msg.Text));
+                    }
                 }
             }
 
