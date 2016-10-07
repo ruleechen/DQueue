@@ -15,6 +15,13 @@ namespace DQueue
             return json;
         }
 
+        public static string SerializePretty(this object content)
+        {
+            if (content == null) { return string.Empty; }
+            var json = JsonConvert.SerializeObject(content, Formatting.Indented);
+            return json;
+        }
+
         public static T Deserialize<T>(this string content)
         {
             if (string.IsNullOrWhiteSpace(content))

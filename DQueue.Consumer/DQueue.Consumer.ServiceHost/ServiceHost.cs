@@ -7,7 +7,7 @@ namespace DQueue.Consumer.ServiceHost
 {
     public partial class ServiceHost : ServiceBase
     {
-        static ILogger Logger = LogFactory.GetLogger();
+        static ILogger Logger = LogFactory.GetLogger("service-host");
 
         static ServiceHost()
         {
@@ -22,7 +22,7 @@ namespace DQueue.Consumer.ServiceHost
                     }
                     else
                     {
-                        Logger.Debug("Unhandled Exception:" + e.ExceptionObject.ToString());
+                        Logger.Error("Unhandled Exception!", e.ExceptionObject.ToString());
                     }
                 }
 
@@ -49,12 +49,13 @@ namespace DQueue.Consumer.ServiceHost
             {
                 _consumerHost = new ConsumerHost();
                 _consumerHost.Start(args);
+                Logger.Info("Host Started!");
             }
             catch (Exception ex)
             {
                 //https://msdn.microsoft.com/en-us/library/windows/desktop/ms681383.aspx
                 ExitCode = 1064; // ERROR_EXCEPTION_IN_SERVICE
-                Logger.Error("OnStart error!", ex);
+                Logger.Error("OnStart Error!", ex);
                 throw;
             }
         }
@@ -66,10 +67,12 @@ namespace DQueue.Consumer.ServiceHost
                 try
                 {
                     _consumerHost.Stop();
+                    _consumerHost = null;
+                    Logger.Info("Host Stopped!");
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error("OnStop error!", ex);
+                    Logger.Error("OnStop Error!", ex);
                 }
             }
         }

@@ -8,7 +8,8 @@ namespace DQueue
 {
     public class ConsumerHealth
     {
-        static ILogger Logger = LogFactory.GetLogger();
+        static ILogger Logger = LogFactory.GetLogger("health");
+
         static HashSet<IQueueConsumer> _consumers;
         static object _locker;
         static Timer _timer;
@@ -68,26 +69,52 @@ namespace DQueue
                     }
                     catch (Exception ex)
                     {
-                        Logger.Error("[ConsumerHealth] Error occurs on diagnosing \"{0}\".", ex);
+                        Logger.Error("Error occurs on diagnosing \"{0}\".", ex);
                     }
                 }
+
+                var rescueCount = 0;
 
                 foreach (var consumer in deadConsumers)
                 {
                     try
                     {
-                        Logger.Debug(string.Format("[ConsumerHealth] Consumer \"{0}\" diagnosed dead.", consumer.QueueName));
+                        Logger.Info(string.Format("Consumer \"{0}\" diagnosed dead.", consumer.QueueName));
 
                         consumer.Rescue();
 
-                        Logger.Debug(string.Format("[ConsumerHealth] Consumer \"{0}\" is rescued.", consumer.QueueName));
+                        rescueCount++;
+
+                        Logger.Info(string.Format("Consumer \"{0}\" is rescued.", consumer.QueueName));
                     }
                     catch (Exception ex)
                     {
-                        Logger.Error(string.Format("[ConsumerHealth] Error occurs on rescuing \"{0}\".", consumer.QueueName), ex);
+                        Logger.Error(string.Format("Error occurs on rescuing \"{0}\".", consumer.QueueName), ex);
                     }
                 }
+
+                var status = new HealthStatus
+                {
+                    DiagnosedDead = deadConsumers.Count,
+                    DiagnosedAlive = _consumers.Count - deadConsumers.Count,
+                    Rescued = rescueCount,
+                    TotalAlive = _consumers.Count - deadConsumers.Count + rescueCount,
+                    ConsumerTotal = _consumers.Count,
+                    DiagnoseAt = DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"),
+                };
+
+                Logger.Info("Consumer Health Status", status.SerializePretty());
             }
+        }
+
+        public class HealthStatus
+        {
+            public int DiagnosedAlive { get; set; }
+            public int DiagnosedDead { get; set; }
+            public int Rescued { get; set; }
+            public int TotalAlive { get; set; }
+            public int ConsumerTotal { get; set; }
+            public string DiagnoseAt { get; set; }
         }
     }
 }

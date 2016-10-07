@@ -1,5 +1,4 @@
-﻿using DQueue.Infrastructure;
-using DQueue.Interfaces;
+﻿using DQueue.Interfaces;
 using System;
 using System.Collections.Generic;
 
@@ -7,8 +6,6 @@ namespace DQueue.Consumer
 {
     public class ConsumerHost
     {
-        static ILogger Logger = LogFactory.GetLogger();
-
         private IEnumerable<IConsumerService> _consumerServices;
 
         public void Start(string[] args)
@@ -17,8 +14,6 @@ namespace DQueue.Consumer
             {
                 throw new InvalidOperationException("Host already started!");
             }
-
-            Logger.Debug("--------------- Consumer Service Host Start -----------------");
 
             _consumerServices = IocContainer.GetConsumerServices();
 
@@ -33,8 +28,6 @@ namespace DQueue.Consumer
 
         public void Stop()
         {
-            Logger.Debug("------------------ Consumer Service Host Stop --------------");
-
             if (_consumerServices != null)
             {
                 foreach (var item in _consumerServices)

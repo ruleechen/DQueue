@@ -5,12 +5,12 @@ namespace DQueue.Consumer.ConsoleHost
 {
     class Program
     {
-        static ILogger Logger = LogFactory.GetLogger();
+        static ILogger Logger = LogFactory.GetLogger("console-host");
 
         static void Main(string[] args)
         {
             OnStart(args);
-            Console.WriteLine("Console Host Started!");
+            Console.WriteLine("Host Started!");
 
             AppDomain.CurrentDomain.UnhandledException += (s, e) =>
             {
@@ -22,7 +22,7 @@ namespace DQueue.Consumer.ConsoleHost
                     }
                     else
                     {
-                        Logger.Debug("Unhandled Exception:" + e.ExceptionObject.ToString());
+                        Logger.Error("Unhandled Exception!", e.ExceptionObject.ToString());
                     }
                 }
             };
@@ -51,10 +51,11 @@ namespace DQueue.Consumer.ConsoleHost
             {
                 _consumerHost = new ConsumerHost();
                 _consumerHost.Start(args);
+                Logger.Info("Host Started!");
             }
             catch (Exception ex)
             {
-                Logger.Error("OnStart error!", ex);
+                Logger.Error("OnStart Error!", ex);
             }
         }
 
@@ -66,10 +67,11 @@ namespace DQueue.Consumer.ConsoleHost
                 {
                     _consumerHost.Stop();
                     _consumerHost = null;
+                    Logger.Info("Host Stopped!");
                 }
                 catch (Exception ex)
                 {
-                    Logger.Error("OnStop error!", ex);
+                    Logger.Error("OnStop Error!", ex);
                 }
             }
         }
