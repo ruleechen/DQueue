@@ -9,7 +9,6 @@ namespace DQueue
     public class ConsumerHealth
     {
         static ILogger Logger = LogFactory.GetLogger("health");
-
         static HashSet<IQueueConsumer> _consumers;
         static object _locker;
         static Timer _timer;

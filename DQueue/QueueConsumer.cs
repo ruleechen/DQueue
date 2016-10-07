@@ -152,6 +152,14 @@ namespace DQueue
                     }
                 });
             }
+
+            if (assistant.IsDispatchingPool)
+            {
+                lock (assistant.PoolingLocker)
+                {
+                    Monitor.Wait(assistant.PoolingLocker);
+                }
+            }
         }
 
         private void DispatchPool(ReceptionAssistant<TMessage> assistant)

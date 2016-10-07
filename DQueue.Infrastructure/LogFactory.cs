@@ -82,7 +82,7 @@ namespace DQueue.Infrastructure
         private static StringBuilder FormatMessage(string flag, string title, string message)
         {
             var sb = new StringBuilder();
-            sb.Append(flag);
+            sb.Append(flag).Append(" ");
             sb.Append(DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss.ffffff"));
             sb.Append(":");
             if (!string.IsNullOrEmpty(title)) { sb.Append(" ").Append(title); }

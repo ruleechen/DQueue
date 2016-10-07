@@ -52,6 +52,7 @@
     <Compile Include="Connection\Commands\HostRegisterCommand.cs" />
     <Compile Include="Connection\ICommand.cs" />
     <Compile Include="Connection\Models\ConsumerInfo.cs" />
+    <Compile Include="Connection\Models\HealthStatus.cs" />
     <Compile Include="Connection\Models\HostInfo.cs" />
     <Compile Include="Connection\Models\ServerInfo.cs" />
     <Compile Include="Connection\Models\ServerWorkload.cs" />
