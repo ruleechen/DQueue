@@ -3,15 +3,11 @@ A message queue clients wrapper with parallel supported. Queue clients support R
 
 Main Message Flow
 ------------
-Each receive threads will queue up one by one to get only one message form queue server
+Each receive thread will keep on receiving message until the specified max parallel number or there is no more message for 1 second,  then start parallel execution. 
 ```text
-                                                            |--> handler thread 1 -->|
-message 1 -->|                    |--> receiver thread 1 -->|                        |--> complete 1
-             |                    |                         |--> handler thread 2 -->|
-             |--> queue server -->|
-             |                    |                         |--> handler thread 3 -->|
-message 2 -->|                    |--> receiver thread 2 -->|                        |--> complete 2
-                                                            |--> handler thread 4 -->|
+            |--------------|                          |----------| --> user handler --> |
+message --> | queue server | --> message receiver --> | parallel | --> user handler --> | --> complete
+            |--------------|                          |----------| --> user handler --> |
 ```
 
 Sample Configuration
@@ -89,10 +85,18 @@ consumer.OnTimeout((context) =>
 });
 ```
 
-Updates 2016.09.01
+Updates 2016.09.01 (V1)
 ------------
-1. new IgnoreHash rule (for KaiSheng's request)
-2. optimize task scheduler
-3. add timeout feature, add consumer.**OnTimeout** event
-4. rename consumer.**Complete** to consumer.**OnComplete**
-5. add timestamp to all messages, such as {"billno":"123456789",**"$EnqueueTime$":"2016-09-01 05:10:56"**}
+1. New IgnoreHash rule (for KaiSheng's request)
+2. Optimize task scheduler
+3. Add timeout feature, add consumer.**OnTimeout** event
+4. Rename consumer.**Complete** to consumer.**OnComplete**
+5. Add timestamp to all messages, such as {"billno":"123456789",**"$EnqueueTime$":"2016-09-01 05:10:56"**}
+
+Updates 2016.10.10 (V2)
+------------
+1. Completely new better thread architecture on consumer
+2. Introduced .net framework built-in parallel functions
+3. Introduced health monitor for consumers with Diagnose/Rescue/Report functions
+4. Fix redis provider connection issue on some unexpected environment
+5. Make many optimizations
