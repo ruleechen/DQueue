@@ -1,6 +1,5 @@
-﻿using DQueue.Helpers;
+﻿using DQueue.Infrastructure;
 using DQueue.Interfaces;
-using Newtonsoft.Json;
 using StackExchange.Redis;
 using System;
 using System.Threading;
@@ -9,27 +8,28 @@ namespace DQueue.QueueProviders
 {
     public class RedisProvider : IQueueProvider
     {
-        static Lazy<ConnectionMultiplexer> _redisConnectionFactory = new Lazy<ConnectionMultiplexer>(() =>
+        //https://github.com/StackExchange/StackExchange.Redis/blob/master/Docs/Basics.md
+        //Because the ConnectionMultiplexer does a lot, it is designed to be shared and reused between callers.
+        //You should not create a ConnectionMultiplexer per operation.
+        //It is fully thread-safe and ready for this usage.
+        static ConnectionMultiplexer _redisConnectionFactory;
+
+        static RedisProvider()
         {
             var redisConnectionString = ConfigSource.GetConnection("Redis_Connection");
             var resisConfiguration = ConfigurationOptions.Parse(redisConnectionString);
-            return ConnectionMultiplexer.Connect(resisConfiguration);
-        }, true);
-
-        private const string SubscriberKey = "$RedisQueueSubscriberKey$";
-        private const string SubscriberValue = "$RedisQueueSubscriberValue$";
-        private const string HashStorageQueueName = "-$Hash$";
-
-        private readonly ConnectionMultiplexer _connectionFactory;
-
-        public RedisProvider()
-            : this(_redisConnectionFactory.Value)
-        {
+            _redisConnectionFactory = ConnectionMultiplexer.Connect(resisConfiguration);
         }
 
-        public RedisProvider(ConnectionMultiplexer connectionFactory)
+        private const string SubscriberKey = "-$SubscriberKey$";
+        private const string SubscriberValue = "-$SubscriberValue$";
+        private const string HashQueuePostfix = "-$Hash$";
+
+        private ConnectionMultiplexer _connectionFactory;
+
+        public RedisProvider()
         {
-            _connectionFactory = connectionFactory;
+            _connectionFactory = _redisConnectionFactory;
         }
 
         public bool IgnoreHash { get; set; }
@@ -45,7 +45,7 @@ namespace DQueue.QueueProviders
             var hash = json.GetMD5();
 
             var database = _connectionFactory.GetDatabase();
-            return database.HashExists(queueName + HashStorageQueueName, hash);
+            return database.HashExists(queueName + HashQueuePostfix, hash);
         }
 
         public void Enqueue(string queueName, object message)
@@ -62,7 +62,7 @@ namespace DQueue.QueueProviders
             if (!IgnoreHash)
             {
                 hash = json.GetMD5();
-                if (database.HashExists(queueName + HashStorageQueueName, hash))
+                if (database.HashExists(queueName + HashQueuePostfix, hash))
                 {
                     return;
                 }
@@ -72,160 +72,124 @@ namespace DQueue.QueueProviders
 
             if (!IgnoreHash)
             {
-                database.HashSet(queueName + HashStorageQueueName, hash, 1);
+                database.HashSet(queueName + HashQueuePostfix, hash, 1);
             }
 
             var subscriber = _connectionFactory.GetSubscriber();
             subscriber.Publish(queueName + SubscriberKey, SubscriberValue);
         }
 
-        public void Dequeue<TMessage>(ReceptionAssistant assistant, Action<ReceptionContext<TMessage>> handler)
+        public void Dequeue<TMessage>(ReceptionAssistant<TMessage> assistant, Action<ReceptionContext<TMessage>> handler)
         {
             if (assistant == null || string.IsNullOrWhiteSpace(assistant.QueueName) || handler == null)
             {
                 return;
             }
 
-            var subscriber = _connectionFactory.GetSubscriber();
-            var database = _connectionFactory.GetDatabase();
+            var receptionStatus = ReceptionStatus.None;
 
-            var receptionLocker = new object();
-            var receptionStatus = ReceptionStatus.Listen;
-
-            assistant.RunForFirstThread(() =>
+            _connectionFactory.GetSubscriber().Subscribe(assistant.QueueName + SubscriberKey, (channel, val) =>
             {
-                subscriber.Subscribe(assistant.QueueName + SubscriberKey, (channel, val) =>
+                if (val == SubscriberValue)
                 {
-                    if (val == SubscriberValue)
+                    lock (assistant.DequeueLocker)
                     {
-                        lock (assistant.MonitorLocker)
-                        {
-                            Monitor.Pulse(assistant.MonitorLocker);
-                        }
+                        Monitor.Pulse(assistant.DequeueLocker);
                     }
-                });
-            });
-
-            assistant.RegisterCancel(0, true, () =>
-            {
-                subscriber.Unsubscribe(assistant.QueueName + SubscriberKey);
-            });
-
-            assistant.RegisterCancel(1, false, () =>
-            {
-                lock (receptionLocker)
-                {
-                    receptionStatus = ReceptionStatus.Withdraw;
                 }
             });
 
-            assistant.RegisterCancel(2, true, () =>
+            RequeueProcessingMessages(assistant);
+
+            assistant.Cancellation.Register(() =>
             {
-                lock (receptionLocker)
+                _connectionFactory.GetSubscriber().Unsubscribe(assistant.QueueName + SubscriberKey);
+
+                receptionStatus = ReceptionStatus.Withdraw;
+
+                lock (assistant.DequeueLocker)
                 {
-                    Monitor.PulseAll(receptionLocker);
+                    Monitor.PulseAll(assistant.DequeueLocker);
                 }
 
-                lock (assistant.MonitorLocker)
-                {
-                    Monitor.PulseAll(assistant.MonitorLocker);
-                }
-            });
-
-            assistant.RegisterFallback(() =>
-            {
-                var items = database.ListRange(assistant.ProcessingQueueName);
-                database.ListRightPush(assistant.QueueName, items);
-                database.KeyDelete(assistant.ProcessingQueueName);
+                RequeueProcessingMessages(assistant);
             });
 
             while (true)
             {
-                lock (receptionLocker)
-                {
-                    if (receptionStatus == ReceptionStatus.Process)
-                    {
-                        Monitor.Wait(receptionLocker);
-                    }
-                }
-
                 if (receptionStatus == ReceptionStatus.Withdraw)
                 {
                     break;
                 }
 
-                object message = null;
-                var item = RedisValue.Null;
+                var message = default(TMessage);
+                var rawMessage = RedisValue.Null;
 
-                lock (assistant.MonitorLocker)
+                lock (assistant.DequeueLocker)
                 {
+                    var database = _connectionFactory.GetDatabase();
                     if (database.ListLength(assistant.QueueName) == 0)
                     {
-                        Monitor.Wait(assistant.MonitorLocker);
+                        Monitor.Wait(assistant.DequeueLocker);
                     }
 
-                    if (receptionStatus == ReceptionStatus.Listen)
+                    try
                     {
-                        item = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
-                        message = item.GetString().Deserialize<TMessage>();
+                        rawMessage = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
+                        message = rawMessage.GetString().Deserialize<TMessage>();
                     }
-                }
-
-                if (receptionStatus == ReceptionStatus.Withdraw)
-                {
-                    break;
+                    catch (Exception ex)
+                    {
+                        LogFactory.GetLogger().Error(string.Format("[RedisProvider] Get Message Error! Raw Message: \"{0}\".", rawMessage), ex);
+                        RemoveProcessingMessage(assistant, database, rawMessage);
+                    }
                 }
 
                 if (message != null)
                 {
-                    var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
-                    {
-                        if (status == ReceptionStatus.Complete)
-                        {
-                            database.ListRemove(assistant.ProcessingQueueName, item, 1);
-                            database.HashDelete(assistant.QueueName + HashStorageQueueName, item.GetString().RemoveEnqueueTime().GetMD5());
-                            status = ReceptionStatus.Listen;
-                        }
-                        else if (status == ReceptionStatus.Retry)
-                        {
-                            database.ListRemove(assistant.ProcessingQueueName, item, 1);
-                            database.ListLeftPush(assistant.QueueName, item.GetString().RemoveEnqueueTime().AddEnqueueTime());
-                            status = ReceptionStatus.Listen;
-                        }
-
-                        if (receptionStatus != ReceptionStatus.Withdraw)
-                        {
-                            lock (receptionLocker)
-                            {
-                                if (receptionStatus != ReceptionStatus.Withdraw)
-                                {
-                                    receptionStatus = status;
-                                }
-                            }
-                        }
-
-                        lock (receptionLocker)
-                        {
-                            Monitor.Pulse(receptionLocker);
-                        }
-                    });
-
-                    if (receptionStatus != ReceptionStatus.Withdraw)
-                    {
-                        lock (receptionLocker)
-                        {
-                            if (receptionStatus != ReceptionStatus.Withdraw)
-                            {
-                                receptionStatus = ReceptionStatus.Process;
-                                handler(context);
-                            }
-                        }
-                    }
+                    handler(new ReceptionContext<TMessage>(message, rawMessage, assistant, HandlerCallback));
                 }
-
-                //Thread.Sleep(100);
             }
         }
 
+        private void RemoveProcessingMessage<TMessage>(ReceptionAssistant<TMessage> assistant, IDatabase database, RedisValue rawMessage)
+        {
+            if (rawMessage == RedisValue.Null)
+            {
+                return;
+            }
+
+            try
+            {
+                database.ListRemove(assistant.ProcessingQueueName, rawMessage, 1);
+                database.HashDelete(assistant.QueueName + HashQueuePostfix, rawMessage.GetString().RemoveEnqueueTime().GetMD5());
+            }
+            catch { }
+        }
+
+        private void HandlerCallback<TMessage>(ReceptionContext<TMessage> context, ReceptionStatus status)
+        {
+            var assistant = context.Assistant;
+            var rawMessage = (RedisValue)context.RawMessage;
+            var database = _connectionFactory.GetDatabase();
+
+            if (status == ReceptionStatus.Completed)
+            {
+                RemoveProcessingMessage(assistant, database, rawMessage);
+            }
+            else if (status == ReceptionStatus.Retry)
+            {
+                database.ListRemove(assistant.ProcessingQueueName, rawMessage, 1);
+                database.ListLeftPush(assistant.QueueName, rawMessage.GetString().RemoveEnqueueTime().AddEnqueueTime());
+            }
+        }
+
+        private void RequeueProcessingMessages<TMessage>(ReceptionAssistant<TMessage> assistant)
+        {
+            var database = _connectionFactory.GetDatabase();
+            var items = database.ListRange(assistant.ProcessingQueueName);
+            database.ListRightPush(assistant.QueueName, items);
+            database.KeyDelete(assistant.ProcessingQueueName);
+        }
     }
 }

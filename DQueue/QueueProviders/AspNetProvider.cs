@@ -1,6 +1,5 @@
-﻿using DQueue.Helpers;
+﻿using DQueue.Infrastructure;
 using DQueue.Interfaces;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -90,9 +89,10 @@ namespace DQueue.QueueProviders
                 }
             }
 
-            var monitorLocker = ReceptionAssistant.GetLocker(queueName, Constants.Flag_MonitorLocker);
+            var hostId = ConfigSource.GetAppSetting("DQueue.HostId");
+            var dequeueLocker = ReceptionAssistant.GetLocker(queueName + string.Format(Constants.DequeueLockerFlag, hostId));
 
-            lock (monitorLocker)
+            lock (dequeueLocker)
             {
                 queue.Add(json.AddEnqueueTime());
 
@@ -101,144 +101,121 @@ namespace DQueue.QueueProviders
                     hashSet.Add(hash);
                 }
 
-                Monitor.Pulse(monitorLocker);
+                Monitor.Pulse(dequeueLocker);
             }
         }
 
-        public void Dequeue<TMessage>(ReceptionAssistant assistant, Action<ReceptionContext<TMessage>> handler)
+        public void Dequeue<TMessage>(ReceptionAssistant<TMessage> assistant, Action<ReceptionContext<TMessage>> handler)
         {
             if (assistant == null || string.IsNullOrWhiteSpace(assistant.QueueName) || handler == null)
             {
                 return;
             }
 
-            var queue = GetQueue(assistant.QueueName);
-            var hashSet = GetHashSet(assistant.QueueName);
-            var queueProcessing = GetQueue(assistant.ProcessingQueueName);
+            var receptionStatus = ReceptionStatus.None;
 
-            var receptionLocker = new object();
-            var receptionStatus = ReceptionStatus.Listen;
+            RequeueProcessingMessages(assistant);
 
-            assistant.RegisterFallback(() =>
+            assistant.Cancellation.Register(() =>
             {
-                foreach (var item in queueProcessing)
+                receptionStatus = ReceptionStatus.Withdraw;
+
+                lock (assistant.DequeueLocker)
                 {
-                    queue.Insert(0, item);
+                    Monitor.PulseAll(assistant.DequeueLocker);
                 }
 
-                queueProcessing.Clear();
-            });
-
-            assistant.RegisterCancel(1, false, () =>
-            {
-                lock (receptionLocker)
-                {
-                    receptionStatus = ReceptionStatus.Withdraw;
-                }
-            });
-
-            assistant.RegisterCancel(2, true, () =>
-            {
-                lock (receptionLocker)
-                {
-                    Monitor.PulseAll(receptionLocker);
-                }
-
-                lock (assistant.MonitorLocker)
-                {
-                    Monitor.PulseAll(assistant.MonitorLocker);
-                }
+                RequeueProcessingMessages(assistant);
             });
 
             while (true)
             {
-                lock (receptionLocker)
-                {
-                    if (receptionStatus == ReceptionStatus.Process)
-                    {
-                        Monitor.Wait(receptionLocker);
-                    }
-                }
-
                 if (receptionStatus == ReceptionStatus.Withdraw)
                 {
                     break;
                 }
 
-                object message = null;
-                string item = null;
+                var message = default(TMessage);
+                var rawMessage = default(string);
 
-                lock (assistant.MonitorLocker)
+                lock (assistant.DequeueLocker)
                 {
+                    var queue = GetQueue(assistant.QueueName);
+                    var queueProcessing = GetQueue(assistant.ProcessingQueueName);
+
                     if (queue.Count == 0)
                     {
-                        Monitor.Wait(assistant.MonitorLocker);
+                        Monitor.Wait(assistant.DequeueLocker);
                     }
 
-                    if (receptionStatus == ReceptionStatus.Listen)
+                    try
                     {
-                        item = queue[0];
+                        rawMessage = queue[0];
                         queue.RemoveAt(0);
-                        queueProcessing.Add(item);
-                        message = item.Deserialize<TMessage>();
+                        queueProcessing.Add(rawMessage);
+                        message = rawMessage.Deserialize<TMessage>();
                     }
-                }
-
-                if (receptionStatus == ReceptionStatus.Withdraw)
-                {
-                    break;
+                    catch (Exception ex)
+                    {
+                        LogFactory.GetLogger().Error(string.Format("[AspNetProvider] Get Message Error! Raw Message: \"{0}\".", rawMessage), ex);
+                        RemoveProcessingMessage(assistant, queueProcessing, rawMessage);
+                    }
                 }
 
                 if (message != null)
                 {
-                    var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
-                    {
-                        if (status == ReceptionStatus.Complete)
-                        {
-                            queueProcessing.Remove(item);
-                            hashSet.Remove(item.RemoveEnqueueTime().GetMD5());
-                            status = ReceptionStatus.Listen;
-                        }
-                        else if (status == ReceptionStatus.Retry)
-                        {
-                            queueProcessing.Remove(item);
-                            queue.Add(item.RemoveEnqueueTime().AddEnqueueTime());
-                            status = ReceptionStatus.Listen;
-                        }
-
-                        if (receptionStatus != ReceptionStatus.Withdraw)
-                        {
-                            lock (receptionLocker)
-                            {
-                                if (receptionStatus != ReceptionStatus.Withdraw)
-                                {
-                                    receptionStatus = status;
-                                }
-                            }
-                        }
-
-                        lock (receptionLocker)
-                        {
-                            Monitor.Pulse(receptionLocker);
-                        }
-                    });
-
-                    if (receptionStatus != ReceptionStatus.Withdraw)
-                    {
-                        lock (receptionLocker)
-                        {
-                            if (receptionStatus != ReceptionStatus.Withdraw)
-                            {
-                                receptionStatus = ReceptionStatus.Process;
-                                handler(context);
-                            }
-                        }
-                    }
+                    handler(new ReceptionContext<TMessage>(message, rawMessage, assistant, HandlerCallback));
                 }
-
-                //Thread.Sleep(100);
             }
         }
 
+        private void RemoveProcessingMessage<TMessage>(ReceptionAssistant<TMessage> assistant, List<string> queueProcessing, string rawMessage)
+        {
+            if (rawMessage == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var hashSet = GetHashSet(assistant.QueueName);
+
+                queueProcessing.Remove(rawMessage);
+                hashSet.Remove(rawMessage.RemoveEnqueueTime().GetMD5());
+            }
+            catch { }
+        }
+
+        private void HandlerCallback<TMessage>(ReceptionContext<TMessage> context, ReceptionStatus status)
+        {
+            var assistant = context.Assistant;
+            var rawMessage = (string)context.RawMessage;
+            var queue = GetQueue(assistant.QueueName);
+            var queueProcessing = GetQueue(assistant.ProcessingQueueName);
+
+            if (status == ReceptionStatus.Completed)
+            {
+                RemoveProcessingMessage(context.Assistant, queueProcessing, rawMessage);
+            }
+            else if (status == ReceptionStatus.Retry)
+            {
+                queueProcessing.Remove(rawMessage);
+                queue.Add(rawMessage.RemoveEnqueueTime().AddEnqueueTime());
+            }
+        }
+
+        private void RequeueProcessingMessages<TMessage>(ReceptionAssistant<TMessage> assistant)
+        {
+            var queue = GetQueue(assistant.QueueName);
+
+            var queueProcessing = GetQueue(assistant.ProcessingQueueName);
+
+            foreach (var item in queueProcessing)
+            {
+                queue.Insert(0, item);
+            }
+
+            queueProcessing.Clear();
+        }
     }
 }

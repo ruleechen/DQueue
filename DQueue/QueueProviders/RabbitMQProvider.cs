@@ -1,10 +1,9 @@
 ﻿using DQueue.Helpers;
+using DQueue.Infrastructure;
 using DQueue.Interfaces;
-using Newtonsoft.Json;
 using RabbitMQ.Client;
 using System;
 using System.Text;
-using System.Threading;
 
 namespace DQueue.QueueProviders
 {
@@ -24,7 +23,7 @@ namespace DQueue.QueueProviders
                 RequestedHeartbeat = rabbitMQConfiguration.RequestedHeartbeat,
                 ClientProperties = rabbitMQConfiguration.ClientProperties
             };
-        }, true);
+        }, false);
 
         private readonly ConnectionFactory _connectionFactory;
 
@@ -68,7 +67,7 @@ namespace DQueue.QueueProviders
             }
         }
 
-        public void Dequeue<TMessage>(ReceptionAssistant assistant, Action<ReceptionContext<TMessage>> handler)
+        public void Dequeue<TMessage>(ReceptionAssistant<TMessage> assistant, Action<ReceptionContext<TMessage>> handler)
         {
             if (assistant == null || string.IsNullOrWhiteSpace(assistant.QueueName) || handler == null)
             {
@@ -83,43 +82,20 @@ namespace DQueue.QueueProviders
                     var consumer = new QueueingBasicConsumer(model);
                     model.BasicConsume(assistant.QueueName, false, consumer);
 
-                    var receptionLocker = new object();
-                    var receptionStatus = ReceptionStatus.Listen;
+                    var receptionStatus = ReceptionStatus.None;
 
-                    assistant.RegisterCancel(1, false, () =>
+                    assistant.Cancellation.Register(() =>
                     {
-                        lock (receptionLocker)
-                        {
-                            receptionStatus = ReceptionStatus.Withdraw;
-                        }
-                    });
-
-                    assistant.RegisterCancel(2, false, () =>
-                    {
-                        lock (receptionLocker)
-                        {
-                            Monitor.PulseAll(receptionLocker);
-                        }
-
+                        receptionStatus = ReceptionStatus.Withdraw;
                         model.BasicCancel(consumer.ConsumerTag);
                     });
 
                     while (true)
                     {
-                        lock (receptionLocker)
-                        {
-                            if (receptionStatus == ReceptionStatus.Process)
-                            {
-                                Monitor.Wait(receptionLocker);
-                            }
-                        }
-
                         if (receptionStatus == ReceptionStatus.Withdraw)
                         {
                             break;
                         }
-
-                        object message = null;
 
                         var eventArg = consumer.Queue.Dequeue();
 
@@ -128,60 +104,28 @@ namespace DQueue.QueueProviders
                             break;
                         }
 
-                        if (receptionStatus == ReceptionStatus.Listen)
+                        var message = default(TMessage);
+
+                        if (eventArg != null)
                         {
-                            if (eventArg != null)
-                            {
-                                var json = Encoding.UTF8.GetString(eventArg.Body);
-                                message = json.Deserialize<TMessage>();
-                            }
+                            var json = Encoding.UTF8.GetString(eventArg.Body);
+                            message = json.Deserialize<TMessage>();
                         }
 
                         if (message != null)
                         {
-                            var context = new ReceptionContext<TMessage>((TMessage)message, (sender, status) =>
+                            handler(new ReceptionContext<TMessage>(message, null, assistant, (sender, status) =>
                             {
-                                if (status == ReceptionStatus.Complete)
+                                if (status == ReceptionStatus.Completed)
                                 {
                                     model.BasicAck(eventArg.DeliveryTag, false);
-                                    status = ReceptionStatus.Listen;
                                 }
                                 else if (status == ReceptionStatus.Retry)
                                 {
                                     throw new NotImplementedException();
                                 }
-
-                                if (receptionStatus != ReceptionStatus.Withdraw)
-                                {
-                                    lock (receptionLocker)
-                                    {
-                                        if (receptionStatus != ReceptionStatus.Withdraw)
-                                        {
-                                            receptionStatus = status;
-                                        }
-                                    }
-                                }
-
-                                lock (receptionLocker)
-                                {
-                                    Monitor.Pulse(receptionLocker);
-                                }
-                            });
-
-                            if (receptionStatus != ReceptionStatus.Withdraw)
-                            {
-                                lock (receptionLocker)
-                                {
-                                    if (receptionStatus != ReceptionStatus.Withdraw)
-                                    {
-                                        receptionStatus = ReceptionStatus.Process;
-                                        handler(context);
-                                    }
-                                }
-                            }
+                            }));
                         }
-
-                        //Thread.Sleep(100);
                     }
                 }
             }

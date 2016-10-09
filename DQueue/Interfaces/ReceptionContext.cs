@@ -4,26 +4,23 @@ namespace DQueue.Interfaces
 {
     public class ReceptionContext<TMessage>
     {
-        private TMessage _message;
         private Action<ReceptionContext<TMessage>, ReceptionStatus> _action;
 
-        public ReceptionContext(TMessage message, Action<ReceptionContext<TMessage>, ReceptionStatus> action)
+        public ReceptionContext(TMessage message, object rawMessage, ReceptionAssistant<TMessage> assistant, Action<ReceptionContext<TMessage>, ReceptionStatus> action)
         {
-            _message = message;
+            Message = message;
+            RawMessage = rawMessage;
+            Assistant = assistant;
             _action = action;
         }
 
-        public TMessage Message
-        {
-            get
-            {
-                return _message;
-            }
-        }
+        public TMessage Message { get; private set; }
+        public object RawMessage { get; private set; }
+        public ReceptionAssistant<TMessage> Assistant { get; private set; }
 
         public void Success()
         {
-            _action(this, ReceptionStatus.Complete);
+            _action(this, ReceptionStatus.Completed);
         }
 
         public void Timeout()
@@ -34,7 +31,7 @@ namespace DQueue.Interfaces
             }
             else
             {
-                _action(this, ReceptionStatus.Complete);
+                _action(this, ReceptionStatus.Completed);
             }
         }
 

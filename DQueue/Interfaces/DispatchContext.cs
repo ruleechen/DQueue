@@ -5,27 +5,36 @@ using System.Threading;
 
 namespace DQueue.Interfaces
 {
-    public class DispatchContext<TMessage>
+    public class DispatchContext<TMessage> : IDisposable
     {
         private IDictionary _items;
 
         private TMessage _message;
-        private CancellationToken _token;
         private Action<DispatchContext<TMessage>, DispatchStatus> _action;
 
         private List<Exception> _exceptions;
         private object _exceptionsLocker;
 
-        public DispatchContext(TMessage message, CancellationToken token, Action<DispatchContext<TMessage>, DispatchStatus> action)
+        internal object Locker { get; private set; }
+        internal CancellationTokenSource OwnedCancellation { get; private set; }
+        internal CancellationTokenSource LinkedCancellation { get; private set; }
+
+        public DispatchContext(TMessage message, TimeSpan dispatchTimeout, CancellationTokenSource appCancellation, Action<DispatchContext<TMessage>, DispatchStatus> action)
         {
             _items = Hashtable.Synchronized(new Hashtable()); // thread safe
 
             _message = message;
-            _token = token;
             _action = action;
 
             _exceptions = new List<Exception>();
             _exceptionsLocker = new object();
+
+            Locker = new object();
+            OwnedCancellation = new CancellationTokenSource();
+            LinkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                appCancellation.Token,
+                OwnedCancellation.Token,
+                new CancellationTokenSource(dispatchTimeout).Token);
         }
 
         public TMessage Message
@@ -36,11 +45,11 @@ namespace DQueue.Interfaces
             }
         }
 
-        public CancellationToken Token
+        public CancellationToken Cancellation
         {
             get
             {
-                return _token;
+                return LinkedCancellation.Token;
             }
         }
 
@@ -52,27 +61,21 @@ namespace DQueue.Interfaces
             }
         }
 
-        public void MarkAsComplete()
+        public void GotoComplete()
         {
             _action(this, DispatchStatus.Complete);
         }
 
-        public void MarkAsTimeout()
+        public void GotoTimeout()
         {
             _action(this, DispatchStatus.Timeout);
         }
 
         public void LogException(Exception ex)
         {
-            if (!_token.IsCancellationRequested)
+            lock (_exceptionsLocker)
             {
-                lock (_exceptionsLocker)
-                {
-                    if (!_token.IsCancellationRequested)
-                    {
-                        _exceptions.Add(ex);
-                    }
-                }
+                _exceptions.Add(ex);
             }
         }
 
@@ -81,6 +84,14 @@ namespace DQueue.Interfaces
             get
             {
                 return _exceptions;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (!OwnedCancellation.IsCancellationRequested)
+            {
+                OwnedCancellation.Cancel();
             }
         }
     }

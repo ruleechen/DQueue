@@ -1,13 +1,10 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 
 namespace DQueue.Interfaces
 {
     public class ReceptionAssistant
     {
-        #region static
         static readonly object _lockersLock;
         static readonly Dictionary<string, object> _lockers;
 
@@ -17,7 +14,7 @@ namespace DQueue.Interfaces
             _lockers = new Dictionary<string, object>();
         }
 
-        public static object GetLocker(string key, string flag)
+        public static object GetLocker(string key)
         {
             if (!_lockers.ContainsKey(key))
             {
@@ -32,172 +29,33 @@ namespace DQueue.Interfaces
 
             return _lockers[key];
         }
-        #endregion
+    }
 
-        private object _apisLocker;
-        public ReceptionAssistant(int threads, string queueName, CancellationToken token)
+    public class ReceptionAssistant<TMessage> : ReceptionAssistant
+    {
+        public string QueueName { get; private set; }
+        public string ProcessingQueueName { get; private set; }
+        public CancellationToken Cancellation { get; private set; }
+
+        public object DequeueLocker { get; private set; }
+        public object PoolingLocker { get; private set; }
+
+        public List<ReceptionContext<TMessage>> Pool { get; private set; }
+        public bool IsDispatchingPool { get; set; }
+        public CancellationTokenSource DelayCancellation { get; set; }
+
+        public ReceptionAssistant(string hostId, string queueName, CancellationToken cancellation)
         {
-            _threads = threads;
-            _queueName = queueName;
-            _token = token;
+            QueueName = queueName;
+            ProcessingQueueName = (QueueName + string.Format(Constants.ProcessingQueueName, hostId));
+            Cancellation = cancellation;
 
-            _apisLocker = new object();
-            _cancelActions = new Dictionary<int, List<Action>>();
+            DequeueLocker = GetLocker(QueueName + string.Format(Constants.DequeueLockerFlag, hostId));
+            PoolingLocker = GetLocker(QueueName + string.Format(Constants.PoolingLockerFlag, hostId));
 
-            token.Register(() =>
-            {
-                var actions = _cancelActions.ToList()
-                    .OrderBy(x => x.Key);
-
-                foreach (var order in actions)
-                {
-                    foreach (var action in order.Value)
-                    {
-                        action();
-                    }
-
-                    Thread.Sleep(100);
-                }
-
-                _cancelActions.Clear();
-            });
-        }
-
-        private int _threads;
-        public int Threads
-        {
-            get
-            {
-                return _threads;
-            }
-        }
-
-        private string _queueName;
-        public string QueueName
-        {
-            get
-            {
-                return _queueName;
-            }
-        }
-
-        private string _processingQueueName;
-        public string ProcessingQueueName
-        {
-            get
-            {
-                return _processingQueueName ?? (_processingQueueName = _queueName + Constants.Flag_ProcessingQueueName);
-            }
-        }
-
-        private object _queueLocker;
-        public object QueueLocker
-        {
-            get
-            {
-                return _queueLocker ?? (_queueLocker = GetLocker(_queueName, Constants.Flag_QueueLocker));
-            }
-        }
-
-        private object _monitorLocker;
-        public object MonitorLocker
-        {
-            get
-            {
-                return _monitorLocker ?? (_monitorLocker = GetLocker(_queueName, Constants.Flag_MonitorLocker));
-            }
-        }
-
-        private CancellationToken _token;
-        public CancellationToken Token
-        {
-            get
-            {
-                return _token;
-            }
-        }
-
-        private int _countRunForFirstThread;
-        public void RunForFirstThread(Action action)
-        {
-            if (action != null)
-            {
-                lock (_apisLocker)
-                {
-                    _countRunForFirstThread++;
-
-                    if (_countRunForFirstThread == 1)
-                    {
-                        action();
-                    }
-                }
-            }
-        }
-
-        private int _countRunForLastThread;
-        public void RunForLastThread(Action action)
-        {
-            if (action != null)
-            {
-                lock (_apisLocker)
-                {
-                    _countRunForLastThread++;
-
-                    if (_countRunForLastThread == _threads)
-                    {
-                        action();
-                    }
-                }
-            }
-        }
-
-        private Action _fallbackAction;
-        public void RegisterFallback(Action action)
-        {
-            if (_fallbackAction == null && action != null)
-            {
-                lock (_apisLocker)
-                {
-                    if (_fallbackAction == null)
-                    {
-                        _fallbackAction = action;
-                        _fallbackAction();
-
-                        RegisterCancel(int.MaxValue, true, () =>
-                        {
-                            _fallbackAction();
-                            _fallbackAction = null;
-                        });
-                    }
-                }
-            }
-        }
-
-        private Dictionary<int, List<Action>> _cancelActions;
-        public void RegisterCancel(int order, bool exclusive, Action action)
-        {
-            if (!_cancelActions.ContainsKey(order))
-            {
-                lock (_apisLocker)
-                {
-                    if (!_cancelActions.ContainsKey(order))
-                    {
-                        _cancelActions.Add(order, new List<Action>());
-                    }
-                }
-            }
-
-            var actions = _cancelActions[order];
-
-            lock (_apisLocker)
-            {
-                if (exclusive)
-                {
-                    actions.Clear();
-                }
-
-                actions.Add(action);
-            }
+            Pool = new List<ReceptionContext<TMessage>>();
+            IsDispatchingPool = false;
+            DelayCancellation = null;
         }
     }
 }
