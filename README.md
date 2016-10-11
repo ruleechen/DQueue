@@ -8,8 +8,8 @@ Each receive thread will keep on receiving message until the specified max paral
 
              Productor           Server                                 Consumer
          |--------------|     |----------|     |------------------------------------------------------|
-         |              |     |  queue1  |     |                      |----------| -> user handler -> |
-send --> |  enqueue and | --> |  queue2  | --> | -> dequeue thread -> | parallel | -> user handler -> | --> done
+         |   enqueue    |     |  queue1  |     |                      |----------| -> user handler -> |
+send --> |     and      | --> |  queue2  | --> | -> dequeue thread -> | parallel | -> user handler -> | --> done
          |  emit event  |     |  queuex  |     |                      |----------| -> user handler -> |
          |--------------|     |----------|     |------------------------------------------------------|
          
