@@ -5,12 +5,14 @@ Main Message Flow
 ------------
 Each receive thread will keep on receiving message until the specified max parallel number or there is no more message for 1 second,  then start parallel execution. 
 ```text
-              Productor             Server                                    Consumer
-         |---------------|     |--------------|     |-------------------------------------------------------|
-         |               |     |    queue1    |     |                       |----------| -> user handler -> |
-send --> | -> enqueue -> | --> |    queue2    | --> | -> receiver thread -> | parallel | -> user handler -> | --> done
-         |   emit event  |     |    queuex    |     |                       |----------| -> user handler -> |
-         |---------------|     |--------------|     |-------------------------------------------------------|
+
+              Productor            Server                                    Consumer
+         |---------------|     |------------|     |-------------------------------------------------------|
+         |               |     |   queue1   |     |                       |----------| -> user handler -> |
+send --> | -> enqueue -> | --> |   queue2   | --> | -> receiver thread -> | parallel | -> user handler -> | --> done
+         |   emit event  |     |   queuex   |     |                       |----------| -> user handler -> |
+         |---------------|     |------------|     |-------------------------------------------------------|
+         
 ```
 
 Sample Configuration
