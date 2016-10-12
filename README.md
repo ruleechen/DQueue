@@ -6,7 +6,7 @@ Main Message Flow
 Each receive thread will keep on receiving message until the specified max parallel number or there is no more message for 1 second,  then start parallel execution. 
 ```text
 
-             Productor           Server                                 Consumer
+             Producer            Server                                 Consumer
          |--------------|     |----------|     |------------------------------------------------------|
          |   enqueue    |     |  queue1  |     |                      |----------| -> user handler -> |
 send --> |     and      | --> |  queue2  | --> | -> dequeue thread -> | parallel | -> user handler -> | --> done
