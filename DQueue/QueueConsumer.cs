@@ -190,7 +190,10 @@ namespace DQueue
 
                     assistant.IsStopPooling = assistant.Pool.Count >= MaximumThreads;
 
-                    Monitor.Pulse(assistant.PoolingLocker);
+                    if (!assistant.IsStopPooling)
+                    {
+                        Monitor.Pulse(assistant.PoolingLocker);
+                    }
                 }
             };
 
