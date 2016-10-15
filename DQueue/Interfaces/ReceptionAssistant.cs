@@ -41,7 +41,7 @@ namespace DQueue.Interfaces
         public object PoolingLocker { get; private set; }
 
         public List<ReceptionContext<TMessage>> Pool { get; private set; }
-        public bool IsDispatchingPool { get; set; }
+        public bool IsStopPooling { get; set; }
         public CancellationTokenSource DelayCancellation { get; set; }
 
         public ReceptionAssistant(string hostId, string queueName, CancellationToken cancellation)
@@ -54,7 +54,7 @@ namespace DQueue.Interfaces
             PoolingLocker = GetLocker(QueueName + string.Format(Constants.PoolingLockerFlag, hostId));
 
             Pool = new List<ReceptionContext<TMessage>>();
-            IsDispatchingPool = false;
+            IsStopPooling = false;
             DelayCancellation = null;
         }
     }

@@ -11,7 +11,7 @@ namespace DQueue
 
         public static readonly QueueProvider DefaultProvider = QueueProvider.Configured;
         public static readonly string DefaultTimeoutMilliseconds = "0.00:02:00.0000000"; // 2 minutes
-        public static readonly int DefaultMaxParallelThreads = 20;
+        public static readonly int DefaultMaxParallelThreads = 10;
         public static readonly bool RetryOnTimeout = false;
         public static readonly TimeSpan ConsumerHealthInterval = TimeSpan.FromMinutes(5);
     }
