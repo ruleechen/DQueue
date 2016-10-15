@@ -17,27 +17,41 @@ namespace DQueue.Interfaces
         public TMessage Message { get; private set; }
         public object RawMessage { get; private set; }
         public ReceptionAssistant<TMessage> Assistant { get; private set; }
+        public Action OnDone { get; set; }
+
+        private void EmitStatus(ReceptionStatus status)
+        {
+            if (_action != null)
+            {
+                _action.Invoke(this, status);
+            }
+
+            if (OnDone != null)
+            {
+                OnDone.Invoke();
+            }
+        }
 
         public void Success()
         {
-            _action(this, ReceptionStatus.Completed);
+            EmitStatus(ReceptionStatus.Completed);
         }
 
         public void Timeout()
         {
             if (Constants.RetryOnTimeout)
             {
-                _action(this, ReceptionStatus.Retry);
+                EmitStatus(ReceptionStatus.Retry);
             }
             else
             {
-                _action(this, ReceptionStatus.Completed);
+                EmitStatus(ReceptionStatus.Completed);
             }
         }
 
         public void Withdraw()
         {
-            _action(this, ReceptionStatus.Withdraw);
+            EmitStatus(ReceptionStatus.Withdraw);
         }
     }
 }

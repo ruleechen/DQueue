@@ -11,6 +11,8 @@ namespace DQueue
     public class QueueConsumer<TMessage> : IQueueConsumer, IDisposable
         where TMessage : new()
     {
+        private readonly bool DISPATCH_MANY = false;
+
         private readonly QueueProvider _provider;
         private readonly CancellationTokenSource _cts;
 
@@ -120,13 +122,7 @@ namespace DQueue
         {
             var assistant = receptionContext.Assistant;
 
-            if (assistant.DelayCancellation != null)
-            {
-                assistant.DelayCancellation.Cancel();
-                assistant.DelayCancellation = null;
-            }
-
-            if (assistant.IsDispatchingPool)
+            if (assistant.IsStopPooling)
             {
                 lock (assistant.PoolingLocker)
                 {
@@ -134,26 +130,46 @@ namespace DQueue
                 }
             }
 
-            assistant.Pool.Add(receptionContext);
-
-            if (assistant.Pool.Count >= MaximumThreads)
+            if (DISPATCH_MANY)
             {
-                DispatchPool(assistant);
+                if (assistant.DelayCancellation != null)
+                {
+                    assistant.DelayCancellation.Cancel();
+                    assistant.DelayCancellation = null;
+                }
+
+                assistant.Pool.Add(receptionContext);
+
+                if (assistant.Pool.Count >= MaximumThreads)
+                {
+                    DispatchMany(assistant);
+                }
+                else
+                {
+                    assistant.DelayCancellation = new CancellationTokenSource();
+
+                    Task.Delay(1000, assistant.DelayCancellation.Token).ContinueWith((task) =>
+                    {
+                        if (!task.IsCanceled)
+                        {
+                            DispatchMany(assistant);
+                        }
+                    });
+                }
             }
             else
             {
-                assistant.DelayCancellation = new CancellationTokenSource();
-
-                Task.Delay(1000, assistant.DelayCancellation.Token).ContinueWith((task) =>
+                lock (assistant.PoolingLocker)
                 {
-                    if (!task.IsCanceled)
-                    {
-                        DispatchPool(assistant);
-                    }
-                });
+                    assistant.Pool.Add(receptionContext);
+
+                    assistant.IsStopPooling = assistant.Pool.Count >= MaximumThreads;
+                }
+
+                DispatchOne(receptionContext);
             }
 
-            if (assistant.IsDispatchingPool)
+            if (assistant.IsStopPooling)
             {
                 lock (assistant.PoolingLocker)
                 {
@@ -162,9 +178,30 @@ namespace DQueue
             }
         }
 
-        private void DispatchPool(ReceptionAssistant<TMessage> assistant)
+        private void DispatchOne(ReceptionContext<TMessage> receptionContext)
         {
-            assistant.IsDispatchingPool = true;
+            var assistant = receptionContext.Assistant;
+
+            receptionContext.OnDone = () =>
+            {
+                lock (assistant.PoolingLocker)
+                {
+                    assistant.IsStopPooling = false;
+                    assistant.Pool.Remove(receptionContext);
+                    Monitor.Pulse(assistant.PoolingLocker);
+                }
+            };
+
+            Task.Run(() =>
+            {
+                DispatchMessage(receptionContext);
+
+            }, _cts.Token);
+        }
+
+        private void DispatchMany(ReceptionAssistant<TMessage> assistant)
+        {
+            assistant.IsStopPooling = true;
 
             Task.Run(() =>
             {
@@ -182,7 +219,7 @@ namespace DQueue
 
                 assistant.Pool.Clear();
 
-                assistant.IsDispatchingPool = false;
+                assistant.IsStopPooling = false;
 
                 lock (assistant.PoolingLocker)
                 {
