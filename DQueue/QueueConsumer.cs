@@ -186,8 +186,10 @@ namespace DQueue
             {
                 lock (assistant.PoolingLocker)
                 {
-                    assistant.IsStopPooling = false;
                     assistant.Pool.Remove(receptionContext);
+
+                    assistant.IsStopPooling = assistant.Pool.Count >= MaximumThreads;
+
                     Monitor.Pulse(assistant.PoolingLocker);
                 }
             };
