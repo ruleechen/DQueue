@@ -81,19 +81,33 @@ namespace DQueue
 
         public QueueConsumer<TMessage> Receive(Action<DispatchContext<TMessage>> handler)
         {
+            return Receive(1, handler);
+        }
+
+        public QueueConsumer<TMessage> Receive(int repeat, Action<DispatchContext<TMessage>> handler)
+        {
             CheckDisposed();
+
+            if (repeat <= 0)
+            {
+                throw new ArgumentOutOfRangeException("repeat");
+            }
 
             if (handler == null)
             {
                 throw new ArgumentNullException("handler");
             }
 
-            _messageHandlers.Add(handler);
+            var count = _messageHandlers.Count;
 
-            if (_messageHandlers.Count == 1)
+            for (var i = 0; i < repeat; i++)
+            {
+                _messageHandlers.Add(handler);
+            }
+
+            if (count == 0)
             {
                 StartDequeue();
-                ConsumerHealth.Register(this);
             }
 
             return this;
@@ -116,6 +130,8 @@ namespace DQueue
                 }
 
             }, _cts.Token);
+
+            ConsumerHealth.Register(this);
         }
 
         private void Pooling(ReceptionContext<TMessage> receptionContext)
@@ -272,14 +288,14 @@ namespace DQueue
 
                 if (result.IsCompleted)
                 {
-                    ContinueOnSuccess(receptionContext, dispatchContext);
+                    dispatchContext.GotoComplete();
                 }
             }
             catch (OperationCanceledException)
             {
                 if (!_cts.Token.IsCancellationRequested)
                 {
-                    ContinueOnTimeout(receptionContext, dispatchContext);
+                    dispatchContext.GotoTimeout();
                 }
             }
         }

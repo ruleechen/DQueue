@@ -7,11 +7,7 @@ namespace DQueue.Interfaces
 {
     public class DispatchContext<TMessage> : IDisposable
     {
-        private IDictionary _items;
-
-        private TMessage _message;
         private Action<DispatchContext<TMessage>, DispatchStatus> _action;
-
         private List<Exception> _exceptions;
         private object _exceptionsLocker;
 
@@ -21,9 +17,9 @@ namespace DQueue.Interfaces
 
         public DispatchContext(TMessage message, TimeSpan dispatchTimeout, CancellationTokenSource appCancellation, Action<DispatchContext<TMessage>, DispatchStatus> action)
         {
-            _items = Hashtable.Synchronized(new Hashtable()); // thread safe
-
-            _message = message;
+            DispatchStatus = DispatchStatus.None;
+            Items = Hashtable.Synchronized(new Hashtable()); // thread safe
+            Message = message;
             _action = action;
 
             _exceptions = new List<Exception>();
@@ -34,16 +30,14 @@ namespace DQueue.Interfaces
             LinkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 appCancellation.Token,
                 OwnedCancellation.Token,
-                new CancellationTokenSource(dispatchTimeout).Token);
+                new CancellationTokenSource(dispatchTimeout).Token
+            );
         }
 
-        public TMessage Message
-        {
-            get
-            {
-                return _message;
-            }
-        }
+        public TMessage Message { get; private set; }
+        public DispatchStatus DispatchStatus { get; private set; }
+        public IEnumerable<Exception> Exceptions { get { return _exceptions; } }
+        public IDictionary Items { get; private set; }
 
         public CancellationToken Cancellation
         {
@@ -53,22 +47,24 @@ namespace DQueue.Interfaces
             }
         }
 
-        public IDictionary Items
+        private void EmitStatus(DispatchStatus status)
         {
-            get
+            DispatchStatus = status;
+
+            if (_action != null)
             {
-                return _items;
+                _action.Invoke(this, status);
             }
         }
 
         public void GotoComplete()
         {
-            _action(this, DispatchStatus.Complete);
+            EmitStatus(DispatchStatus.Complete);
         }
 
         public void GotoTimeout()
         {
-            _action(this, DispatchStatus.Timeout);
+            EmitStatus(DispatchStatus.Timeout);
         }
 
         public void LogException(Exception ex)
@@ -76,14 +72,6 @@ namespace DQueue.Interfaces
             lock (_exceptionsLocker)
             {
                 _exceptions.Add(ex);
-            }
-        }
-
-        public IEnumerable<Exception> Exceptions
-        {
-            get
-            {
-                return _exceptions;
             }
         }
 
