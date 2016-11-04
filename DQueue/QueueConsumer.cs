@@ -19,6 +19,7 @@ namespace DQueue
         private readonly List<Action<DispatchContext<TMessage>>> _messageHandlers;
         private readonly List<Action<DispatchContext<TMessage>>> _timeoutHandlers;
         private readonly List<Action<DispatchContext<TMessage>>> _completeHandlers;
+        public event EventHandler<DispatchEventArgs<TMessage>> DispatchStatusChange;
 
         public string HostId { get; private set; }
         public string QueueName { get; private set; }
@@ -252,7 +253,7 @@ namespace DQueue
 
         private void DispatchMessage(ReceptionContext<TMessage> receptionContext)
         {
-            var timeout = Timeout.HasValue ? Timeout.Value : Constants.DefaultTimeoutMilliseconds.AsNullableTimeSpan().Value;
+            var timeout = Timeout.HasValue ? Timeout.Value : Constants.DefaultTimeoutTimeSpan.AsNullableTimeSpan().Value;
 
             var dispatchContext = new DispatchContext<TMessage>(
                 receptionContext.Message, timeout, _cts, (sender, status) =>
@@ -266,6 +267,8 @@ namespace DQueue
                     ContinueOnTimeout(receptionContext, sender);
                 }
             });
+
+            EmitDispatchStatusChange(dispatchContext);
 
             try
             {
@@ -308,6 +311,8 @@ namespace DQueue
                 {
                     if (!dispatchContext.OwnedCancellation.IsCancellationRequested)
                     {
+                        EmitDispatchStatusChange(dispatchContext);
+
                         foreach (var complete in _completeHandlers)
                         {
                             try { complete(dispatchContext); }
@@ -329,6 +334,8 @@ namespace DQueue
                 {
                     if (!dispatchContext.OwnedCancellation.IsCancellationRequested)
                     {
+                        EmitDispatchStatusChange(dispatchContext);
+
                         foreach (var timeout in _timeoutHandlers)
                         {
                             try { timeout(dispatchContext); }
@@ -339,6 +346,15 @@ namespace DQueue
                         receptionContext.Timeout();
                     }
                 }
+            }
+        }
+
+        private void EmitDispatchStatusChange(DispatchContext<TMessage> dispatchContext)
+        {
+            if (DispatchStatusChange != null)
+            {
+                var args = new DispatchEventArgs<TMessage>(dispatchContext);
+                try { DispatchStatusChange.Invoke(this, args); } catch { }
             }
         }
 
