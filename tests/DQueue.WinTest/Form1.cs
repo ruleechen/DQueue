@@ -24,7 +24,7 @@ namespace DQueue.WinTest
 
             _consumer.Receive((context) =>
             {
-                Thread.Sleep(10000);
+                Thread.Sleep(3000);
 
                 if (context.DispatchStatus != DispatchStatus.None)
                 {
@@ -34,7 +34,7 @@ namespace DQueue.WinTest
 
             _consumer.Receive((context) =>
             {
-                Thread.Sleep(7000);
+                Thread.Sleep(4000);
 
                 if (context.DispatchStatus != DispatchStatus.None)
                 {
@@ -42,7 +42,16 @@ namespace DQueue.WinTest
                 }
             });
 
+
             var start = DateTime.Now;
+
+            _consumer.DispatchStatusChange += (sender, ev) =>
+            {
+                if (ev.Context.DispatchStatus == DispatchStatus.None)
+                {
+                    start = DateTime.Now;
+                }
+            };
 
             _consumer.OnTimeout((context) =>
             {
