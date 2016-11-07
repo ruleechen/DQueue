@@ -2,6 +2,7 @@
 using DQueue.Infrastructure;
 using DQueue.Interfaces;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using System;
 using System.Text;
 
@@ -82,45 +83,41 @@ namespace DQueue.QueueProviders
                     var consumer = new QueueingBasicConsumer(model);
                     model.BasicConsume(assistant.QueueName, false, consumer);
 
-                    var receptionStatus = ReceptionStatus.None;
-
                     assistant.Cancellation.Register(() =>
                     {
-                        receptionStatus = ReceptionStatus.Withdraw;
                         model.BasicCancel(consumer.ConsumerTag);
                     });
 
-                    while (true)
+                    while (!assistant.IsTerminated())
                     {
-                        if (receptionStatus == ReceptionStatus.Withdraw)
-                        {
-                            break;
-                        }
-
-                        var eventArg = consumer.Queue.Dequeue();
-
-                        if (receptionStatus == ReceptionStatus.Withdraw)
-                        {
-                            break;
-                        }
+                        BasicDeliverEventArgs eventArg = null;
 
                         var message = default(TMessage);
 
-                        if (eventArg != null)
+                        try
                         {
-                            var json = Encoding.UTF8.GetString(eventArg.Body);
-                            message = json.Deserialize<TMessage>();
+                            eventArg = consumer.Queue.Dequeue();
+
+                            if (eventArg != null)
+                            {
+                                var json = Encoding.UTF8.GetString(eventArg.Body);
+                                message = json.Deserialize<TMessage>();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogFactory.GetLogger().Error("[RabbitMQProvider] Get Message Error!", ex);
                         }
 
                         if (message != null)
                         {
                             handler(new ReceptionContext<TMessage>(message, null, assistant, (sender, status) =>
                             {
-                                if (status == ReceptionStatus.Completed)
+                                if (status == DispatchStatus.Complete)
                                 {
                                     model.BasicAck(eventArg.DeliveryTag, false);
                                 }
-                                else if (status == ReceptionStatus.Retry)
+                                else if (status == DispatchStatus.Timeout)
                                 {
                                     throw new NotImplementedException();
                                 }

@@ -4,10 +4,6 @@
     {
         None,
 
-        Completed,
-
-        Retry,
-
         //Suspend,
 
         Withdraw

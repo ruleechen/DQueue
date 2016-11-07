@@ -15,7 +15,11 @@ namespace DQueue.Interfaces
         internal CancellationTokenSource OwnedCancellation { get; private set; }
         internal CancellationTokenSource LinkedCancellation { get; private set; }
 
-        public DispatchContext(TMessage message, TimeSpan dispatchTimeout, CancellationTokenSource appCancellation, Action<DispatchContext<TMessage>, DispatchStatus> action)
+        public DispatchContext(
+            TMessage message,
+            TimeSpan dispatchTimeout,
+            CancellationTokenSource appCancellation,
+            Action<DispatchContext<TMessage>, DispatchStatus> action)
         {
             DispatchStatus = DispatchStatus.None;
             Items = Hashtable.Synchronized(new Hashtable()); // thread safe

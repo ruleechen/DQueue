@@ -320,7 +320,7 @@ namespace DQueue
                         }
 
                         dispatchContext.Dispose();
-                        receptionContext.Success();
+                        receptionContext.FeedbackSuccess();
                     }
                 }
             }
@@ -343,7 +343,7 @@ namespace DQueue
                         }
 
                         dispatchContext.Dispose();
-                        receptionContext.Timeout();
+                        receptionContext.FeedbackTimeout();
                     }
                 }
             }

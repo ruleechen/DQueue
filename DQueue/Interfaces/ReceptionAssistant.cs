@@ -35,10 +35,12 @@ namespace DQueue.Interfaces
     {
         public string QueueName { get; private set; }
         public string ProcessingQueueName { get; private set; }
-        public CancellationToken Cancellation { get; private set; }
 
         public object DequeueLocker { get; private set; }
         public object PoolingLocker { get; private set; }
+
+        public ReceptionStatus ReceptionStatus { get; set; }
+        public CancellationToken Cancellation { get; private set; }
 
         public List<ReceptionContext<TMessage>> Pool { get; private set; }
         public bool IsStopPooling { get; set; }
@@ -48,14 +50,25 @@ namespace DQueue.Interfaces
         {
             QueueName = queueName;
             ProcessingQueueName = (QueueName + string.Format(Constants.ProcessingQueueName, hostId));
-            Cancellation = cancellation;
 
             DequeueLocker = GetLocker(QueueName + string.Format(Constants.DequeueLockerFlag, hostId));
             PoolingLocker = GetLocker(QueueName + string.Format(Constants.PoolingLockerFlag, hostId));
 
+            ReceptionStatus = ReceptionStatus.None;
+            Cancellation = cancellation;
+            Cancellation.Register(() =>
+            {
+                ReceptionStatus = ReceptionStatus.Withdraw;
+            });
+
             Pool = new List<ReceptionContext<TMessage>>();
             IsStopPooling = false;
             DelayCancellation = null;
+        }
+
+        public bool IsTerminated()
+        {
+            return ReceptionStatus == ReceptionStatus.Withdraw;
         }
     }
 }

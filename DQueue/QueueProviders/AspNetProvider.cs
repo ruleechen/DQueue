@@ -112,14 +112,10 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var receptionStatus = ReceptionStatus.None;
-
             RequeueProcessingMessages(assistant);
 
             assistant.Cancellation.Register(() =>
             {
-                receptionStatus = ReceptionStatus.Withdraw;
-
                 lock (assistant.DequeueLocker)
                 {
                     Monitor.PulseAll(assistant.DequeueLocker);
@@ -128,13 +124,8 @@ namespace DQueue.QueueProviders
                 RequeueProcessingMessages(assistant);
             });
 
-            while (true)
+            while (!assistant.IsTerminated())
             {
-                if (receptionStatus == ReceptionStatus.Withdraw)
-                {
-                    break;
-                }
-
                 var message = default(TMessage);
                 var rawMessage = default(string);
 
@@ -164,7 +155,7 @@ namespace DQueue.QueueProviders
 
                 if (message != null)
                 {
-                    handler(new ReceptionContext<TMessage>(message, rawMessage, assistant, HandlerCallback));
+                    handler(new ReceptionContext<TMessage>(message, rawMessage, assistant, FeedbackHandler));
                 }
             }
         }
@@ -186,18 +177,18 @@ namespace DQueue.QueueProviders
             catch { }
         }
 
-        private void HandlerCallback<TMessage>(ReceptionContext<TMessage> context, ReceptionStatus status)
+        private void FeedbackHandler<TMessage>(ReceptionContext<TMessage> context, DispatchStatus status)
         {
             var assistant = context.Assistant;
             var rawMessage = (string)context.RawMessage;
             var queue = GetQueue(assistant.QueueName);
             var queueProcessing = GetQueue(assistant.ProcessingQueueName);
 
-            if (status == ReceptionStatus.Completed)
+            if (status == DispatchStatus.Complete)
             {
                 RemoveProcessingMessage(context.Assistant, queueProcessing, rawMessage);
             }
-            else if (status == ReceptionStatus.Retry)
+            else if (status == DispatchStatus.Timeout)
             {
                 queueProcessing.Remove(rawMessage);
                 queue.Add(rawMessage.RemoveEnqueueTime().AddEnqueueTime());

@@ -86,8 +86,6 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var receptionStatus = ReceptionStatus.None;
-
             _connectionFactory.GetSubscriber().Subscribe(assistant.QueueName + SubscriberKey, (channel, val) =>
             {
                 if (val == SubscriberValue)
@@ -105,8 +103,6 @@ namespace DQueue.QueueProviders
             {
                 _connectionFactory.GetSubscriber().Unsubscribe(assistant.QueueName + SubscriberKey);
 
-                receptionStatus = ReceptionStatus.Withdraw;
-
                 lock (assistant.DequeueLocker)
                 {
                     Monitor.PulseAll(assistant.DequeueLocker);
@@ -115,13 +111,8 @@ namespace DQueue.QueueProviders
                 RequeueProcessingMessages(assistant);
             });
 
-            while (true)
+            while (!assistant.IsTerminated())
             {
-                if (receptionStatus == ReceptionStatus.Withdraw)
-                {
-                    break;
-                }
-
                 var message = default(TMessage);
                 var rawMessage = RedisValue.Null;
 
@@ -147,7 +138,7 @@ namespace DQueue.QueueProviders
 
                 if (message != null)
                 {
-                    handler(new ReceptionContext<TMessage>(message, rawMessage, assistant, HandlerCallback));
+                    handler(new ReceptionContext<TMessage>(message, rawMessage, assistant, FeedbackHandler));
                 }
             }
         }
@@ -167,17 +158,17 @@ namespace DQueue.QueueProviders
             catch { }
         }
 
-        private void HandlerCallback<TMessage>(ReceptionContext<TMessage> context, ReceptionStatus status)
+        private void FeedbackHandler<TMessage>(ReceptionContext<TMessage> context, DispatchStatus status)
         {
             var assistant = context.Assistant;
             var rawMessage = (RedisValue)context.RawMessage;
             var database = _connectionFactory.GetDatabase();
 
-            if (status == ReceptionStatus.Completed)
+            if (status == DispatchStatus.Complete)
             {
                 RemoveProcessingMessage(assistant, database, rawMessage);
             }
-            else if (status == ReceptionStatus.Retry)
+            else if (status == DispatchStatus.Timeout)
             {
                 database.ListRemove(assistant.ProcessingQueueName, rawMessage, 1);
                 database.ListLeftPush(assistant.QueueName, rawMessage.GetString().RemoveEnqueueTime().AddEnqueueTime());
