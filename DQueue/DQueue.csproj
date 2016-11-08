@@ -60,6 +60,7 @@
   <ItemGroup>
     <Compile Include="Constants.cs" />
     <Compile Include="ConsumerHealth.cs" />
+    <Compile Include="Helpers\DQueueSettings.cs" />
     <Compile Include="Helpers\HashCodeGenerator.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Interfaces\DispatchEventArgs.cs" />

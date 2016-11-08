@@ -101,6 +101,20 @@ namespace DQueue
             return null;
         }
 
+        public static QueueProvider AsQueueProvider(this string str)
+        {
+            QueueProvider provider;
+
+            if (Enum.TryParse<QueueProvider>(str, true, out provider))
+            {
+                return provider;
+            }
+            else
+            {
+                throw new ArgumentException("Can not support queue provider: " + str);
+            }
+        }
+
         public static string GetString(this RedisValue value)
         {
             if (!value.HasValue || value.IsNull)

@@ -1,4 +1,5 @@
-﻿using DQueue.Infrastructure;
+﻿using DQueue.Helpers;
+using DQueue.Infrastructure;
 using DQueue.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -89,7 +90,7 @@ namespace DQueue.QueueProviders
                 }
             }
 
-            var hostId = ConfigSource.GetAppSetting("DQueue.HostId");
+            var hostId = DQueueSettings.Get().HostId;
             var dequeueLocker = ReceptionAssistant.GetLocker(queueName + string.Format(Constants.DequeueLockerFlag, hostId));
 
             lock (dequeueLocker)

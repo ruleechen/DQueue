@@ -45,15 +45,12 @@ namespace DQueue
 
         public QueueConsumer(string queueName, int maximumThreads)
         {
-            MaximumThreads = maximumThreads;
-            HostId = ConfigSource.GetAppSetting("DQueue.HostId");
-            QueueName = queueName ?? QueueNameGenerator.GetQueueName<TMessage>();
-            Timeout = ConfigSource.FirstAppSetting("DQueue.ConsumerTimeout", "ConsumerTimeout").AsNullableTimeSpan();
+            var settings = DQueueSettings.Get();
 
-            if (string.IsNullOrWhiteSpace(HostId))
-            {
-                throw new ArgumentNullException("HostId");
-            }
+            MaximumThreads = maximumThreads;
+            HostId = settings.HostId;
+            QueueName = queueName ?? QueueNameGenerator.GetQueueName<TMessage>();
+            Timeout = settings.ConsumerTimeout;
 
             if (string.IsNullOrWhiteSpace(QueueName))
             {
