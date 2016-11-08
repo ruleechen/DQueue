@@ -99,7 +99,7 @@ namespace DQueue.QueueProviders
 
             RequeueProcessingMessages(assistant);
 
-            assistant.Cancellation.Register(() =>
+            assistant.Disposing += (s, e) =>
             {
                 _connectionFactory.GetSubscriber().Unsubscribe(assistant.QueueName + SubscriberKey);
 
@@ -109,7 +109,7 @@ namespace DQueue.QueueProviders
                 }
 
                 RequeueProcessingMessages(assistant);
-            });
+            };
 
             while (!assistant.IsTerminated())
             {

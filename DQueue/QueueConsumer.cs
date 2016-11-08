@@ -15,6 +15,7 @@ namespace DQueue
 
         private readonly QueueProvider _provider;
         private readonly CancellationTokenSource _cts;
+        private ReceptionAssistant<TMessage> _assistant;
 
         private readonly List<Action<DispatchContext<TMessage>>> _messageHandlers;
         private readonly List<Action<DispatchContext<TMessage>>> _timeoutHandlers;
@@ -118,16 +119,17 @@ namespace DQueue
         {
             DequeueTask = Task.Run(() =>
             {
-                var assistant = new ReceptionAssistant<TMessage>(HostId, QueueName, _cts.Token);
+                _assistant = new ReceptionAssistant<TMessage>(HostId, QueueName);
 
                 try
                 {
                     var provider = QueueProviderFactory.CreateProvider(_provider);
-                    provider.Dequeue<TMessage>(assistant, Pooling);
+                    provider.Dequeue<TMessage>(_assistant, Pooling);
                 }
                 catch (Exception ex)
                 {
-                    LogFactory.GetLogger().Error(string.Format("Receive Task Error for queue \"{0}\".", assistant.QueueName), ex);
+                    LogFactory.GetLogger().Error(string.Format("Receive Task Error for queue \"{0}\".", _assistant.QueueName), ex);
+                    _assistant.Dispose();
                 }
 
             }, _cts.Token);
@@ -396,6 +398,11 @@ namespace DQueue
             {
                 _cts.Cancel();
                 _cts.Dispose();
+            }
+
+            if (_assistant != null)
+            {
+                _assistant.Dispose();
             }
 
             _messageHandlers.Clear();

@@ -83,10 +83,10 @@ namespace DQueue.QueueProviders
                     var consumer = new QueueingBasicConsumer(model);
                     model.BasicConsume(assistant.QueueName, false, consumer);
 
-                    assistant.Cancellation.Register(() =>
+                    assistant.Disposing += (s, e) =>
                     {
                         model.BasicCancel(consumer.ConsumerTag);
-                    });
+                    };
 
                     while (!assistant.IsTerminated())
                     {

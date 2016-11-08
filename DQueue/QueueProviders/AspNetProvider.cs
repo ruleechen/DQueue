@@ -114,7 +114,7 @@ namespace DQueue.QueueProviders
 
             RequeueProcessingMessages(assistant);
 
-            assistant.Cancellation.Register(() =>
+            assistant.Disposing += (s, e) =>
             {
                 lock (assistant.DequeueLocker)
                 {
@@ -122,7 +122,7 @@ namespace DQueue.QueueProviders
                 }
 
                 RequeueProcessingMessages(assistant);
-            });
+            };
 
             while (!assistant.IsTerminated())
             {

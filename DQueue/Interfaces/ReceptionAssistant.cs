@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -31,7 +32,7 @@ namespace DQueue.Interfaces
         }
     }
 
-    public class ReceptionAssistant<TMessage> : ReceptionAssistant
+    public class ReceptionAssistant<TMessage> : ReceptionAssistant, IDisposable
     {
         public string QueueName { get; private set; }
         public string ProcessingQueueName { get; private set; }
@@ -40,13 +41,13 @@ namespace DQueue.Interfaces
         public object PoolingLocker { get; private set; }
 
         public ReceptionStatus ReceptionStatus { get; set; }
-        public CancellationToken Cancellation { get; private set; }
+        public event EventHandler Disposing;
 
         public List<ReceptionContext<TMessage>> Pool { get; private set; }
         public bool IsStopPooling { get; set; }
         public CancellationTokenSource DelayCancellation { get; set; }
 
-        public ReceptionAssistant(string hostId, string queueName, CancellationToken cancellation)
+        public ReceptionAssistant(string hostId, string queueName)
         {
             QueueName = queueName;
             ProcessingQueueName = (QueueName + string.Format(Constants.ProcessingQueueName, hostId));
@@ -55,11 +56,10 @@ namespace DQueue.Interfaces
             PoolingLocker = GetLocker(QueueName + string.Format(Constants.PoolingLockerFlag, hostId));
 
             ReceptionStatus = ReceptionStatus.None;
-            Cancellation = cancellation;
-            Cancellation.Register(() =>
+            Disposing += (s, e) =>
             {
                 ReceptionStatus = ReceptionStatus.Withdraw;
-            });
+            };
 
             Pool = new List<ReceptionContext<TMessage>>();
             IsStopPooling = false;
@@ -69,6 +69,15 @@ namespace DQueue.Interfaces
         public bool IsTerminated()
         {
             return ReceptionStatus == ReceptionStatus.Withdraw;
+        }
+
+        public void Dispose()
+        {
+            if (Disposing != null)
+            {
+                try { Disposing.Invoke(this, EventArgs.Empty); }
+                catch { }
+            }
         }
     }
 }
