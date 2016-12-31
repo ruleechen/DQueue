@@ -97,7 +97,7 @@ namespace DQueue.QueueProviders
                 }
             });
 
-            RequeueProcessingMessages(assistant);
+            RequeueProcessingMessages(_connectionFactory, assistant);
 
             assistant.Disposing += (s, e) =>
             {
@@ -108,7 +108,7 @@ namespace DQueue.QueueProviders
                     Monitor.PulseAll(assistant.DequeueLocker);
                 }
 
-                RequeueProcessingMessages(assistant);
+                RequeueProcessingMessages(_connectionFactory, assistant);
             };
 
             while (!assistant.IsTerminated())
@@ -124,26 +124,28 @@ namespace DQueue.QueueProviders
                         Monitor.Wait(assistant.DequeueLocker);
                     }
 
+                    rawMessage = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
+
                     try
                     {
-                        rawMessage = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
                         message = rawMessage.GetString().Deserialize<TMessage>();
                     }
                     catch (Exception ex)
                     {
-                        LogFactory.GetLogger().Error(string.Format("[RedisProvider] Get Message Error! Raw Message: \"{0}\".", rawMessage), ex);
-                        RemoveProcessingMessage(assistant, database, rawMessage);
+                        LogFactory.GetLogger().Error(string.Format("[RedisProvider] Deserialize failed on raw message: \"{0}\".", rawMessage), ex);
+                        RemoveProcessingMessage(database, assistant, rawMessage);
                     }
                 }
 
                 if (message != null)
                 {
-                    handler(new ReceptionContext<TMessage>(message, rawMessage, assistant, FeedbackHandler));
+                    var feedbackHandler = GetFeedbackHandler<TMessage>(_connectionFactory);
+                    handler(new ReceptionContext<TMessage>(message, rawMessage, assistant, feedbackHandler));
                 }
             }
         }
 
-        private void RemoveProcessingMessage<TMessage>(ReceptionAssistant<TMessage> assistant, IDatabase database, RedisValue rawMessage)
+        private static void RemoveProcessingMessage<TMessage>(IDatabase database, ReceptionAssistant<TMessage> assistant, RedisValue rawMessage)
         {
             if (rawMessage == RedisValue.Null)
             {
@@ -158,26 +160,32 @@ namespace DQueue.QueueProviders
             catch { }
         }
 
-        private void FeedbackHandler<TMessage>(ReceptionContext<TMessage> context, DispatchStatus status)
+        private static Action<ReceptionContext<TMessage>, DispatchStatus>
+            GetFeedbackHandler<TMessage>(ConnectionMultiplexer connection)
         {
-            var assistant = context.Assistant;
-            var rawMessage = (RedisValue)context.RawMessage;
-            var database = _connectionFactory.GetDatabase();
+            // create new action for each ReceptionContext
+            // for avoid feedback error when RedisProvider has disposed
+            return (context, status) =>
+            {
+                var assistant = context.Assistant;
+                var rawMessage = (RedisValue)context.RawMessage;
+                var database = connection.GetDatabase();
 
-            if (status == DispatchStatus.Complete)
-            {
-                RemoveProcessingMessage(assistant, database, rawMessage);
-            }
-            else if (status == DispatchStatus.Timeout)
-            {
-                database.ListRemove(assistant.ProcessingQueueName, rawMessage, 1);
-                database.ListLeftPush(assistant.QueueName, rawMessage.GetString().RemoveEnqueueTime().AddEnqueueTime());
-            }
+                if (status == DispatchStatus.Complete)
+                {
+                    RemoveProcessingMessage(database, assistant, rawMessage);
+                }
+                else if (status == DispatchStatus.Timeout)
+                {
+                    database.ListRemove(assistant.ProcessingQueueName, rawMessage, 1);
+                    database.ListLeftPush(assistant.QueueName, rawMessage.GetString().RemoveEnqueueTime().AddEnqueueTime());
+                }
+            };
         }
 
-        private void RequeueProcessingMessages<TMessage>(ReceptionAssistant<TMessage> assistant)
+        private static void RequeueProcessingMessages<TMessage>(ConnectionMultiplexer connection, ReceptionAssistant<TMessage> assistant)
         {
-            var database = _connectionFactory.GetDatabase();
+            var database = connection.GetDatabase();
             var items = database.ListRange(assistant.ProcessingQueueName);
             database.ListRightPush(assistant.QueueName, items);
             database.KeyDelete(assistant.ProcessingQueueName);
