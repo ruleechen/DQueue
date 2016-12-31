@@ -22,10 +22,15 @@ namespace DQueue.Helpers
             return messageType.FullName;
         }
 
-        public static string GetQueueName<TMessage>()
+        public static string GetQueueName<TMessage>(object message = null)
             where TMessage : new()
         {
-            var obj = new TMessage();
+            var obj = message;
+
+            if (obj == null)
+            {
+                obj = new TMessage();
+            }
 
             var imsg = obj as IQueueMessage;
 

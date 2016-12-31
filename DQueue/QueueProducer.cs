@@ -28,7 +28,7 @@ namespace DQueue
         public bool ExistsMessage<TMessage>(TMessage message)
             where TMessage : new()
         {
-            var queueName = QueueNameGenerator.GetQueueName<TMessage>();
+            var queueName = QueueNameGenerator.GetQueueName<TMessage>(message);
 
             return ExistsMessage(queueName, message);
         }
@@ -47,7 +47,7 @@ namespace DQueue
         public QueueProducer Send<TMessage>(TMessage message)
             where TMessage : new()
         {
-            var queueName = QueueNameGenerator.GetQueueName<TMessage>();
+            var queueName = QueueNameGenerator.GetQueueName<TMessage>(message);
 
             return Send(queueName, message);
         }
