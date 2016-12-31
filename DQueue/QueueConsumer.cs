@@ -127,6 +127,7 @@ namespace DQueue
                 {
                     LogFactory.GetLogger().Error(string.Format("Receive Task Error for queue \"{0}\".", _assistant.QueueName), ex);
                     _assistant.Dispose();
+                    _assistant = null;
                 }
 
             }, _cts.Token);
@@ -400,6 +401,7 @@ namespace DQueue
             if (_assistant != null)
             {
                 _assistant.Dispose();
+                _assistant = null;
             }
 
             _messageHandlers.Clear();
@@ -410,7 +412,6 @@ namespace DQueue
         public bool IsAlive()
         {
             CheckDisposed();
-
             return DequeueTask != null &&
                 !DequeueTask.IsCompleted &&
                 !DequeueTask.IsFaulted;
@@ -419,7 +420,6 @@ namespace DQueue
         public void Rescue()
         {
             CheckDisposed();
-
             StartDequeue();
         }
     }
