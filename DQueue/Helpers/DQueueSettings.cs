@@ -23,11 +23,6 @@ namespace DQueue.Helpers
             var provider = ConfigSource.FirstAppSetting("DQueue.Provider", "QueueProvider");
             var consumerTimeout = ConfigSource.FirstAppSetting("DQueue.ConsumerTimeout", "ConsumerTimeout");
 
-            if (string.IsNullOrWhiteSpace(hostId))
-            {
-                throw new ArgumentNullException("HostId is required");
-            }
-
             var settings = new DQueueSettings
             {
                 HostId = hostId,

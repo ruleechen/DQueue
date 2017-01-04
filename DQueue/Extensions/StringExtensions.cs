@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using StackExchange.Redis;
 using System;
+using System.Configuration;
 using System.Text.RegularExpressions;
 
 namespace DQueue
@@ -103,15 +104,20 @@ namespace DQueue
 
         public static QueueProvider AsQueueProvider(this string str)
         {
+            if (string.IsNullOrWhiteSpace(str))
+            {
+                throw new ConfigurationErrorsException("AppSetting \"DQueue.Provider\" is required");
+            }
+
             QueueProvider provider;
 
-            if (Enum.TryParse<QueueProvider>(str, true, out provider))
+            if (Enum.TryParse(str, true, out provider))
             {
                 return provider;
             }
             else
             {
-                throw new ArgumentException("Can not support queue provider: " + str);
+                throw new ConfigurationErrorsException("AppSetting \"DQueue.Provider\" can not support provider: \"" + str + "\"");
             }
         }
 

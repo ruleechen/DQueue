@@ -52,6 +52,11 @@ namespace DQueue
             QueueName = queueName ?? QueueNameGenerator.GetQueueName<TMessage>();
             Timeout = settings.ConsumerTimeout;
 
+            if (string.IsNullOrWhiteSpace(HostId))
+            {
+                throw new ArgumentNullException("HostId is required");
+            }
+
             if (string.IsNullOrWhiteSpace(QueueName))
             {
                 throw new ArgumentNullException("queueName");
