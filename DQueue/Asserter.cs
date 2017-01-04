@@ -18,13 +18,13 @@ namespace DQueue
 
         private static void ProcessStart()
         {
-            HostHeartbeat.StartTimer();
+            HostHeartbeats.StartTimer();
             ConsumerHealth.StartTimer();
         }
 
         private static void ProcessExit()
         {
-            HostHeartbeat.StopTimer();
+            HostHeartbeats.StopTimer();
             ConsumerHealth.StopTimer();
         }
     }

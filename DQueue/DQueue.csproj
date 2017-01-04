@@ -64,7 +64,7 @@
     <Compile Include="Helpers\DQueueSettings.cs" />
     <Compile Include="Helpers\HashCodeGenerator.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
-    <Compile Include="HostHeartbeat.cs" />
+    <Compile Include="HostHeartbeats.cs" />
     <Compile Include="Interfaces\DispatchEventArgs.cs" />
     <Compile Include="Interfaces\IConsumerService.cs" />
     <Compile Include="Interfaces\IQueueConsumer.cs" />

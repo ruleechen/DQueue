@@ -2,7 +2,7 @@
 
 namespace DQueue
 {
-    public class HostHeartbeat
+    public class HostHeartbeats
     {
         static Timer _timer;
 
