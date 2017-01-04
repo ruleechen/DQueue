@@ -14,5 +14,6 @@ namespace DQueue
         public static readonly int DefaultMaxParallelThreads = 10;
         public static readonly bool RetryOnTimeout = false;
         public static readonly TimeSpan ConsumerHealthInterval = TimeSpan.FromMinutes(5);
+        public static readonly TimeSpan HostHeartbeatInterval = TimeSpan.FromSeconds(5);
     }
 }

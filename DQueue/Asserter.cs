@@ -2,9 +2,9 @@
 
 namespace DQueue
 {
-    public class AppMain
+    public class Asserter
     {
-        static AppMain()
+        static Asserter()
         {
             ProcessStart();
             AppDomain.CurrentDomain.ProcessExit += (s, e) => { ProcessExit(); };
@@ -18,11 +18,13 @@ namespace DQueue
 
         private static void ProcessStart()
         {
+            HostHeartbeat.StartTimer();
             ConsumerHealth.StartTimer();
         }
 
         private static void ProcessExit()
         {
+            HostHeartbeat.StopTimer();
             ConsumerHealth.StopTimer();
         }
     }

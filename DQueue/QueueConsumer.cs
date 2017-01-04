@@ -111,7 +111,7 @@ namespace DQueue
 
             if (count == 0)
             {
-                AppMain.Trigger();
+                Asserter.Trigger();
                 StartDequeue();
             }
 

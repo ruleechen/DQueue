@@ -58,12 +58,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AppMain.cs" />
+    <Compile Include="Asserter.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="ConsumerHealth.cs" />
     <Compile Include="Helpers\DQueueSettings.cs" />
     <Compile Include="Helpers\HashCodeGenerator.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
+    <Compile Include="HostHeartbeat.cs" />
     <Compile Include="Interfaces\DispatchEventArgs.cs" />
     <Compile Include="Interfaces\IConsumerService.cs" />
     <Compile Include="Interfaces\IQueueConsumer.cs" />
