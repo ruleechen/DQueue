@@ -111,6 +111,7 @@ namespace DQueue
 
             if (count == 0)
             {
+                AppMain.Trigger();
                 StartDequeue();
             }
 

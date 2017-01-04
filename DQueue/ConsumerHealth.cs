@@ -17,7 +17,6 @@ namespace DQueue
         {
             _consumers = new HashSet<IQueueConsumer>();
             _locker = new object();
-            StartTimer();
         }
 
         public static void Register(IQueueConsumer consumer)

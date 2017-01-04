@@ -58,6 +58,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AppMain.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="ConsumerHealth.cs" />
     <Compile Include="Helpers\DQueueSettings.cs" />
