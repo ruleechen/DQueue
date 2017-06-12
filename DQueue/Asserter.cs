@@ -13,6 +13,7 @@ namespace DQueue
         public static void Trigger()
         {
             // empty implementaion
+            // don't remove this function!
             // this is for trigger the static constructor
         }
 

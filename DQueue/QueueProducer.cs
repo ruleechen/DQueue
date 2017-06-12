@@ -40,7 +40,6 @@ namespace DQueue
                 throw new ArgumentNullException("queueName");
             }
 
-            _provider.IgnoreHash = IgnoreHash;
             return _provider.ExistsMessage(queueName, message);
         }
 
@@ -59,8 +58,7 @@ namespace DQueue
                 throw new ArgumentNullException("queueName");
             }
 
-            _provider.IgnoreHash = IgnoreHash;
-            _provider.Enqueue(queueName, message);
+            _provider.Enqueue(queueName, message, !IgnoreHash);
 
             return this;
         }

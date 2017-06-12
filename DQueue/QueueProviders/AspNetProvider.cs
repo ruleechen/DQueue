@@ -52,8 +52,6 @@ namespace DQueue.QueueProviders
         }
         #endregion
 
-        public bool IgnoreHash { get; set; }
-
         public bool ExistsMessage(string queueName, object message)
         {
             if (string.IsNullOrWhiteSpace(queueName) || message == null)
@@ -68,7 +66,7 @@ namespace DQueue.QueueProviders
             return hashSet.Contains(hash);
         }
 
-        public void Enqueue(string queueName, object message)
+        public void Enqueue(string queueName, object message, bool insertHash)
         {
             if (string.IsNullOrWhiteSpace(queueName) || message == null)
             {
@@ -80,7 +78,7 @@ namespace DQueue.QueueProviders
 
             string hash = null;
             HashSet<string> hashSet = null;
-            if (!IgnoreHash)
+            if (insertHash)
             {
                 hash = json.GetMD5();
                 hashSet = GetHashSet(queueName);
@@ -97,7 +95,7 @@ namespace DQueue.QueueProviders
             {
                 queue.Add(json.AddEnqueueTime());
 
-                if (!IgnoreHash)
+                if (insertHash)
                 {
                     hashSet.Add(hash);
                 }
@@ -156,12 +154,12 @@ namespace DQueue.QueueProviders
 
                 if (message != null)
                 {
-                    handler(new ReceptionContext<TMessage>(message, rawMessage, assistant, FeedbackHandler));
+                    handler(new ReceptionContext<TMessage>(message, rawMessage, false, assistant, FeedbackHandler));
                 }
             }
         }
 
-        private void RemoveProcessingMessage<TMessage>(ReceptionAssistant<TMessage> assistant, List<string> queueProcessing, string rawMessage)
+        private static void RemoveProcessingMessage<TMessage>(ReceptionAssistant<TMessage> assistant, List<string> queueProcessing, string rawMessage)
         {
             if (rawMessage == null)
             {
@@ -178,7 +176,7 @@ namespace DQueue.QueueProviders
             catch { }
         }
 
-        private void FeedbackHandler<TMessage>(ReceptionContext<TMessage> context, DispatchStatus status)
+        private static void FeedbackHandler<TMessage>(ReceptionContext<TMessage> context, DispatchStatus status)
         {
             var assistant = context.Assistant;
             var rawMessage = (string)context.RawMessage;
@@ -196,7 +194,7 @@ namespace DQueue.QueueProviders
             }
         }
 
-        private void RequeueProcessingMessages<TMessage>(ReceptionAssistant<TMessage> assistant)
+        private static void RequeueProcessingMessages<TMessage>(ReceptionAssistant<TMessage> assistant)
         {
             var queue = GetQueue(assistant.QueueName);
 

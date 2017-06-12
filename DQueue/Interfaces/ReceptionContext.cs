@@ -9,17 +9,20 @@ namespace DQueue.Interfaces
         public ReceptionContext(
             TMessage message,
             object rawMessage,
+            bool hashExistss,
             ReceptionAssistant<TMessage> assistant,
             Action<ReceptionContext<TMessage>, DispatchStatus> feedback)
         {
             Message = message;
             RawMessage = rawMessage;
+            HashExists = hashExistss;
             Assistant = assistant;
             _feedback = feedback;
         }
 
         public TMessage Message { get; private set; }
         public object RawMessage { get; private set; }
+        public bool HashExists { get; private set; }
         public ReceptionAssistant<TMessage> Assistant { get; private set; }
         public Action OnDone { get; set; }
 
