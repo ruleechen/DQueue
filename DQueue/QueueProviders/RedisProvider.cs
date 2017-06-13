@@ -84,12 +84,16 @@ namespace DQueue.QueueProviders
 
             var database = _connectionFactory.GetDatabase();
             var subscriber = _connectionFactory.GetSubscriber();
+            var jsonMessage = message.Serialize();
 
-            Enqueue(database, subscriber, queueName, new MessageModel
+            if (!insertHash || !ExistsMessage(database, queueName, jsonMessage))
             {
-                JsonMessage = message.Serialize(),
-                InsertHash = insertHash,
-            });
+                Enqueue(database, subscriber, queueName, new MessageModel
+                {
+                    JsonMessage = jsonMessage,
+                    InsertHash = insertHash,
+                });
+            }
         }
 
         private class MessageModel
@@ -100,7 +104,10 @@ namespace DQueue.QueueProviders
 
         private static void Enqueue(IDatabase database, ISubscriber subscriber, string queueName, params MessageModel[] messageModels)
         {
-            messageModels = messageModels.Where(x => !x.InsertHash || !ExistsMessage(database, queueName, x.JsonMessage)).ToArray();
+            if (!messageModels.Any())
+            {
+                return;
+            }
 
             var messages = new List<RedisValue>();
 
