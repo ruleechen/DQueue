@@ -9,9 +9,7 @@ namespace DQueue.Infrastructure
     {
         void Error(string title, Exception ex);
         void Error(string title, string message = null);
-
         void Debug(string title, string message = null);
-
         void Info(string title, string message = null);
     }
 

@@ -8,6 +8,11 @@ using System.Threading.Tasks;
 
 namespace DQueue
 {
+    /*
+     * Do I need to dispose of Tasks?
+     * https://blogs.msdn.microsoft.com/pfxteam/2012/03/25/do-i-need-to-dispose-of-tasks/ 
+     */
+
     public class QueueConsumer<TMessage> : IQueueConsumer, IDisposable
         where TMessage : new()
     {
@@ -90,7 +95,7 @@ namespace DQueue
 
         public QueueConsumer<TMessage> Receive(int repeat, Action<DispatchContext<TMessage>> handler)
         {
-            CheckDisposed();
+            CheckIfDisposed();
 
             if (repeat <= 0)
             {
@@ -366,7 +371,7 @@ namespace DQueue
 
         public QueueConsumer<TMessage> OnComplete(Action<DispatchContext<TMessage>> handler)
         {
-            CheckDisposed();
+            CheckIfDisposed();
 
             if (handler != null)
             {
@@ -378,7 +383,7 @@ namespace DQueue
 
         public QueueConsumer<TMessage> OnTimeout(Action<DispatchContext<TMessage>> handler)
         {
-            CheckDisposed();
+            CheckIfDisposed();
 
             if (handler != null)
             {
@@ -388,7 +393,7 @@ namespace DQueue
             return this;
         }
 
-        private void CheckDisposed()
+        private void CheckIfDisposed()
         {
             if (_cts.IsCancellationRequested)
             {
@@ -417,7 +422,7 @@ namespace DQueue
 
         public bool IsAlive()
         {
-            CheckDisposed();
+            CheckIfDisposed();
             return DequeueTask != null &&
                 !DequeueTask.IsCompleted &&
                 !DequeueTask.IsFaulted;
@@ -425,7 +430,7 @@ namespace DQueue
 
         public void Rescue()
         {
-            CheckDisposed();
+            CheckIfDisposed();
             StartDequeue();
         }
     }
