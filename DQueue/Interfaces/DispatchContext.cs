@@ -79,12 +79,50 @@ namespace DQueue.Interfaces
             }
         }
 
+        /// <summary>
+        /// https://stackoverflow.com/questions/6960520/when-to-dispose-cancellationtokensource
+        /// </summary>
         public void Dispose()
         {
-            if (!OwnedCancellation.IsCancellationRequested)
+            if (LinkedCancellation != null)
             {
-                OwnedCancellation.Cancel();
+                if (!LinkedCancellation.IsCancellationRequested)
+                {
+                    LinkedCancellation.Cancel();
+                }
+
+                LinkedCancellation.Dispose();
+                LinkedCancellation = null;
             }
+
+            if (OwnedCancellation != null)
+            {
+                if (!OwnedCancellation.IsCancellationRequested)
+                {
+                    OwnedCancellation.Cancel();
+                }
+
+                OwnedCancellation.Dispose();
+                OwnedCancellation = null;
+            }
+
+            if (_exceptions != null)
+            {
+                _exceptions.Clear();
+                _exceptions = null;
+            }
+
+            if (Items != null)
+            {
+                Items.Clear();
+                Items = null;
+            }
+
+            _action = null;
+            _exceptionsLocker = null;
+
+            Locker = null;
+            Message = default(TMessage);
         }
     }
 }
