@@ -28,7 +28,7 @@ namespace DQueue
         public bool ExistsMessage<TMessage>(TMessage message)
             where TMessage : new()
         {
-            var queueName = QueueNameGenerator.GetQueueName<TMessage>();
+            var queueName = QueueNameGenerator.GetQueueName<TMessage>(message);
 
             return ExistsMessage(queueName, message);
         }
@@ -40,14 +40,13 @@ namespace DQueue
                 throw new ArgumentNullException("queueName");
             }
 
-            _provider.IgnoreHash = IgnoreHash;
             return _provider.ExistsMessage(queueName, message);
         }
 
         public QueueProducer Send<TMessage>(TMessage message)
             where TMessage : new()
         {
-            var queueName = QueueNameGenerator.GetQueueName<TMessage>();
+            var queueName = QueueNameGenerator.GetQueueName<TMessage>(message);
 
             return Send(queueName, message);
         }
@@ -59,8 +58,7 @@ namespace DQueue
                 throw new ArgumentNullException("queueName");
             }
 
-            _provider.IgnoreHash = IgnoreHash;
-            _provider.Enqueue(queueName, message);
+            _provider.Enqueue(queueName, message, !IgnoreHash);
 
             return this;
         }

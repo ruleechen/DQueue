@@ -1,7 +1,10 @@
-﻿using DQueue.Infrastructure;
+﻿using DQueue.Helpers;
+using DQueue.Infrastructure;
 using DQueue.Interfaces;
 using StackExchange.Redis;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace DQueue.QueueProviders
@@ -24,6 +27,7 @@ namespace DQueue.QueueProviders
         private const string SubscriberKey = "-$SubscriberKey$";
         private const string SubscriberValue = "-$SubscriberValue$";
         private const string HashQueuePostfix = "-$Hash$";
+        private const long DefaultHashValue = 1;
 
         private ConnectionMultiplexer _connectionFactory;
 
@@ -32,8 +36,6 @@ namespace DQueue.QueueProviders
             _connectionFactory = _redisConnectionFactory;
         }
 
-        public bool IgnoreHash { get; set; }
-
         public bool ExistsMessage(string queueName, object message)
         {
             if (string.IsNullOrWhiteSpace(queueName) || message == null)
@@ -41,41 +43,93 @@ namespace DQueue.QueueProviders
                 return false;
             }
 
-            var json = message.Serialize();
-            var hash = json.GetMD5();
-
             var database = _connectionFactory.GetDatabase();
-            return database.HashExists(queueName + HashQueuePostfix, hash);
+            return ExistsMessage(database, queueName, message.Serialize());
         }
 
-        public void Enqueue(string queueName, object message)
+        private static bool ExistsMessage(IDatabase database, string queueName, string jsonMessage)
+        {
+            var hashKey = jsonMessage.GetMD5();
+            var hashValue = database.HashGet(queueName + HashQueuePostfix, hashKey);
+
+            if (hashValue != RedisValue.Null)
+            {
+                var messagePending = (hashValue == DefaultHashValue);
+                if (messagePending)
+                {
+                    return true;
+                }
+
+                var messageProcessing = false; long utcTicks;
+                if (long.TryParse(hashValue.GetString(), out utcTicks))
+                {
+                    var consumerTimeout = (DQueueSettings.Get().ConsumerTimeout ?? Constants.DefaultTimeoutTimeSpan.AsNullableTimeSpan().Value);
+                    messageProcessing = (DateTime.UtcNow.Subtract(new DateTime(utcTicks, DateTimeKind.Utc)) <= consumerTimeout);
+                }
+                if (messageProcessing)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public void Enqueue(string queueName, object message, bool insertHash)
         {
             if (string.IsNullOrWhiteSpace(queueName) || message == null)
             {
                 return;
             }
 
-            var json = message.Serialize();
             var database = _connectionFactory.GetDatabase();
+            var subscriber = _connectionFactory.GetSubscriber();
+            var jsonMessage = message.Serialize();
 
-            string hash = null;
-            if (!IgnoreHash)
+            if (!insertHash || !ExistsMessage(database, queueName, jsonMessage))
             {
-                hash = json.GetMD5();
-                if (database.HashExists(queueName + HashQueuePostfix, hash))
+                Enqueue(database, subscriber, queueName, new MessageModel
                 {
-                    return;
+                    JsonMessage = jsonMessage,
+                    InsertHash = insertHash,
+                });
+            }
+        }
+
+        private class MessageModel
+        {
+            public string JsonMessage { get; set; }
+            public bool InsertHash { get; set; }
+        }
+
+        private static void Enqueue(IDatabase database, ISubscriber subscriber, string queueName, params MessageModel[] messageModels)
+        {
+            if (!messageModels.Any())
+            {
+                return;
+            }
+
+            var messages = new List<RedisValue>();
+
+            var hashEntities = new List<HashEntry>();
+
+            foreach (var item in messageModels)
+            {
+                messages.Add(item.JsonMessage.AddEnqueueTime());
+
+                if (item.InsertHash)
+                {
+                    hashEntities.Add(new HashEntry(item.JsonMessage.GetMD5(), DefaultHashValue));
                 }
             }
 
-            database.ListLeftPush(queueName, json.AddEnqueueTime());
+            database.ListLeftPush(queueName, messages.ToArray());
 
-            if (!IgnoreHash)
+            if (hashEntities.Any())
             {
-                database.HashSet(queueName + HashQueuePostfix, hash, 1);
+                database.HashSet(queueName + HashQueuePostfix, hashEntities.ToArray());
             }
 
-            var subscriber = _connectionFactory.GetSubscriber();
             subscriber.Publish(queueName + SubscriberKey, SubscriberValue);
         }
 
@@ -85,8 +139,6 @@ namespace DQueue.QueueProviders
             {
                 return;
             }
-
-            var receptionStatus = ReceptionStatus.None;
 
             _connectionFactory.GetSubscriber().Subscribe(assistant.QueueName + SubscriberKey, (channel, val) =>
             {
@@ -99,31 +151,25 @@ namespace DQueue.QueueProviders
                 }
             });
 
-            RequeueProcessingMessages(assistant);
+            RequeueProcessingMessages(_connectionFactory, assistant);
 
-            assistant.Cancellation.Register(() =>
+            assistant.Disposing += (s, e) =>
             {
                 _connectionFactory.GetSubscriber().Unsubscribe(assistant.QueueName + SubscriberKey);
-
-                receptionStatus = ReceptionStatus.Withdraw;
 
                 lock (assistant.DequeueLocker)
                 {
                     Monitor.PulseAll(assistant.DequeueLocker);
                 }
 
-                RequeueProcessingMessages(assistant);
-            });
+                RequeueProcessingMessages(_connectionFactory, assistant);
+            };
 
-            while (true)
+            while (!assistant.IsTerminated())
             {
-                if (receptionStatus == ReceptionStatus.Withdraw)
-                {
-                    break;
-                }
-
                 var message = default(TMessage);
                 var rawMessage = RedisValue.Null;
+                var hashExists = false;
 
                 lock (assistant.DequeueLocker)
                 {
@@ -133,26 +179,40 @@ namespace DQueue.QueueProviders
                         Monitor.Wait(assistant.DequeueLocker);
                     }
 
+                    rawMessage = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
+
+                    var jsonMessage = rawMessage.GetString();
+
+                    var hashKey = jsonMessage.RemoveEnqueueTime().GetMD5();
+
+                    hashExists = database.HashExists(assistant.QueueName + HashQueuePostfix, hashKey);
+
+                    if (hashExists)
+                    {
+                        var hashValue = DateTime.UtcNow.Ticks; // utc now for different timezone clients
+                        database.HashSet(assistant.QueueName + HashQueuePostfix, hashKey, hashValue);
+                    }
+
                     try
                     {
-                        rawMessage = database.ListRightPopLeftPush(assistant.QueueName, assistant.ProcessingQueueName);
-                        message = rawMessage.GetString().Deserialize<TMessage>();
+                        message = jsonMessage.Deserialize<TMessage>();
                     }
                     catch (Exception ex)
                     {
-                        LogFactory.GetLogger().Error(string.Format("[RedisProvider] Get Message Error! Raw Message: \"{0}\".", rawMessage), ex);
-                        RemoveProcessingMessage(assistant, database, rawMessage);
+                        RemoveProcessingMessage(database, assistant, rawMessage);
+                        LogFactory.GetLogger().Error(string.Format("[RedisProvider] Deserialize failed on raw message: \"{0}\".", rawMessage), ex);
                     }
                 }
 
                 if (message != null)
                 {
-                    handler(new ReceptionContext<TMessage>(message, rawMessage, assistant, HandlerCallback));
+                    var feedbackHandler = GetFeedbackHandler<TMessage>(_connectionFactory);
+                    handler(new ReceptionContext<TMessage>(message, rawMessage, hashExists, assistant, feedbackHandler));
                 }
             }
         }
 
-        private void RemoveProcessingMessage<TMessage>(ReceptionAssistant<TMessage> assistant, IDatabase database, RedisValue rawMessage)
+        private static void RemoveProcessingMessage<TMessage>(IDatabase database, ReceptionAssistant<TMessage> assistant, RedisValue rawMessage)
         {
             if (rawMessage == RedisValue.Null)
             {
@@ -161,35 +221,65 @@ namespace DQueue.QueueProviders
 
             try
             {
+                var hashKey = rawMessage.GetString().RemoveEnqueueTime().GetMD5();
+                database.HashDelete(assistant.QueueName + HashQueuePostfix, hashKey);
                 database.ListRemove(assistant.ProcessingQueueName, rawMessage, 1);
-                database.HashDelete(assistant.QueueName + HashQueuePostfix, rawMessage.GetString().RemoveEnqueueTime().GetMD5());
             }
             catch { }
         }
 
-        private void HandlerCallback<TMessage>(ReceptionContext<TMessage> context, ReceptionStatus status)
+        private static Action<ReceptionContext<TMessage>, DispatchStatus>
+            GetFeedbackHandler<TMessage>(ConnectionMultiplexer connection)
         {
-            var assistant = context.Assistant;
-            var rawMessage = (RedisValue)context.RawMessage;
-            var database = _connectionFactory.GetDatabase();
+            // create new action for each ReceptionContext
+            // for avoid feedback error when RedisProvider has disposed
+            return (context, status) =>
+            {
+                var assistant = context.Assistant;
+                var rawMessage = (RedisValue)context.RawMessage;
+                var database = connection.GetDatabase();
 
-            if (status == ReceptionStatus.Completed)
-            {
-                RemoveProcessingMessage(assistant, database, rawMessage);
-            }
-            else if (status == ReceptionStatus.Retry)
-            {
-                database.ListRemove(assistant.ProcessingQueueName, rawMessage, 1);
-                database.ListLeftPush(assistant.QueueName, rawMessage.GetString().RemoveEnqueueTime().AddEnqueueTime());
-            }
+                if (status == DispatchStatus.Complete)
+                {
+                    RemoveProcessingMessage(database, assistant, rawMessage);
+                }
+                else if (status == DispatchStatus.Timeout)
+                {
+                    database.ListRemove(assistant.ProcessingQueueName, rawMessage, 1);
+                    // requeue current message for a new try when timeout
+                    var jsonMessage = rawMessage.GetString().RemoveEnqueueTime();
+                    var subscriber = connection.GetSubscriber();
+                    Enqueue(database, subscriber, context.Assistant.QueueName, new MessageModel
+                    {
+                        JsonMessage = jsonMessage,
+                        InsertHash = context.HashExists,
+                    });
+                }
+            };
         }
 
-        private void RequeueProcessingMessages<TMessage>(ReceptionAssistant<TMessage> assistant)
+        private static void RequeueProcessingMessages<TMessage>(ConnectionMultiplexer connection, ReceptionAssistant<TMessage> assistant)
         {
-            var database = _connectionFactory.GetDatabase();
-            var items = database.ListRange(assistant.ProcessingQueueName);
-            database.ListRightPush(assistant.QueueName, items);
-            database.KeyDelete(assistant.ProcessingQueueName);
+            var database = connection.GetDatabase();
+            var messages = database.ListRange(assistant.ProcessingQueueName);
+            if (messages.Any())
+            {
+                var messageModels = messages.Select(x =>
+                {
+                    var jsonMessage = x.GetString().RemoveEnqueueTime();
+                    var hashKey = jsonMessage.GetMD5();
+                    var hashExists = database.HashExists(assistant.QueueName + HashQueuePostfix, hashKey);
+                    return new MessageModel
+                    {
+                        JsonMessage = jsonMessage,
+                        InsertHash = hashExists,
+                    };
+                });
+
+                var subscriber = connection.GetSubscriber();
+                Enqueue(database, subscriber, assistant.QueueName, messageModels.ToArray());
+                database.KeyDelete(assistant.ProcessingQueueName);
+            }
         }
     }
 }

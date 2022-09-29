@@ -20,25 +20,50 @@ namespace DQueue.WinTest
         {
             InitializeComponent();
 
-            var control = txtReceive;
-
             _consumer = new QueueConsumer<SampleMessage>(50);
 
             _consumer.Receive((context) =>
             {
-                Thread.Sleep(1000);
-                control.Text += string.Format("[Receiver 1, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text) + Environment.NewLine;
-                control.SelectionStart = control.Text.Length;
-                control.ScrollToCaret();
+                Thread.Sleep(3000);
+
+                if (context.DispatchStatus != DispatchStatus.None)
+                {
+                    WriteLog(string.Format("[Receiver 1, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text));
+                }
             });
 
             _consumer.Receive((context) =>
             {
-                Thread.Sleep(1100);
-                control.Text += string.Format("[Receiver 2, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text) + Environment.NewLine;
-                control.SelectionStart = control.Text.Length;
-                control.ScrollToCaret();
+                Thread.Sleep(4000);
+
+                if (context.DispatchStatus != DispatchStatus.None)
+                {
+                    WriteLog(string.Format("[Receiver 2, ThreadID {0}] -> {1}", Task.CurrentId, context.Message.Text));
+                }
             });
+
+
+            var start = DateTime.Now;
+
+            _consumer.DispatchStatusChange += (sender, ev) =>
+            {
+                if (ev.Context.DispatchStatus == DispatchStatus.None)
+                {
+                    start = DateTime.Now;
+                }
+            };
+
+            _consumer.OnTimeout((context) =>
+            {
+                WriteLog(string.Format("Timeout Elapsed: {0}", DateTime.Now - start));
+            });
+        }
+
+        private void WriteLog(string messagae)
+        {
+            txtReceive.Text += messagae + Environment.NewLine;
+            txtReceive.SelectionStart = txtReceive.Text.Length;
+            txtReceive.ScrollToCaret();
         }
 
         private void btnSend_Click(object sender, EventArgs e)

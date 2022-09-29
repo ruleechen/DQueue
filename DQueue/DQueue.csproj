@@ -42,8 +42,8 @@
       <SpecificVersion>False</SpecificVersion>
       <Private>True</Private>
     </Reference>
-    <Reference Include="StackExchange.Redis, Version=1.1.605.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\StackExchange.Redis.1.1.605\lib\net45\StackExchange.Redis.dll</HintPath>
+    <Reference Include="StackExchange.Redis, Version=1.1.608.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\StackExchange.Redis.1.1.608\lib\net45\StackExchange.Redis.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -58,10 +58,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Asserter.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="ConsumerHealth.cs" />
+    <Compile Include="Helpers\DQueueSettings.cs" />
     <Compile Include="Helpers\HashCodeGenerator.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
+    <Compile Include="HostHeartbeats.cs" />
+    <Compile Include="Interfaces\DispatchEventArgs.cs" />
     <Compile Include="Interfaces\IConsumerService.cs" />
     <Compile Include="Interfaces\IQueueConsumer.cs" />
     <Compile Include="QueueProviderFactory.cs" />
@@ -92,6 +96,7 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

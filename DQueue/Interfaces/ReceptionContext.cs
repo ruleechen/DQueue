@@ -4,26 +4,33 @@ namespace DQueue.Interfaces
 {
     public class ReceptionContext<TMessage>
     {
-        private Action<ReceptionContext<TMessage>, ReceptionStatus> _action;
+        private Action<ReceptionContext<TMessage>, DispatchStatus> _feedback;
 
-        public ReceptionContext(TMessage message, object rawMessage, ReceptionAssistant<TMessage> assistant, Action<ReceptionContext<TMessage>, ReceptionStatus> action)
+        public ReceptionContext(
+            TMessage message,
+            object rawMessage,
+            bool hashExistss,
+            ReceptionAssistant<TMessage> assistant,
+            Action<ReceptionContext<TMessage>, DispatchStatus> feedback)
         {
             Message = message;
             RawMessage = rawMessage;
+            HashExists = hashExistss;
             Assistant = assistant;
-            _action = action;
+            _feedback = feedback;
         }
 
         public TMessage Message { get; private set; }
         public object RawMessage { get; private set; }
+        public bool HashExists { get; private set; }
         public ReceptionAssistant<TMessage> Assistant { get; private set; }
         public Action OnDone { get; set; }
 
-        private void EmitStatus(ReceptionStatus status)
+        private void EmitFeedback(DispatchStatus status)
         {
-            if (_action != null)
+            if (_feedback != null)
             {
-                _action.Invoke(this, status);
+                _feedback.Invoke(this, status);
             }
 
             if (OnDone != null)
@@ -32,26 +39,21 @@ namespace DQueue.Interfaces
             }
         }
 
-        public void Success()
+        public void FeedbackSuccess()
         {
-            EmitStatus(ReceptionStatus.Completed);
+            EmitFeedback(DispatchStatus.Complete);
         }
 
-        public void Timeout()
+        public void FeedbackTimeout()
         {
             if (Constants.RetryOnTimeout)
             {
-                EmitStatus(ReceptionStatus.Retry);
+                EmitFeedback(DispatchStatus.Timeout);
             }
             else
             {
-                EmitStatus(ReceptionStatus.Completed);
+                EmitFeedback(DispatchStatus.Complete);
             }
-        }
-
-        public void Withdraw()
-        {
-            EmitStatus(ReceptionStatus.Withdraw);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using DQueue.Infrastructure;
+﻿using DQueue.Helpers;
 using DQueue.Interfaces;
 using DQueue.QueueProviders;
 using System;
@@ -35,16 +35,7 @@ namespace DQueue
         {
             if (provider == QueueProvider.Configured)
             {
-                QueueProvider outProvider;
-                var strProvider = ConfigSource.FirstAppSetting("DQueue.Provider", "QueueProvider");
-                if (Enum.TryParse<QueueProvider>(strProvider, true, out outProvider))
-                {
-                    provider = outProvider;
-                }
-                else
-                {
-                    throw new ArgumentException("Can not support queue provider: " + strProvider);
-                }
+                provider = DQueueSettings.Get().Provider;
             }
 
             if (provider == QueueProvider.Redis)

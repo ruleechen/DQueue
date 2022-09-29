@@ -8,6 +8,11 @@ using System.Threading.Tasks;
 
 namespace DQueue
 {
+    /*
+     * Do I need to dispose of Tasks?
+     * https://blogs.msdn.microsoft.com/pfxteam/2012/03/25/do-i-need-to-dispose-of-tasks/ 
+     */
+
     public class QueueConsumer<TMessage> : IQueueConsumer, IDisposable
         where TMessage : new()
     {
@@ -15,10 +20,12 @@ namespace DQueue
 
         private readonly QueueProvider _provider;
         private readonly CancellationTokenSource _cts;
+        private ReceptionAssistant<TMessage> _assistant;
 
         private readonly List<Action<DispatchContext<TMessage>>> _messageHandlers;
         private readonly List<Action<DispatchContext<TMessage>>> _timeoutHandlers;
         private readonly List<Action<DispatchContext<TMessage>>> _completeHandlers;
+        public event EventHandler<DispatchEventArgs<TMessage>> DispatchStatusChange;
 
         public string HostId { get; private set; }
         public string QueueName { get; private set; }
@@ -43,14 +50,16 @@ namespace DQueue
 
         public QueueConsumer(string queueName, int maximumThreads)
         {
+            var settings = DQueueSettings.Get();
+
             MaximumThreads = maximumThreads;
-            HostId = ConfigSource.GetAppSetting("DQueue.HostId");
+            HostId = settings.HostId;
             QueueName = queueName ?? QueueNameGenerator.GetQueueName<TMessage>();
-            Timeout = ConfigSource.FirstAppSetting("DQueue.ConsumerTimeout", "ConsumerTimeout").AsNullableTimeSpan();
+            Timeout = settings.ConsumerTimeout;
 
             if (string.IsNullOrWhiteSpace(HostId))
             {
-                throw new ArgumentNullException("HostId");
+                throw new ArgumentNullException("HostId is required");
             }
 
             if (string.IsNullOrWhiteSpace(QueueName))
@@ -86,7 +95,7 @@ namespace DQueue
 
         public QueueConsumer<TMessage> Receive(int repeat, Action<DispatchContext<TMessage>> handler)
         {
-            CheckDisposed();
+            CheckIfDisposed();
 
             if (repeat <= 0)
             {
@@ -107,6 +116,7 @@ namespace DQueue
 
             if (count == 0)
             {
+                Asserter.Trigger();
                 StartDequeue();
             }
 
@@ -117,16 +127,18 @@ namespace DQueue
         {
             DequeueTask = Task.Run(() =>
             {
-                var assistant = new ReceptionAssistant<TMessage>(HostId, QueueName, _cts.Token);
+                _assistant = new ReceptionAssistant<TMessage>(HostId, QueueName);
 
                 try
                 {
                     var provider = QueueProviderFactory.CreateProvider(_provider);
-                    provider.Dequeue<TMessage>(assistant, Pooling);
+                    provider.Dequeue<TMessage>(_assistant, Pooling);
                 }
                 catch (Exception ex)
                 {
-                    LogFactory.GetLogger().Error(string.Format("Receive Task Error for queue \"{0}\".", assistant.QueueName), ex);
+                    LogFactory.GetLogger().Error(string.Format("Receive Task Error for queue \"{0}\".", _assistant.QueueName), ex);
+                    _assistant.Dispose();
+                    _assistant = null;
                 }
 
             }, _cts.Token);
@@ -252,7 +264,7 @@ namespace DQueue
 
         private void DispatchMessage(ReceptionContext<TMessage> receptionContext)
         {
-            var timeout = Timeout.HasValue ? Timeout.Value : Constants.DefaultTimeoutMilliseconds.AsNullableTimeSpan().Value;
+            var timeout = Timeout.HasValue ? Timeout.Value : Constants.DefaultTimeoutTimeSpan.AsNullableTimeSpan().Value;
 
             var dispatchContext = new DispatchContext<TMessage>(
                 receptionContext.Message, timeout, _cts, (sender, status) =>
@@ -266,6 +278,8 @@ namespace DQueue
                     ContinueOnTimeout(receptionContext, sender);
                 }
             });
+
+            EmitDispatchStatusChange(dispatchContext);
 
             try
             {
@@ -308,6 +322,8 @@ namespace DQueue
                 {
                     if (!dispatchContext.OwnedCancellation.IsCancellationRequested)
                     {
+                        EmitDispatchStatusChange(dispatchContext);
+
                         foreach (var complete in _completeHandlers)
                         {
                             try { complete(dispatchContext); }
@@ -315,7 +331,7 @@ namespace DQueue
                         }
 
                         dispatchContext.Dispose();
-                        receptionContext.Success();
+                        receptionContext.FeedbackSuccess();
                     }
                 }
             }
@@ -329,6 +345,8 @@ namespace DQueue
                 {
                     if (!dispatchContext.OwnedCancellation.IsCancellationRequested)
                     {
+                        EmitDispatchStatusChange(dispatchContext);
+
                         foreach (var timeout in _timeoutHandlers)
                         {
                             try { timeout(dispatchContext); }
@@ -336,15 +354,24 @@ namespace DQueue
                         }
 
                         dispatchContext.Dispose();
-                        receptionContext.Timeout();
+                        receptionContext.FeedbackTimeout();
                     }
                 }
             }
         }
 
+        private void EmitDispatchStatusChange(DispatchContext<TMessage> dispatchContext)
+        {
+            if (DispatchStatusChange != null)
+            {
+                var args = new DispatchEventArgs<TMessage>(dispatchContext);
+                try { DispatchStatusChange.Invoke(this, args); } catch { }
+            }
+        }
+
         public QueueConsumer<TMessage> OnComplete(Action<DispatchContext<TMessage>> handler)
         {
-            CheckDisposed();
+            CheckIfDisposed();
 
             if (handler != null)
             {
@@ -356,7 +383,7 @@ namespace DQueue
 
         public QueueConsumer<TMessage> OnTimeout(Action<DispatchContext<TMessage>> handler)
         {
-            CheckDisposed();
+            CheckIfDisposed();
 
             if (handler != null)
             {
@@ -366,7 +393,7 @@ namespace DQueue
             return this;
         }
 
-        private void CheckDisposed()
+        private void CheckIfDisposed()
         {
             if (_cts.IsCancellationRequested)
             {
@@ -382,6 +409,12 @@ namespace DQueue
                 _cts.Dispose();
             }
 
+            if (_assistant != null)
+            {
+                _assistant.Dispose();
+                _assistant = null;
+            }
+
             _messageHandlers.Clear();
             _timeoutHandlers.Clear();
             _completeHandlers.Clear();
@@ -389,8 +422,7 @@ namespace DQueue
 
         public bool IsAlive()
         {
-            CheckDisposed();
-
+            CheckIfDisposed();
             return DequeueTask != null &&
                 !DequeueTask.IsCompleted &&
                 !DequeueTask.IsFaulted;
@@ -398,8 +430,7 @@ namespace DQueue
 
         public void Rescue()
         {
-            CheckDisposed();
-
+            CheckIfDisposed();
             StartDequeue();
         }
     }

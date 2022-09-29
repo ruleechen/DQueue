@@ -1,4 +1,5 @@
-﻿using DQueue.Infrastructure;
+﻿using DQueue.Helpers;
+using DQueue.Infrastructure;
 using DQueue.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -51,8 +52,6 @@ namespace DQueue.QueueProviders
         }
         #endregion
 
-        public bool IgnoreHash { get; set; }
-
         public bool ExistsMessage(string queueName, object message)
         {
             if (string.IsNullOrWhiteSpace(queueName) || message == null)
@@ -67,7 +66,7 @@ namespace DQueue.QueueProviders
             return hashSet.Contains(hash);
         }
 
-        public void Enqueue(string queueName, object message)
+        public void Enqueue(string queueName, object message, bool insertHash)
         {
             if (string.IsNullOrWhiteSpace(queueName) || message == null)
             {
@@ -79,7 +78,7 @@ namespace DQueue.QueueProviders
 
             string hash = null;
             HashSet<string> hashSet = null;
-            if (!IgnoreHash)
+            if (insertHash)
             {
                 hash = json.GetMD5();
                 hashSet = GetHashSet(queueName);
@@ -89,14 +88,14 @@ namespace DQueue.QueueProviders
                 }
             }
 
-            var hostId = ConfigSource.GetAppSetting("DQueue.HostId");
+            var hostId = DQueueSettings.Get().HostId;
             var dequeueLocker = ReceptionAssistant.GetLocker(queueName + string.Format(Constants.DequeueLockerFlag, hostId));
 
             lock (dequeueLocker)
             {
                 queue.Add(json.AddEnqueueTime());
 
-                if (!IgnoreHash)
+                if (insertHash)
                 {
                     hashSet.Add(hash);
                 }
@@ -112,29 +111,20 @@ namespace DQueue.QueueProviders
                 return;
             }
 
-            var receptionStatus = ReceptionStatus.None;
-
             RequeueProcessingMessages(assistant);
 
-            assistant.Cancellation.Register(() =>
+            assistant.Disposing += (s, e) =>
             {
-                receptionStatus = ReceptionStatus.Withdraw;
-
                 lock (assistant.DequeueLocker)
                 {
                     Monitor.PulseAll(assistant.DequeueLocker);
                 }
 
                 RequeueProcessingMessages(assistant);
-            });
+            };
 
-            while (true)
+            while (!assistant.IsTerminated())
             {
-                if (receptionStatus == ReceptionStatus.Withdraw)
-                {
-                    break;
-                }
-
                 var message = default(TMessage);
                 var rawMessage = default(string);
 
@@ -164,12 +154,12 @@ namespace DQueue.QueueProviders
 
                 if (message != null)
                 {
-                    handler(new ReceptionContext<TMessage>(message, rawMessage, assistant, HandlerCallback));
+                    handler(new ReceptionContext<TMessage>(message, rawMessage, false, assistant, FeedbackHandler));
                 }
             }
         }
 
-        private void RemoveProcessingMessage<TMessage>(ReceptionAssistant<TMessage> assistant, List<string> queueProcessing, string rawMessage)
+        private static void RemoveProcessingMessage<TMessage>(ReceptionAssistant<TMessage> assistant, List<string> queueProcessing, string rawMessage)
         {
             if (rawMessage == null)
             {
@@ -186,25 +176,25 @@ namespace DQueue.QueueProviders
             catch { }
         }
 
-        private void HandlerCallback<TMessage>(ReceptionContext<TMessage> context, ReceptionStatus status)
+        private static void FeedbackHandler<TMessage>(ReceptionContext<TMessage> context, DispatchStatus status)
         {
             var assistant = context.Assistant;
             var rawMessage = (string)context.RawMessage;
             var queue = GetQueue(assistant.QueueName);
             var queueProcessing = GetQueue(assistant.ProcessingQueueName);
 
-            if (status == ReceptionStatus.Completed)
+            if (status == DispatchStatus.Complete)
             {
                 RemoveProcessingMessage(context.Assistant, queueProcessing, rawMessage);
             }
-            else if (status == ReceptionStatus.Retry)
+            else if (status == DispatchStatus.Timeout)
             {
                 queueProcessing.Remove(rawMessage);
                 queue.Add(rawMessage.RemoveEnqueueTime().AddEnqueueTime());
             }
         }
 
-        private void RequeueProcessingMessages<TMessage>(ReceptionAssistant<TMessage> assistant)
+        private static void RequeueProcessingMessages<TMessage>(ReceptionAssistant<TMessage> assistant)
         {
             var queue = GetQueue(assistant.QueueName);
 

@@ -21,8 +21,9 @@ Sample Configuration
 <?xml version="1.0" encoding="utf-8" ?>
 <configuration>
   <appSettings>
-    <add key="QueueProvider" value="Redis" />
-    <add key="ConsumerTimeout" value="60" /><!--60 seconds, or with the timespan format: 00:01:00-->
+    <add key="DQueue.HostId" value="Prod" />  
+    <add key="DQueue.Provider" value="Redis" />
+    <add key="DQueue.ConsumerTimeout" value="00:02:00" />
   </appSettings>
   <connectionStrings>
     <add name="Redis_Connection" connectionString="127.0.0.1:6379,password=,allowAdmin=true" />
@@ -105,3 +106,8 @@ Updates 2016.10.10 (V2)
 3. Introduced health monitor for consumers with Diagnose/Rescue/Report functions
 4. Fix redis provider connection issue on some unexpected environment
 5. Make many optimizations
+
+Updates 2017.06.12 (V2.0.1)
+------------
+1. new mechanism for message hash
+2. fix bug on re-queue processing messages
